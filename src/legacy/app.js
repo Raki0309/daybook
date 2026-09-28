@@ -1434,7 +1434,8 @@ function sSettings() {
 let healthInfo, healthToken = null, healthBusy = false;
 async function refreshHealthInfo() { try { healthInfo = await healthTokenInfo() || null; } catch { healthInfo = null; } if (stack.length) paintSheet(); if (ui.tab === "train") scheduleRender(); }
 function sHealth() {
-  const ep = cloudConfig.url + "/rest/v1/rpc/ingest_health";
+  // The public app key rides in the address, so the Shortcut needs no headers.
+  const ep = cloudConfig.url + "/rest/v1/rpc/ingest_health?apikey=" + encodeURIComponent(cloudConfig.key);
   const code = (id, v) => `<div class="row" style="gap:8px;align-items:stretch"><div class="health-code grow" id="${id}">${esc(v)}</div><button class="btn sm ghost" data-act="copy-text" data-src="${id}">Copy</button></div>`;
   return () => sheetHead("iPhone Health sync") + `<div class="stack" style="gap:16px">
     <p class="small muted">Apple only lets apps from the App Store read Health, so a Shortcut on your iPhone reads your steps and sends them here. You set it up once, then it runs by itself every evening.</p>
@@ -1442,9 +1443,8 @@ function sHealth() {
       ${healthToken ? `<p class="small">Copy it now. For your safety it's only shown this once.</p>${code("hk-token", healthToken)}`
         : `<p class="small muted">${healthInfo ? "A key already exists. Making a new one stops the old Shortcut until you paste the new key into it." : "The Shortcut uses this key to send steps to your account, and nothing else."}</p><button class="btn ${healthInfo ? "ghost" : "pri"}" data-act="health-token" ${healthBusy ? "disabled" : ""}>${healthInfo ? "Make a new key" : "Create my key"}</button>`}
     </section>
-    <section class="stack" style="gap:8px"><div class="label">2 · Two values for the Shortcut</div>
-      <span class="small muted">Address</span>${code("hk-url", ep)}
-      <span class="small muted">App key (public)</span>${code("hk-key", cloudConfig.key)}
+    <section class="stack" style="gap:8px"><div class="label">2 · The address for the Shortcut</div>
+      ${code("hk-url", ep)}
     </section>
     <section class="stack" style="gap:8px"><div class="label">3 · Build the Shortcut</div>
       <ol class="small muted howto">
@@ -1454,7 +1454,7 @@ function sHealth() {
         <li>Inside the repeat, add <b>Format Date</b> on Repeat Item's <b>Start Date</b>, with Date Format <b>Custom</b> and <b>yyyy-MM-dd</b>.</li>
         <li>Still inside, add a <b>Text</b> action with <b>Formatted Date</b>, a space, then Repeat Item's <b>Value</b>.</li>
         <li>After End Repeat, add <b>Combine Text</b> on Repeat Results, with <b>New Lines</b>.</li>
-        <li>Add <b>Get Contents of URL</b> with the address above. Tap the arrow and set Method to <b>POST</b>. Under Headers add <b>apikey</b> with the app key. Set Request Body to <b>JSON</b> and add two Text fields: <b>p_token</b> with your personal key, and <b>p_text</b> with the Combined Text.</li>
+        <li>Add <b>Get Contents of URL</b> with the address above. Tap the arrow and set Method to <b>POST</b>. Leave Headers empty. Set Request Body to <b>JSON</b> and add two Text fields: <b>p_token</b> with your personal key, and <b>p_text</b> with the Combined Text.</li>
         <li>Run it once. Your steps show up in Train › Steps within a few seconds.</li>
       </ol>
     </section>

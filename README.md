@@ -20,7 +20,7 @@ Deletes are soft (`deleted = true`) so Realtime can filter every change per user
 
 ## Apple Health
 
-A web app can't read HealthKit, so an iPhone Shortcut sends daily step totals to `POST /rest/v1/rpc/ingest_health` with a personal key (`p_token`) and lines like `2026-09-27 10432` (`p_text`). The key is created in Settings › Apple Health; only its SHA-256 hash is stored. The step-by-step Shortcut guide is inside the app. The function is callable without signing in on purpose (the Supabase security advisor flags it); it does nothing without a valid key.
+A web app can't read HealthKit, so an iPhone Shortcut sends daily step totals to `POST /rest/v1/rpc/ingest_health?apikey=<publishable key>` (the key sits in the address so the Shortcut needs no headers) with a personal key (`p_token`) and lines like `2026-09-27 10432` (`p_text`). The key is created in Settings › Apple Health; only its SHA-256 hash is stored. The step-by-step Shortcut guide is inside the app. The function is callable without signing in on purpose (the Supabase security advisor flags it); it does nothing without a valid key.
 
 ## Develop
 

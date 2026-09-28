@@ -69,7 +69,8 @@ function mockBackend() {
   // health setup
   await p.click('[data-act="health-setup"] >> nth=0'); await p.waitForSelector('#sheet [data-act="health-token"]');
   await p.click('#sheet [data-act="health-token"]'); await p.waitForSelector("#hk-token");
-  console.log("token shown:", (await p.textContent("#hk-token")).length, "chars; url:", await p.textContent("#hk-url"));
+  const hkUrl = await p.textContent("#hk-url"); if (!/\/rest\/v1\/rpc\/ingest_health\?apikey=sb_/.test(hkUrl)) throw new Error("health address lacks the app key: " + hkUrl);
+  console.log("token shown:", (await p.textContent("#hk-token")).length, "chars; url:", hkUrl);
   await p.screenshot({ path: "e2e/shot-health.png", fullPage: false });
   await p.click("#sheet [data-act=close]");
   // restore an old Daybook backup
