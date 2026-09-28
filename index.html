@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Daybook</title>
+<meta name="theme-color" content="#eef0f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0c12" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Daybook">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+</head>
+<body>
+<section id="auth" class="auth" hidden>
+  <div class="auth-card">
+    <div class="brand"><span class="brandmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg></span>Daybook</div>
+    <h1 id="auth-title">Sign in</h1>
+    <p class="muted small" id="auth-sub">Your habits, food, money and training, on every device.</p>
+    <form id="auth-form" class="stack" style="gap:12px" novalidate>
+      <label class="field"><span>Email</span><input id="auth-email" name="email" type="email" autocomplete="email" required></label>
+      <label class="field"><span>Password</span><input id="auth-pass" name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+      <button class="btn pri block" id="auth-go">Sign in</button>
+      <p id="auth-msg" class="small" role="status" hidden></p>
+    </form>
+    <button class="linkbtn" id="auth-switch" type="button">New here? Create an account</button>
+  </div>
+</section>
+
+<div class="app" hidden>
+  <nav class="side" aria-label="Sections">
+    <div class="brand"><span class="brandmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg></span>Daybook</div>
+    <div id="sidenav"></div>
+    <div class="foot">
+      <div id="syncSide"></div>
+      <button class="navbtn" data-act="settings"><span data-icon="gear"></span>Settings</button>
+    </div>
+  </nav>
+  <main id="view" tabindex="-1"></main>
+  <nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
+</div>
+<div id="restbar" hidden></div>
+<div id="scrim" hidden></div>
+<section id="sheet" role="dialog" aria-modal="true" hidden></section>
+<div id="toast" role="status" hidden></div>
+<div id="tip" hidden></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
