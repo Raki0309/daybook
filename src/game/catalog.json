@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "currencies": {
+    "gold": "Gold",
+    "essence": "Golden Seeds",
+    "xp": "XP"
+  },
   "slots": [
     {
       "id": "head",
@@ -1146,6 +1151,42 @@
         "level"
       ],
       "purchasable": false
+    },
+    {
+      "id": "item.scroll-of-grace",
+      "name": "Scroll of Grace",
+      "type": "consumable",
+      "rarity": "uncommon",
+      "text": "Rest on a missed day: no HP lost and your streaks stay.",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true,
+      "kind": "scroll"
+    },
+    {
+      "id": "item.flask-of-crimson-tears",
+      "name": "Flask of Crimson Tears",
+      "type": "consumable",
+      "rarity": "common",
+      "text": "Drink to restore HP.",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true,
+      "kind": "flask"
+    },
+    {
+      "id": "item.memory-stone",
+      "name": "Memory Stone",
+      "type": "upgrade",
+      "rarity": "rare",
+      "text": "One more daily quest earns rewards each day. Permanent.",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true,
+      "kind": "stone"
     }
   ],
   "bosses": [
@@ -1177,6 +1218,25 @@
       ]
     }
   ],
+  "bounties": {
+    "text": {
+      "steps": "Walk {n} steps this week",
+      "workouts": "Finish {n} workouts this week",
+      "learning": "Reach your learning goal on {n} days",
+      "allclear": "Clear every daily on {n} days",
+      "quests": "Complete {n} daily quests this week"
+    },
+    "names": [
+      "Hunt the Crucible Knight",
+      "Track the Night's Cavalry",
+      "Clear the Evergaol",
+      "Slay the Tree Sentinel",
+      "Drive off the Bell Bearing Hunter",
+      "Face the Black Knife Assassin",
+      "Break the Deathbird's vigil",
+      "Seal the Erdtree Avatar"
+    ]
+  },
   "classes": [
     {
       "id": "warrior",

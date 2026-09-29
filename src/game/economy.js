@@ -4,9 +4,10 @@ export const ECONOMY = {
   version: 2,
 
   // XP to go from level L to L+1 is round(base × L^exp). With every daily done (4 dailies
-  // plus the all-clear), level 10 takes about 3 weeks and level 50 about a year.
-  xp: { base: 85, exp: 0.8, levelCap: 99 },
-  levelUp: { gold: 100, fullHeal: true },
+  // plus the all-clear) and both weekly bounties, level 10 takes about 3 weeks and level 50
+  // about a year.
+  xp: { base: 100, exp: 0.8, levelCap: 99 },
+  levelUp: { gold: 100, fullHeal: true, essenceEvery: 5 }, // +1 Golden Seed every 5 levels
 
   // Rewards per completed quest, before the verified and streak multipliers.
   earn: {
@@ -38,8 +39,8 @@ export const ECONOMY = {
     rare: { color: "#3B82F6", gold: 1200, level: 8 },
     epic: { color: "#A855F7", gold: 2500, level: 15 },
     legendary: { color: "#F59E0B", gold: 5000, level: 20 },
-    // About 6 months of quest Gold for a mythic weapon (20,000 × 1.25).
-    mythic: { color: "#EF4444", gold: 20000, level: 30 },
+    // About 6 months of full-effort Gold for a mythic weapon (28,000 × 1.25).
+    mythic: { color: "#EF4444", gold: 28000, level: 30 },
   },
   rarityOrder: ["common", "uncommon", "rare", "epic", "legendary", "mythic"],
   slotMult: { chest: 1.5, weapon: 1.25, head: 1, legs: 1, arms: 0.75, talisman: 1 },
@@ -51,6 +52,23 @@ export const ECONOMY = {
     slotsStart: 1, slotsMax: 4,
     caps: { goldPct: 5, xpPct: 5, dmgPct: 50, maxHp: 60, heal: 4, streakRate: 1 },
     pouch: { gold: 5000, level: 20 }, // the one pouch the Armory sells; the rest drop from bosses
+  },
+
+  // Consumables and upgrades from the Armory's Items section, bought with Gold.
+  items: {
+    "item.scroll-of-grace": { gold: 300, hold: 2 }, // a rest day: no HP lost and no streak broken
+    "item.flask-of-crimson-tears": { gold: 100, hold: 3, hp: 25 },
+    "item.memory-stone": { gold: 1500, hold: 3 }, // +1 reward-earning daily slot, for good
+  },
+  // Rekindle a streak broken in the last 2 days, for Golden Seeds (Essence), once a month.
+  rekindle: { essence: 15, withinDays: 2, cooldownDays: 30 },
+  // Two weekly bounties, picked from the ones your quests make possible and scaled to them.
+  bounties: {
+    perWeek: 2, reward: { xp: 100, gold: 150, essence: 1 },
+    steps: { ofGoalWeek: 0.9, round: 5000 }, // 90% of a week at your step goal
+    learning: { days: 5 },
+    allclear: { days: 5 },
+    quests: { ofScheduled: 0.8 },
   },
 
   // Spirit Ashes (bought, then awakened by completing quests), NPC companions (unlocked by a

@@ -254,7 +254,8 @@ test("the Hand of Malenia costs about six months of full-effort Gold, or drops f
   const hand = item("gear.weapon.hand-of-malenia");
   const p = G.itemPrice(hand, E);
   // Steady full effort: 4 dailies and the all-clear at the capped streak bonus, plus level-up Gold.
-  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).gold + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).gold + E.levelUp.gold * 50 / 365;
+  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).gold + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).gold
+    + E.bounties.perWeek * E.bounties.reward.gold / 7 + E.levelUp.gold * 50 / 365;
   const days = p.gold / perDay;
   assert.ok(days > 150 && days < 210, `${Math.round(days)} days of Gold`);
   assert.ok(hand.source.includes("boss.malenia"));
@@ -326,10 +327,10 @@ test("full daily completion reaches the pacing targets in the right ballpark", (
   const days = k => Math.round((G.parseKey(k) - G.parseKey("2026-01-01")) / 864e5) + 1;
   assert.ok(days(levelOn[5]) <= 10, `level 5 on day ${days(levelOn[5])}`);
   assert.ok(days(levelOn[10]) <= 28, `level 10 on day ${days(levelOn[10])}`);
-  // Level 50 takes about a year of the same effort (steady state, capped streak bonus, weekly task).
+  // Level 50 takes about a year of the same effort (steady state, capped streak bonus, both bounties).
   let need = 0; for (let L = 1; L < 50; L++) need += G.xpToNext(L, E);
-  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).xp + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).xp;
-  assert.ok(need / perDay > 320 && need / perDay < 400, `level 50 in about ${Math.round(need / perDay)} days`);
+  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).xp + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).xp + E.bounties.perWeek * E.bounties.reward.xp / 7;
+  assert.ok(need / perDay > 330 && need / perDay < 400, `level 50 in about ${Math.round(need / perDay)} days`);
 });
 
 test("each quest type keeps its own streak; frozen days remember them", () => {
@@ -386,4 +387,71 @@ test("NPC companions unlock from a long streak of one quest type; ashes are sold
   assert.equal(ashes.length, 5);
   assert.equal(G.itemPrice(ashes.find(a => a.id === "ash.lone-wolf"), E).gold, E.rarities.common.gold);
   assert.equal(G.shopItems(C, "npc", E).length, 0, "companions can't be bought");
+});
+
+const buyEntry = (id, n = 0) => ({ id: `buy:${id}:${n}`, date: "2026-09-01", cur: "gold", amt: -E.items[id].gold, src: "armory", srcId: id });
+test("a Scroll of Grace turns a missed day into a rest: no damage, streaks kept", () => {
+  const w = world("2026-09-01", 2);
+  for (let k = "2026-09-01"; k <= "2026-09-06"; k = G.addKey(k, 1)) if (k !== "2026-09-04") doAll(w, k);
+  w.ledger["b1"] = buyEntry("item.scroll-of-grace", 1); w.ledger["b2"] = buyEntry("item.scroll-of-grace", 2);
+  let r = G.simulate({ ...w, now: at("2026-09-06", 21), canWrite: false, E, C });
+  assert.equal(r.streak, 2, "the miss on the 4th broke it");
+  assert.equal(r.held["item.scroll-of-grace"], 2);
+  w.game.rests = ["2026-09-04"];
+  r = G.simulate({ ...w, now: at("2026-09-06", 21), canWrite: false, E, C });
+  assert.equal(r.streak, 5, "the rest day keeps it going");
+  assert.equal(r.streaks.discipline.cur, 5);
+  assert.equal(r.held["item.scroll-of-grace"], 1);
+  assert.equal(r.hp, r.maxHp, "and costs no HP");
+  assert.deepEqual(G.canBuy(C.items.find(i => i.id === "item.scroll-of-grace"), { level: 1, gold: 9999, owned: 2 }, E), { ok: false, reason: "full", hold: 2 });
+});
+
+test("a settled break can be rekindled with Golden Seeds, once a month", () => {
+  const w = world("2026-09-01", 1);
+  for (let k = "2026-09-01"; k <= "2026-09-10"; k = G.addKey(k, 1)) { if (k !== "2026-09-08") doAll(w, k); open(w, at(k, 21)); }
+  let r = open(w, at("2026-09-10", 22));
+  assert.deepEqual(r.rekindle, { date: "2026-09-08", streak: 7, cost: E.rekindle.essence, ready: true, next: null });
+  assert.equal(r.streak, 2);
+  w.game.rekindles = ["2026-09-08"];
+  r = open(w, at("2026-09-10", 22));
+  assert.equal(r.streak, 9, "7 before the break, then the 9th and 10th");
+  assert.equal(r.rekindle, null);
+  // Another break within the month can't be rekindled yet.
+  for (let k = "2026-09-11"; k <= "2026-09-14"; k = G.addKey(k, 1)) { if (k !== "2026-09-12") doAll(w, k); open(w, at(k, 21)); }
+  r = open(w, at("2026-09-14", 22));
+  assert.equal(r.rekindle.ready, false); assert.equal(r.rekindle.next, G.addKey("2026-09-08", E.rekindle.cooldownDays));
+});
+
+test("flasks heal, Memory Stones add reward slots, and every fifth level gives a Golden Seed", () => {
+  const w = world("2026-09-01", 7);
+  for (let k = "2026-09-01"; k <= "2026-09-03"; k = G.addKey(k, 1)) { w.data.habits.slice(0, 2).forEach(h => { h.done[k] = 1; }); open(w, at(k, 21)); }
+  const hurt = open(w, at("2026-09-03", 22));
+  w.game.flasks = ["2026-09-03"];
+  const healed = G.simulate({ ...w, now: at("2026-09-03", 22), canWrite: false, E, C });
+  assert.equal(healed.hp, Math.min(healed.maxHp, hurt.hp + E.items["item.flask-of-crimson-tears"].hp));
+  assert.equal(hurt.slots, E.slots.start);
+  w.ledger["m1"] = buyEntry("item.memory-stone", 1);
+  assert.equal(G.simulate({ ...w, now: at("2026-09-03", 22), canWrite: false, E, C }).slots, E.slots.start + 1);
+  const rich = world("2026-09-01", 1); rich.ledger.x = { id: "x", date: "2026-09-01", cur: "xp", amt: 20000, src: "quest", srcId: "x" };
+  const r = G.simulate({ ...rich, now: at("2026-09-01", 22), canWrite: true, E, C });
+  const seeds = r.ledgerWrites.filter(e => e.cur === "essence");
+  assert.equal(seeds.length, Math.floor(r.level / E.levelUp.essenceEvery));
+  assert.equal(r.essence, seeds.length);
+});
+
+test("weekly bounties start the first full week, pay XP, Gold and a Golden Seed once, and can be undone", () => {
+  const w = world("2026-09-03", 3); // a Thursday
+  const first = open(w, at("2026-09-03", 21));
+  assert.deepEqual(first.bounties, [], "no bounties in the partial first week");
+  for (let k = "2026-09-03"; k <= "2026-09-13"; k = G.addKey(k, 1)) { doAll(w, k); open(w, at(k, 21)); }
+  const r = open(w, at("2026-09-13", 22)); // Sunday of the first full week
+  assert.equal(r.bounties.length, E.bounties.perWeek);
+  assert.ok(r.bounties.every(b => b.done && b.id.startsWith("bty:2026-W37:")), JSON.stringify(r.bounties.map(b => b.id)));
+  for (const b of r.bounties) for (const cur of ["xp", "gold", "essence"]) assert.equal(w.ledger[`${b.id}:${cur}`].amt, E.bounties.reward[cur]);
+  assert.deepEqual(G.simulate({ ...w, now: at("2026-09-13", 23), canWrite: false, E, C }).bounties.map(b => b.id), r.bounties.map(b => b.id), "stable within the week");
+  // Undo most of Sunday: an all-clear or quest-count bounty falls short and its rewards drop to zero.
+  w.data.habits.forEach(h => { delete h.done["2026-09-13"]; delete h.done["2026-09-12"]; });
+  const u = open(w, at("2026-09-13", 23));
+  assert.ok(u.bounties.some(b => !b.done));
+  for (const b of u.bounties.filter(b => !b.done)) assert.equal(w.ledger[`${b.id}:gold`].amt, 0);
 });

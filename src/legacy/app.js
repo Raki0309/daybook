@@ -1460,6 +1460,8 @@ const fv = (f, n) => { const el = f.elements.namedItem(n); return el ? el.value 
 const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; return `<div class="multi wdays" role="group" aria-label="${label}"><input type="hidden" name="${name}" value="${on.join(",")}">${ALL_WD.map(i => `<button type="button" class="chip" data-act="multi" data-v="${i}" aria-pressed="${on.includes(i)}" aria-label="${wdName(i, "long")}">${wdName(i)}</button>`).join("")}</div>`; };
 const coin = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="var(--gold)"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="var(--gold-ink)" stroke-opacity=".4" stroke-width="1.4"/></svg>`;
 const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Gold</span></span>`;
+const seed = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2c3.2 2.5 4.8 5.2 4.8 8a4.8 4.8 0 0 1-9.6 0c0-2.8 1.6-5.5 4.8-8z" fill="var(--gold)"/><path d="M8 5.2v7.4" stroke="var(--gold-ink)" stroke-opacity=".45" stroke-width="1.3"/></svg>`;
+const seedAmt = (n, s = 14) => `<span class="gold">${seed(s)}${fmtInt(n)}<span class="sr"> ${CAT.currencies.essence}</span></span>`;
 const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Gold</span></span></span>`;
 const heroDoc = () => ({name: "", look: {}, equip: {}, talismans: [], ...(S.hero || {})});
 function heroEquip(equipIds) {
@@ -1581,16 +1583,22 @@ function boardCard(s, o = {}) {
     qs.forEach((q, i) => { if (i === s.slots) h += `<div class="slotline"><span>Past ${s.slots}: streak and HP only</span></div>`; h += questRow(q, k, {reorder: o.reorder, i, n: qs.length}); });
     h += `</div><div class="allclear ${r.allClear ? "on" : ""}"><span class="qic ${r.allClear ? "done" : ""}" style="--c:var(--gold-ink);--p:${r.done / r.sched}" aria-hidden="true">${icon(r.allClear ? "check" : "star", 15, r.allClear ? 3 : 2)}</span><span class="grow"><b>All clear</b><br><span class="small muted">${r.allClear ? "Every quest done today" : `Finish all ${r.sched} for a bonus`}</span></span>${rewardChip(r.allClearReward, r.allClear)}</div>`;
   }
-  if (o.manage) h += `<div class="row between board-foot">${qs.length > 1 ? `<button class="btn sm ${o.reorder ? "pri" : "ghost"}" data-act="reorder">${o.reorder ? "Done" : "Reorder"}</button>` : "<span></span>"}<button class="linkbtn" data-act="game-settings">Quest settings</button></div>`;
+  const canRest = o.manage && r.sched && !r.allClear && !r.rest && (s.held["item.scroll-of-grace"] || 0) > 0;
+  if (o.manage) h += `<div class="row between board-foot">${qs.length > 1 ? `<button class="btn sm ${o.reorder ? "pri" : "ghost"}" data-act="reorder">${o.reorder ? "Done" : "Reorder"}</button>` : "<span></span>"}<span class="row" style="gap:14px">${canRest ? `<button class="linkbtn" data-act="rest" data-d="${k}" data-confirm="Rest today with a Scroll of Grace?">Rest today</button>` : ""}<button class="linkbtn" data-act="game-settings">Quest settings</button></span></div>`;
+  if (o.manage && r.rest) h += `<p class="tiny faint" style="margin-top:8px">Today is a rest day: no HP lost and your streaks stay.</p>`;
   return h + `</section>`;
 }
 function yesterdayCard(s) {
   const r = s.board.yesterday; if (!r || !r.sched) return "";
   const open = r.dailies.filter(q => !q.done); if (!open.length) return "";
-  return `<section class="card"><div class="card-h"><h2>Yesterday</h2><span class="pill warn">${open.length} open</span></div><p class="small muted" style="margin-bottom:4px">Did any of these? Check them off before today ends and they still count.</p><div class="list">${open.map(q => questRow(q, s.yesterday)).join("")}</div></section>`;
+  const scrolls = s.held["item.scroll-of-grace"] || 0;
+  const foot = r.rest ? `<p class="tiny faint" style="margin-top:8px">Rested with a Scroll of Grace: no HP lost and your streaks stay.</p>`
+    : scrolls ? `<div class="row between board-foot"><span class="tiny faint">Missed them? Rest instead.</span><button class="btn sm ghost" data-act="rest" data-d="${s.yesterday}" data-confirm="Use a Scroll of Grace?">Use a Scroll of Grace (${scrolls})</button></div>` : "";
+  return `<section class="card"><div class="card-h"><h2>Yesterday</h2><span class="pill ${r.rest ? "good" : "warn"}">${r.rest ? "Rest day" : `${open.length} open`}</span></div><p class="small muted" style="margin-bottom:4px">Did any of these? Check them off before today ends and they still count.</p><div class="list">${open.map(q => questRow(q, s.yesterday)).join("")}</div>${foot}</section>`;
 }
 function bountyCard(s) {
-  const ps = s.board.periodic; if (!ps.length) return "";
+  const ps = s.board.periodic; const bs = s.bounties || []; if (!ps.length && !bs.length) return "";
+  const brow = b => `<div class="li qrow ${b.done ? "done" : ""}"><span class="qic ${b.done ? "done" : ""}" style="--c:var(--gold-ink);--p:${Math.min(1, b.v / b.n)}" aria-hidden="true">${icon(b.done ? "check" : "star", 15, b.done ? 3 : 2)}</span><div class="li-main"><span class="t">${esc(b.name)}</span><span class="sub"><span>${esc(b.text)}</span><span>${fmtInt(Math.min(b.v, b.n))} of ${fmtInt(b.n)}</span></span></div><span class="rew${b.done ? " on" : ""}"><span class="rx">+${b.reward.xp} XP</span><span class="rg">${coin(12)}${b.reward.gold}<span class="sr"> Gold</span></span><span class="rg">${seed(12)}${b.reward.essence}<span class="sr"> ${esc(CAT.currencies.essence)}</span></span></span></div>`;
   const rows = ps.map(p => {
     const kind = p.kind === "monthly" ? "Monthly" : "Weekly"; const flav = GE.flavor(CAT, "periodic", p.key + ":" + p.period);
     const lead = p.cat === "task" ? `<button class="chk sq" style="--c:var(--c-task)" aria-pressed="${p.done}" data-act="toggle-task" data-id="${p.ref}" aria-label="Complete ${esc(p.name)}">${icon("check", 16, 3)}</button>`
@@ -1598,7 +1606,8 @@ function bountyCard(s) {
     const go = p.cat === "task" ? `data-act="edit-task" data-id="${p.ref}"` : `data-act="habit-detail" data-id="${p.ref}"`;
     return `<div class="li qrow ${p.done ? "done" : ""}">${lead}<button class="li-main" ${go}><span class="t">${esc(p.name)}</span><span class="sub"><i class="qflav">${kind} ${esc(flav.toLowerCase())}</i>${p.progress ? `<span>${p.progress.v} of ${p.progress.goal} this week</span>` : ""}</span></button>${rewardChip(p.reward, p.done)}</div>`;
   }).join("");
-  return `<section class="card"><div class="card-h"><h2>Bounties</h2><span class="pill">${ps.filter(p => p.done).length} of ${ps.length}</span></div><div class="list">${rows}</div></section>`;
+  const all = [...bs, ...ps];
+  return `<section class="card"><div class="card-h"><h2>This week</h2><span class="pill">${all.filter(p => p.done).length} of ${all.length}</span></div><div class="list">${bs.map(brow).join("")}${rows}</div></section>`;
 }
 function tutorialCard(s) {
   if (s.tutorial.done) return "";
@@ -1611,9 +1620,15 @@ function heroCard(s) {
     <div class="hc-main">
       <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}${ORIGIN[hd.origin] ? ` ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
-      <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
+      <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP${s.hp < s.maxHp && s.held["item.flask-of-crimson-tears"] ? ` <button class="linkbtn flaskbtn" data-act="flask">Drink a flask (${s.held["item.flask-of-crimson-tears"]})</button>` : ""}</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
       <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
     </div></section>`;
+}
+function rekindleCard(s) {
+  const r = s.rekindle; if (!r) return "";
+  const day = new Date(GE.parseKey(r.date)).toLocaleDateString(undefined, {weekday: "long"}); const enough = s.essence >= r.cost;
+  const why = !r.ready ? `You can rekindle again ${fmtDate(r.next)}.` : !enough ? `You have ${s.essence} ${CAT.currencies.essence}. Weekly bounties give one each.` : "";
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("flame", 15)}</span><div class="grow"><b class="tut-t">Your ${r.streak}-day streak broke on ${day}</b><div class="small muted">Rekindle it for ${r.cost} ${esc(CAT.currencies.essence)} and it carries on as if ${day} counted. ${why}</div></div>${r.ready && enough ? `<button class="btn sm" data-act="rekindle" data-confirm="Spend ${r.cost}?">${seed(13)}${r.cost}</button>` : ""}</div></section>`;
 }
 function originCard() {
   if (heroDoc().origin) return "";
@@ -1630,7 +1645,7 @@ function vHero() {
   const dateStr = now.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"});
   const hr = now.getHours(); const greet = hr < 5 ? "Late night" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
   let h = header(dateStr, `${greet}${S.settings.name ? ", " + esc(S.settings.name) : ""}`);
-  h += heroCard(s) + originCard() + downedCard(s) + tutorialCard(s);
+  h += heroCard(s) + originCard() + rekindleCard(s) + downedCard(s) + tutorialCard(s);
   const plate = dueToday().filter(x => x.kind === "todo");
   h += `<div class="grid2">${boardCard(s)}<div class="stack">${yesterdayCard(s)}${bountyCard(s)}`;
   h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task" data-kind="todo">Add to-do</button></div>${plate.length ? `<div class="list">${plate.slice(0, 6).map(taskRow).join("")}</div>${plate.length > 6 ? `<button class="linkbtn" data-act="quest-tab" data-v="tasks" style="margin-top:8px">See all ${plate.length}</button>` : ""}` : `<p class="faint small">No to-dos due today.</p>`}</section>`;
@@ -1658,7 +1673,8 @@ function vQuests() {
     <li>The first ${s.slots} in board order earn XP and Gold. Reorder to choose which.</li>
     <li>Finish them all for the all-clear bonus and to grow your streak. Each streak day adds ${Math.round(E.streakBonus.perDay * 100)}% to rewards, up to ${Math.round(E.streakBonus.cap * 100)}%.</li>
     <li>Each missed quest costs ${E.hp.missDamage} HP (${E.hp.dailyDamageCap} at most per day). Steps from Health and workouts logged live count as verified and earn ${Math.round((E.earn.verifiedMult - 1) * 100)}% more.</li>
-    <li>Weekly and monthly tasks, and times-per-week habits, are bounties.</li></ul></section>`;
+    <li>Each week from your first Monday brings ${E.bounties.perWeek} bounties sized to your quests. Each pays ${E.bounties.reward.xp} XP, ${E.bounties.reward.gold} Gold and ${E.bounties.reward.essence} ${esc(CAT.currencies.essence.replace(/s$/, ""))}. Weekly and monthly tasks and times-per-week habits pay too.</li>
+    <li>A Scroll of Grace from the Armory turns a missed day into a rest day, with no HP lost and no streak broken.</li></ul></section>`;
   return h + `</div></div>` + fab("add-habit", "Add quest");
 }
 
@@ -1691,17 +1707,18 @@ function learnView() {
 function vTown() {
   const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["spirits", "Spirits"], ["tavern", "Tavern"]];
   const tt = tabs.some(x => x[0] === ui.townTab) ? ui.townTab : "armory";
-  let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button>`, "Town");
+  let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}${s.essence ? `, ${CAT.currencies.essence}: ${s.essence}` : ""}. Open the log">${goldAmt(s.gold)}${s.essence ? seedAmt(s.essence) : ""}</button>`, "Town");
   h += `<div class="seg g4" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
   return h + ({armory: armoryView, wardrobe: wardrobeView, spirits: spiritsView, tavern: tavernView}[tt])(s);
 }
 function armoryView(s) {
   const items = GE.armoryItems(CAT, E); const gold = spendable(s); const eq = heroDoc().equip || {}; const worn = new Set(heroTalismans());
-  const tabs = [["armor", "Armor"], ["weapons", "Weapons"], ["talismans", "Talismans"]];
+  const tabs = [["armor", "Armor"], ["weapons", "Weapons"], ["talismans", "Talismans"], ["items", "Items"]];
   const at = tabs.some(x => x[0] === ui.armoryTab) ? ui.armoryTab : "armor";
   const pick = {armor: i => i.type === "gear" && i.slot !== "weapon", weapons: i => i.type === "gear" && i.slot === "weapon", talismans: i => i.type !== "gear"}[at];
   const res = reservedGold();
-  let h = `<div class="seg g3" role="group" aria-label="Armory section" style="margin-bottom:12px">${tabs.map(([v, l]) => `<button data-act="armory-tab" data-v="${v}" aria-pressed="${at === v}">${l}</button>`).join("")}</div>`;
+  let h = `<div class="seg g4" role="group" aria-label="Armory section" style="margin-bottom:12px">${tabs.map(([v, l]) => `<button data-act="armory-tab" data-v="${v}" aria-pressed="${at === v}">${l}</button>`).join("")}</div>`;
+  if (at === "items") return h + itemsView(s, gold);
   if (res) h += `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Gold is set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>`;
   if (at === "talismans") h += `<p class="small muted" style="margin-bottom:12px">Talismans are the only gear with perks. You have ${talismanSlots()} talisman ${talismanSlots() === 1 ? "slot" : "slots"}; each pouch adds one, up to ${E.talismans.slotsMax}.</p>`;
   h += `<div class="stack">`;
@@ -1728,6 +1745,22 @@ function armoryView(s) {
     h += `<section class="card"><div class="card-h"><h2>Boss drops</h2></div><div class="list">${drops.map(i => `<div class="li" style="padding:9px 0"><span class="grow t">${esc(i.name)}</span><span class="small muted">${S.inv[i.id] ? "Owned" : esc(bossSource(i))}</span></div>`).join("")}</div><p class="tiny faint" style="margin-top:8px">Boss fights open from level ${Math.min(...Object.values(E.bosses).map(b => b.level))}.</p></section>`;
   }
   h += `<p class="tiny faint">Gold is earned only by completing quests. It can't be bought.</p>`;
+  return h + `</div>`;
+}
+function itemsView(s, gold) {
+  const list = CAT.items.filter(i => E.items[i.id]);
+  let h = `<div class="stack"><section class="card"><div class="card-h"><h2>Apothecary</h2></div><p class="small muted" style="margin-bottom:10px">Mercy for hard days and a way to earn from more quests.</p><div class="items">`;
+  h += list.map(it => {
+    const cfg = E.items[it.id]; const held = s.held[it.id] || 0; const R = E.rarities[it.rarity]; const c = GE.canBuy(it, {level: s.level, gold, owned: held}, E);
+    const btn = c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(cfg.gold)}?">${coin(13)}${fmtInt(cfg.gold)}</button>`
+      : c.reason === "full" ? `<span class="pill">${it.type === "upgrade" ? "All used" : `Holding ${held}, the most`}</span>`
+      : `<span class="price-short" title="${fmtInt(c.short || 0)} more Gold needed">${coin(13)}${fmtInt(cfg.gold)}</span>`;
+    const text = it.kind === "flask" ? `Drink to restore ${cfg.hp} HP.` : it.text;
+    const have = it.type === "upgrade" ? `${held} of ${cfg.hold} bought` : `You hold ${held} of ${cfg.hold}`;
+    return `<div class="item" style="--r:${R.color}"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(text)}</div><div class="tiny">${have}</div>${btn}</div>`;
+  }).join("");
+  h += `</div></section>`;
+  h += `<section class="card"><div class="card-h"><h2>Rekindling</h2></div><p class="small muted">If your streak broke two days ago, the Hero page offers to rekindle it for ${E.rekindle.essence} ${esc(CAT.currencies.essence)}, once every ${E.rekindle.cooldownDays} days. You have ${seedAmt(s.essence, 13)}. Seeds come from weekly bounties and every ${E.levelUp.essenceEvery} levels.</p></section>`;
   return h + `</div>`;
 }
 function wardrobeView(s) {
@@ -1840,15 +1873,15 @@ function ledgerLabel(e) {
   const k = String(e.srcId || "");
   if (e.src === "quest") { if (k.startsWith("habit:")) return (S.habits[k.slice(6)] || {}).name || "Habit quest"; if (k.startsWith("task:")) return (S.tasks[k.slice(5)] || {}).title || "Task quest"; return {steps: "Steps quest", workout: "Workout quest", learn: "Learning quest"}[k] || "Quest"; }
   if (e.src === "periodic") { const id = k.split(":")[1]; return "Bounty: " + ((k.startsWith("habit:") ? (S.habits[id] || {}).name : (S.tasks[id] || {}).title) || "done"); }
-  return {allclear: "All-clear bonus", tutorial: CAT.tutorial.name, levelup: `Reached level ${k}`, downed: "Downed", armory: `Bought ${(ITEM[k] || {}).name || "gear"}`, tavern: `Redeemed ${e.name || "a reward"}`}[e.src] || e.src;
+  return {allclear: "All-clear bonus", tutorial: CAT.tutorial.name, levelup: `Reached level ${k}`, downed: "Downed", bounty: "Weekly bounty", rekindle: "Rekindled your streak", armory: `Bought ${(ITEM[k] || {}).name || "gear"}`, tavern: `Redeemed ${e.name || "a reward"}`}[e.src] || e.src;
 }
 function sLedger() {
   return () => {
     const s = gameState(); if (!s) return sheetHead("Gold") + `<p class="faint">The game is off.</p>`;
-    const es = Object.values(s.ledger).filter(e => e.cur === "gold" && +e.amt).sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0) || b.id.localeCompare(a.id)).slice(0, 100);
-    let h = sheetHead("Gold") + `<div class="row between" style="margin-bottom:10px"><span class="snum">${goldAmt(s.gold, 22)}</span><span class="small muted">${reservedGold() ? `${fmtInt(spendable(s))} free to spend` : ""}</span></div><p class="small muted" style="margin-bottom:12px">Every change to your Gold is listed here.</p>`;
+    const es = Object.values(s.ledger).filter(e => (e.cur === "gold" || e.cur === "essence") && +e.amt).sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0) || b.id.localeCompare(a.id)).slice(0, 100);
+    let h = sheetHead("Gold") + `<div class="row between" style="margin-bottom:10px"><span class="snum">${goldAmt(s.gold, 22)}</span><span class="small muted">${s.essence ? `${seedAmt(s.essence, 16)} ${esc(CAT.currencies.essence)}` : ""}${reservedGold() ? ` · ${fmtInt(spendable(s))} Gold free to spend` : ""}</span></div><p class="small muted" style="margin-bottom:12px">Every change to your Gold and ${esc(CAT.currencies.essence)} is listed here.</p>`;
     let last = ""; h += `<div class="list">`;
-    es.forEach(e => { if (e.date !== last) { h += `<div class="label" style="padding:14px 0 4px">${relDay(e.date)}</div>`; last = e.date; } h += `<div class="li" style="padding:9px 0"><span class="grow t">${esc(ledgerLabel(e))}</span><span class="mono" style="font-weight:600;color:${e.amt > 0 ? "var(--good-ink)" : "var(--ink)"}">${e.amt > 0 ? "+" : "−"}${fmtInt(Math.abs(e.amt))}</span></div>`; });
+    es.forEach(e => { if (e.date !== last) { h += `<div class="label" style="padding:14px 0 4px">${relDay(e.date)}</div>`; last = e.date; } h += `<div class="li" style="padding:9px 0"><span class="grow t">${esc(ledgerLabel(e))}</span><span class="mono" style="font-weight:600;display:inline-flex;align-items:center;gap:4px;color:${e.amt > 0 ? "var(--good-ink)" : "var(--ink)"}">${e.cur === "essence" ? seed(13) : ""}${e.amt > 0 ? "+" : "−"}${fmtInt(Math.abs(e.amt))}</span></div>`; });
     return h + (es.length ? "" : `<p class="faint small">Nothing yet. Complete a quest to earn your first Gold.</p>`) + `</div>`;
   };
 }
@@ -1971,6 +2004,21 @@ const GAME_ACTIONS = {
   },
   "quest-tab": el => { ui.questTab = el.dataset.v; ui.reorder = false; saveUi(); if (ui.tab !== "quests") { closeAll(); go("quests"); } else render(); },
   "town-tab": el => { ui.townTab = el.dataset.v; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else { render(); window.scrollTo(0, 0); } },
+  rest: el => {
+    const s = gameState(); const d = el.dataset.d; if (!s || ![s.today, s.yesterday].includes(d)) return;
+    const g = S.settings.game || {}; if ((g.rests || []).includes(d) || !(s.held["item.scroll-of-grace"] > 0)) return;
+    setGame({rests: [...(g.rests || []), d]}); toast(d === s.today ? "Resting today. No HP lost and your streaks stay" : "Yesterday is now a rest day");
+  },
+  flask: () => {
+    const s = gameState(); if (!s || !(s.held["item.flask-of-crimson-tears"] > 0) || s.hp >= s.maxHp) return;
+    const g = S.settings.game || {}; setGame({flasks: [...(g.flasks || []), s.today]}); toast(`+${Math.min(E.items["item.flask-of-crimson-tears"].hp, s.maxHp - s.hp)} HP`);
+  },
+  rekindle: () => {
+    const s = gameState(); const r = s && s.rekindle; if (!r || !r.ready || s.essence < r.cost || !canSpend()) return;
+    const g = S.settings.game || {}; const at = Date.now();
+    putMany("ledger", [{id: `rek:${r.date}:essence`, date: s.today, cur: "essence", amt: -r.cost, src: "rekindle", srcId: r.date, at}], true);
+    setGame({rekindles: [...(g.rekindles || []), r.date]}); toast("Your streak burns again");
+  },
   "awaken-start": el => { const id = el.dataset.id; if (!ITEM[id] || !S.inv[id]) return; setStable({...stableDoc(), awakening: {id, from: today()}}); toast(`${ITEM[id].name} is awakening. Finish ${E.stable.awakenQuests[ITEM[id].rarity]} quests`); },
   awaken: () => {
     const s = gameState(); const aw = s && s.stable.awakening; if (!aw || !aw.ready) return; const st = stableDoc(); const t = today();
@@ -2007,6 +2055,13 @@ const GAME_ACTIONS = {
   },
   buy: el => {
     const it = ITEM[el.dataset.id]; const s = gameState(); if (!it || !s || !canSpend()) return;
+    if (E.items[it.id]) {
+      const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: s.held[it.id] || 0}, E);
+      if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "full" ? "You can't hold more of these" : "Not for sale"); return; }
+      const at = Date.now();
+      putMany("ledger", [{id: `buy:${it.id}:${at.toString(36)}`, date: today(), cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}]);
+      toast(it.type === "upgrade" ? `${it.name} used: ${s.slots + 1} daily quests now earn rewards` : `${it.name} added. Use it from the Hero page`); return;
+    }
     const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: !!S.inv[it.id]}, E);
     if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "level" ? `Unlocks at level ${c.need}` : "You already own this"); return; }
     const at = Date.now(), date = today(); const eq = heroDoc().equip || {};

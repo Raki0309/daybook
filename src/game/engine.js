@@ -125,6 +125,12 @@ export function outcome(dailies) {
 
 /* ---------- ledger helpers ---------- */
 export const ledgerSum = (entries, cur, upTo) => entries.reduce((s, e) => s + (e.cur === cur && (!upTo || e.date <= upTo) ? +e.amt || 0 : 0), 0);
+// How many of a stackable item you hold: bought from the Armory, minus the ones used.
+export function heldCount(id, ledger, G = {}) {
+  const bought = Object.values(ledger || {}).filter(e => e.src === "armory" && e.srcId === id && +e.amt < 0).length;
+  const used = id === "item.scroll-of-grace" ? (G.rests || []).length : id === "item.flask-of-crimson-tears" ? (G.flasks || []).length : 0;
+  return Math.max(0, bought - used);
+}
 // Only quest income: one-off rewards (the tutorial, level-ups) would make a new player's days look richer than they are.
 const EARN_SRC = new Set(["quest", "allclear", "periodic"]);
 
@@ -141,6 +147,7 @@ export function avgDailyGold(ledger, today, start, E = ECONOMY) {
 export function itemPrice(item, E = ECONOMY) {
   if (!item.purchasable) return null;
   if (item.type === "pouch") return { gold: E.talismans.pouch.gold, level: E.talismans.pouch.level };
+  if (E.items[item.id]) return { gold: E.items[item.id].gold, level: E.items[item.id].level || 0 };
   const r = E.rarities[item.rarity];
   if (!r || r.gold == null) return null;
   const gold = Math.round(r.gold * (E.slotMult[item.slot] || 1) / 5) * 5;
@@ -167,10 +174,12 @@ export function talismanSlots(ownedIds, C, E = ECONOMY) {
   const pouches = (C.items || []).filter(i => i.type === "pouch" && own.has(i.id)).length;
   return Math.min(E.talismans.slotsMax, E.talismans.slotsStart + pouches);
 }
+// owned: true for one-of-a-kind items, or how many you hold of a stackable one.
 export function canBuy(item, { level, gold, owned }, E = ECONOMY) {
   const p = itemPrice(item, E);
   if (!p) return { ok: false, reason: "not-sold" };
-  if (owned) return { ok: false, reason: "owned" };
+  const hold = E.items[item.id] && E.items[item.id].hold;
+  if (hold ? +owned >= hold : owned) return { ok: false, reason: hold ? "full" : "owned", hold };
   if (level < p.level) return { ok: false, reason: "level", need: p.level };
   if (gold < p.gold) return { ok: false, reason: "gold", short: p.gold - gold };
   return { ok: true, price: p };
@@ -181,6 +190,38 @@ export function canRedeem(r, { gold, today }) {
   if (r.cooldownDays && r.lastDate && addKey(r.lastDate, r.cooldownDays) > today) return { ok: false, reason: "cooldown", until: addKey(r.lastDate, r.cooldownDays) };
   if (gold < r.price) return { ok: false, reason: "gold", short: r.price - gold };
   return { ok: true };
+}
+
+/* ---------- weekly bounties ---------- */
+// The week's bounties: the kinds your quests make possible, two picked per week (stable within
+// the week), each scaled to your own schedule. recs are the simulate day records; from is the
+// game's first day.
+export function bountiesFor(ix, G, k, recs, E = ECONOMY, C = {}, from = "0000-00-00") {
+  const mon = addKey(k, -weekdayOf(k)); const week = weekOf(k); const B = E.bounties;
+  if (mon < from) return []; // bounties start with the first full week
+  const days = Array.from({ length: 7 }, (_, i) => addKey(mon, i));
+  const sched = days.map(d => (G.pauses || []).some(p => d >= p.from && d <= p.to) ? [] : dailiesOn(ix, G, d, E));
+  const count = (cat) => sched.filter(ds => ds.some(q => q.cat === cat)).length;
+  const pool = [];
+  const goal = +(ix.stepGoal || 0);
+  if (G.steps !== false && goal > 0) {
+    const n = Math.max(B.steps.round, Math.round(goal * 7 * B.steps.ofGoalWeek / B.steps.round) * B.steps.round);
+    pool.push({ key: "steps", n, v: days.reduce((a, d) => a + (ix.steps[d] ? +ix.steps[d].n || 0 : 0), 0) });
+  }
+  const wd = count("workout");
+  if (wd) pool.push({ key: "workouts", n: wd, v: days.filter(d => (ix.sess[d] || []).length).length });
+  const ld = Math.min(B.learning.days, count("learn"));
+  if (ld) pool.push({ key: "learning", n: ld, v: days.filter((d, i) => sched[i].some(q => q.cat === "learn" && q.done)).length });
+  const ad = Math.min(B.allclear.days, sched.filter(ds => ds.length).length);
+  if (ad) pool.push({ key: "allclear", n: ad, v: days.filter(d => recs[d] && recs[d].allClear).length });
+  const total = sched.reduce((a, ds) => a + ds.length, 0);
+  if (total) pool.push({ key: "quests", n: Math.max(1, Math.round(total * B.quests.ofScheduled)), v: days.reduce((a, d, i) => a + (recs[d] ? recs[d].done || 0 : sched[i].filter(q => q.done).length), 0) });
+  const names = (C.bounties && C.bounties.names) || [];
+  return pool.sort((a, b) => hash(week + a.key) - hash(week + b.key)).slice(0, B.perWeek).map(b => ({
+    ...b, week, id: `bty:${week}:${b.key}`, done: b.v >= b.n, name: names.length ? names[hash(week + b.key + "n") % names.length] : "Bounty",
+    text: ((C.bounties && C.bounties.text && C.bounties.text[b.key]) || "{n}").replace("{n}", b.n.toLocaleString("en-US")),
+    reward: B.reward,
+  }));
 }
 
 /* ---------- the stable: Spirit Ashes, NPC companions, Torrent ---------- */
@@ -266,7 +307,9 @@ export function simulate(input) {
   const ix = indexData(input.data);
   const stored = input.ledger || {}; const frozen = input.days || {};
   const want = new Map(); // id -> entry this run expects to exist
-  const slots = Math.min(E.slots.max, E.slots.start + (G.extraSlots || 0));
+  const slots = Math.min(E.slots.max, E.slots.start + (G.extraSlots || 0) + heldCount("item.memory-stone", input.ledger, G));
+  // Rest days (a Scroll of Grace) keep streaks and cost no HP; a rekindled day keeps the overall streak.
+  const rested = k => (G.rests || []).includes(k); const rekindled = k => (G.rekindles || []).includes(k);
   const payFrom = addKey(today, -E.backdateDays);
   const paused = k => (G.pauses || []).some(p => k >= p.from && k <= p.to);
 
@@ -276,14 +319,14 @@ export function simulate(input) {
   // Type streaks: a scheduled day either extends or breaks each type; today can only extend.
   // Days frozen before type streaks existed carry no types and are skipped.
   const trun = Object.fromEntries(STREAK_TYPES.map(t => [t, 0])), tbest = { ...trun };
-  const addTypes = (types, k) => { for (const [t, met] of Object.entries(types || {})) { if (met) trun[t]++; else if (k !== today) trun[t] = 0; tbest[t] = Math.max(tbest[t], trun[t]); } };
+  const addTypes = (types, k) => { for (const [t, met] of Object.entries(types || {})) { if (met) trun[t]++; else if (k !== today && !rested(k)) trun[t] = 0; tbest[t] = Math.max(tbest[t], trun[t]); } };
   for (let k = start; k <= today; k = addKey(k, 1)) {
     streakBefore[k] = run;
-    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = frozen[k].streak ?? run; best = Math.max(best, run); addTypes(frozen[k].types, k); continue; }
+    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = rekindled(k) ? Math.max(run, frozen[k].streak ?? 0) : frozen[k].streak ?? run; best = Math.max(best, run); addTypes(frozen[k].types, k); continue; }
     // Days while the game was switched off count as rest days: no quests, no damage, streak kept.
     const off = paused(k); const dailies = off ? [] : dailiesOn(ix, G, k, E); const o = outcome(dailies);
-    recs[k] = { ...o, date: k, dailies, paused: off, types: typeOutcome(dailies) };
-    if (o.sched) { if (o.allClear) run++; else if (k !== today) run = 0; }
+    recs[k] = { ...o, date: k, dailies, paused: off, types: typeOutcome(dailies), rest: rested(k) };
+    if (o.sched) { if (o.allClear) run++; else if (k !== today && !rested(k) && !rekindled(k)) run = 0; }
     recs[k].streak = run; best = Math.max(best, run); addTypes(recs[k].types, k);
   }
 
@@ -332,6 +375,17 @@ export function simulate(input) {
   }
   periodic.forEach(p => { p.reward = reward(E.earn.periodic, {}, E, P); });
 
+  // 3b. Weekly bounties: this week's, and last week's while yesterday (its last day) is still open.
+  const CURS = ["xp", "gold", "essence"]; let bounties = [];
+  for (const k of weekOf(yesterday) !== weekOf(today) && yesterday >= start ? [yesterday, today] : [today]) {
+    const list = bountiesFor(ix, G, k, recs, E, C, start); if (k === today) bounties = list;
+    for (const b of list) {
+      const old = stored[b.id + ":gold"];
+      if (b.done) { const date = old && old.date ? old.date : k; CURS.forEach(cur => want.set(`${b.id}:${cur}`, { date, cur, amt: b.reward[cur], src: "bounty", srcId: b.id })); }
+      else if (old && +old.amt) CURS.forEach(cur => { if (stored[`${b.id}:${cur}`]) want.set(`${b.id}:${cur}`, { ...stored[`${b.id}:${cur}`], amt: 0 }); });
+    }
+  }
+
   // 4. The tutorial quest pays once, for the first quest completed after the game starts.
   const tutId = "tut:" + ((C.tutorial && C.tutorial.id) || "awakens");
   let firstDone = null;
@@ -352,6 +406,8 @@ export function simulate(input) {
   for (let L = 2; L <= info.level; L++) {
     const id = `lvl:${L}:gold`;
     if (!stored[id]) { const e = { date: lvlDate[L] || today, cur: "gold", amt: E.levelUp.gold, src: "levelup", srcId: String(L) }; want.set(id, e); merged[id] = { ...e, id }; }
+    const eid = `lvl:${L}:essence`;
+    if (E.levelUp.essenceEvery && L % E.levelUp.essenceEvery === 0 && !stored[eid]) { const e = { date: lvlDate[L] || today, cur: "essence", amt: 1, src: "levelup", srcId: String(L) }; want.set(eid, e); merged[eid] = { ...e, id: eid }; }
   }
   const levelAt = k => { let L = 1; for (let n = 2; n <= info.level; n++) if ((lvlDate[n] || today) <= k) L = n; return L; };
 
@@ -361,11 +417,11 @@ export function simulate(input) {
     const r = recs[k];
     if (r.frozen) { hp = r.hp; continue; }
     const L = levelAt(k), mx = maxHp(L, E, P);
-    r.heal = (E.hp.healPerDaily + (P.heal || 0)) * r.done;
+    r.heal = (E.hp.healPerDaily + (P.heal || 0)) * r.done + (G.flasks || []).filter(f => f === k).length * E.items["item.flask-of-crimson-tears"].hp;
     hp = Math.min(mx, hp + r.heal);
     if (E.levelUp.fullHeal && L > levelAt(addKey(k, -1))) hp = mx;
     if (k === today) break;
-    r.dmg = r.sched ? dayDamage(r.missed, E, P) : 0; hp -= r.dmg; r.downed = false;
+    r.dmg = r.sched && !r.rest ? dayDamage(r.missed, E, P) : 0; hp -= r.dmg; r.downed = false;
     if (hp <= 0) {
       if (k < yesterday) {
         r.downed = true;
@@ -376,7 +432,7 @@ export function simulate(input) {
       } else { downedRisk = true; hp = 0; }
     }
     r.hp = hp;
-    if (k < yesterday) dayWrites.push({ id: k, date: k, sched: r.sched, done: r.done, missed: r.missed, allClear: r.allClear, heal: r.heal, dmg: r.dmg, hp: r.hp, downed: r.downed, streak: r.streak, types: r.types, v: 2 });
+    if (k < yesterday) dayWrites.push({ id: k, date: k, sched: r.sched, done: r.done, missed: r.missed, allClear: r.allClear, heal: r.heal, dmg: r.dmg, hp: r.hp, downed: r.downed, streak: r.streak, types: r.types, rest: r.rest, v: 2 });
   }
 
   // 7. What to write: only entries that differ from what's stored, each with the balance it leaves.
@@ -392,10 +448,18 @@ export function simulate(input) {
   }
   const all = Object.values(merged);
   const tr = recs[today];
+  // A streak broken two days ago (now settled) can be rekindled with Golden Seeds, once a month.
+  const lastRek = [...(G.rekindles || [])].sort().pop(); let rekindle = null;
+  const rk = addKey(today, -E.rekindle.withinDays); const rr = recs[rk];
+  if (rr && rr.sched && !rr.allClear && !rr.rest && !rekindled(rk) && streakBefore[rk] > 0) {
+    const next = lastRek ? addKey(lastRek, E.rekindle.cooldownDays) : null;
+    rekindle = { date: rk, streak: streakBefore[rk], cost: E.rekindle.essence, ready: !next || next <= today, next };
+  }
   const streak = tr.sched && tr.allClear ? tr.streak : streakBefore[today];
   return {
     active: true, today, yesterday, start,
-    xp: xpTotal, ...info, gold: ledgerSum(all, "gold"),
+    xp: xpTotal, ...info, gold: ledgerSum(all, "gold"), essence: ledgerSum(all, "essence"),
+    held: Object.fromEntries(Object.keys(E.items).map(id => [id, heldCount(id, stored, G)])), rekindle, bounties,
     hp: Math.max(0, hp), maxHp: maxHp(info.level, E, P), downedRisk, perks: P,
     streak, best: Math.max(best, streak), bonus: streakBonus(streakBefore[today], E, P),
     streaks: Object.fromEntries(STREAK_TYPES.map(t => [t, { cur: trun[t], best: tbest[t] }])),

@@ -205,6 +205,14 @@ function seed(be) {
   check(/Awakening/.test(txt) && /Blaidd the Half-Wolf/.test(txt) && /Joins you at level 10/.test(txt), "Spirits shows awakening, legends and Torrent");
   await shot("19-spirits-after");
   check(!(await overflow()), "spirits has no sideways scroll");
+
+  // Items: buy a Scroll of Grace; it's counted from the ledger.
+  await p.click('[data-act="town-tab"][data-v="armory"]'); await p.click('[data-act="armory-tab"][data-v="items"]'); await p.waitForTimeout(200);
+  const sb = '[data-act="buy"][data-id="item.scroll-of-grace"]'; await p.click(sb); await p.click(sb); await p.waitForTimeout(800);
+  check(ledger().some(e => e.srcId === "item.scroll-of-grace" && e.amt === -300), "bought a Scroll of Grace");
+  check(/You hold 1 of 2/.test(await p.textContent("#view")), "the Armory shows the scroll held");
+  await shot("20-items");
+  check(!(await overflow()), "items has no sideways scroll");
   console.log("errors:", errs);
   await b.close();
   if (errs.length) process.exit(1);
