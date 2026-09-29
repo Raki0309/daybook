@@ -1,41 +1,4 @@
-:root{
-  --bg:#eef0f5; --surface:#ffffff; --surface-2:#eef0f5; --line:#e2e5ed; --ink:#10131c; --ink-2:#4a5064; --ink-3:#646b80;
-  --accent:#4b3ff0; --accent-2:#9b3fe0; --accent-ink:#ffffff; --accent-soft:#e9e7ff;
-  --good:#1d7f45; --warn:#a86400; --bad:#c93a35;
-  --good-ink:#17693a; --warn-ink:#8a5200; --bad-ink:#b0302b;
-  --good-soft:#dcefe2; --warn-soft:#f6e8cf; --bad-soft:#f8dedc;
-  --c-habit:#4a3aa7; --c-task:#2a78d6; --c-money:#1baf7a; --c-train:#eb6834; --c-food:#2f9e44; --c-steps:#d6457f; --m-p:#0f9fb0; --m-c:#eda100; --m-f:#c05cd6;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#2f9e44; --s7:#4a3aa7; --s8:#e34948;
-  --shadow:0 1px 2px rgb(16 19 40 / .04), 0 8px 24px -6px rgb(16 19 40 / .10);
-  --card-border:transparent;
-  --font-d:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-b:"Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-m:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    color-scheme:dark;
-    --bg:#0a0c12; --surface:#131722; --surface-2:#1b2030; --line:#252b3c; --ink:#eef0f7; --ink-2:#b3b9cc; --ink-3:#7f879c;
-    --accent:#8f86ff; --accent-2:#c77dff; --accent-ink:#0c0a24; --accent-soft:#252250; --card-border:#1f2433;
-    --good:#44c078; --warn:#e3a53c; --bad:#f06b65;
-    --good-ink:#44c078; --warn-ink:#e3a53c; --bad-ink:#f06b65;
-    --good-soft:#15301f; --warn-soft:#352812; --bad-soft:#3a1a19;
-    --c-habit:#9085e9; --c-task:#3987e5; --c-money:#199e70; --c-train:#d95926; --c-food:#2e9e2e; --c-steps:#e0609a; --m-p:#22b3c4; --m-c:#c98500; --m-f:#cc79e0;
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#2e9e2e; --s7:#9085e9; --s8:#e66767;
-    --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
-  }
-}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --bg:#0a0c12; --surface:#131722; --surface-2:#1b2030; --line:#252b3c; --ink:#eef0f7; --ink-2:#b3b9cc; --ink-3:#7f879c;
-  --accent:#8f86ff; --accent-2:#c77dff; --accent-ink:#0c0a24; --accent-soft:#252250; --card-border:#1f2433;
-  --good:#44c078; --warn:#e3a53c; --bad:#f06b65;
-  --good-ink:#44c078; --warn-ink:#e3a53c; --bad-ink:#f06b65;
-  --good-soft:#15301f; --warn-soft:#352812; --bad-soft:#3a1a19;
-  --c-habit:#9085e9; --c-task:#3987e5; --c-money:#199e70; --c-train:#d95926; --c-food:#2e9e2e; --c-steps:#e0609a; --m-p:#22b3c4; --m-c:#c98500; --m-f:#cc79e0;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#2e9e2e; --s7:#9085e9; --s8:#e66767;
-  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
-}
+/* Colors, fonts and theme switching come from the pixel kit (src/ui/daybook-ui.css) and src/ui/pixel.css. */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -416,9 +379,6 @@ main{overflow-x:clip}
 .habit .name::after{inset:-11px 0}
 
 /* ===== RPG layer, Phase 1 (2026-09-29) ===== */
-:root{--gold:#f2b01e;--gold-ink:#855600;--xp:#6a4cf5;--c-quest:#c97800;--c-town:#0e8c86;--c-learn:#9b3fc4}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--gold:#f0b429;--gold-ink:#f3c969;--xp:#9d8cff;--c-quest:#f0a030;--c-town:#25b0a8;--c-learn:#c77de0}}
-:root[data-theme="dark"]{--gold:#f0b429;--gold-ink:#f3c969;--xp:#9d8cff;--c-quest:#f0a030;--c-town:#25b0a8;--c-learn:#c77de0}
 body[data-view="quests"]{--mod:var(--c-quest);--mod2:var(--c-habit)}
 body[data-view="town"]{--mod:var(--c-town);--mod2:var(--gold)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -459,7 +419,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .qic.done::before{display:none}
 .rew{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;flex:none;font:600 12px/1.25 var(--font-m);color:var(--ink-3);white-space:nowrap;text-align:right}
 .rew .rg{display:inline-flex;align-items:center;gap:3px}
-.rew.on{color:var(--gold-ink)}
+.rew.on{color:var(--gold)}
 .rew.on .rx{color:var(--xp)}
 .rew.none{font:600 12px var(--font-b);color:var(--ink-3)}
 .vbadge{display:inline-flex;align-items:center;gap:3px;color:var(--good-ink);font-weight:700}

@@ -10,8 +10,8 @@ export default defineConfig({
         name: "Daybook",
         short_name: "Daybook",
         description: "Habits, tasks, food, money, training and steps in one place.",
-        theme_color: "#4b3ff0",
-        background_color: "#eef0f5",
+        theme_color: "#0f0d0b",
+        background_color: "#0f0d0b",
         display: "standalone",
         start_url: "/",
         icons: [

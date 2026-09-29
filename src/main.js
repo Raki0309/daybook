@@ -1,4 +1,6 @@
 import "./styles.css";
+import "./ui/daybook-ui.css";
+import "./ui/pixel.css";
 import { supabase, startDb } from "./cloud.js";
 
 const $ = s => document.querySelector(s);

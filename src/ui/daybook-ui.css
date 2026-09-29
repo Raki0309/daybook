@@ -1,0 +1,189 @@
+/* Daybook pixel UI kit: Elden Ring look, Night (dark, default) and Leyndell (light) themes.
+   One art pixel in the UI chrome = --u (2px). Frames, bevels and outlines are box-shadows,
+   so every color comes from a token and themes and rarities recolor them. */
+
+/* ---------- tokens ---------- */
+:root, :root[data-theme="dark"], .th-night {
+  --u: 2px;
+  --bg: #0f0d0b; --surface: #1a1713; --surface-2: #231f19; --well: #0c0a08; --well-lo: #000000;
+  --line: #3a3124; --outline: #050403; --frame: #c9a24e; --frame-in: #4e3d1f;
+  --ink: #eadfc4; --ink-2: #b3a482; --ink-3: #7d705a;
+  --gold: #d6b05c; --gold-hi: #f3d98a; --gold-lo: #8f6d2c; --gold-ink: #1a1206;
+  --btn-face: #2b261f; --btn-hi: #40382c; --btn-lo: #15120e;
+  --grace: rgb(243 217 138 / .35); --banner-bg: rgb(0 0 0 / .78);
+  --hp: #b3312a; --fp: #3a67b0; --xp: #d6b05c; --stamina: #4d8c3a;
+  --good: #86a653; --warn: #d9973a; --bad: #c24a38; --blood: #b3261e;
+  --c-habit: #9a86d6; --c-task: #6c93c9; --c-money: #6fae84; --c-train: #c8683f; --c-food: #86a653; --c-steps: #c9667f;
+  --m-p: #4fa7b0; --m-c: #d2a23f; --m-f: #b27bc6;
+  --s1: #d6b05c; --s2: #6c93c9; --s3: #c8683f; --s4: #86a653; --s5: #9a86d6; --s6: #c9667f; --s7: #4fa7b0; --s8: #c24a38;
+  --r-common: #a7a092; --r-uncommon: #7fae5f; --r-rare: #5d8fd0; --r-epic: #a47ad6; --r-legendary: #e0ad48; --r-mythic: #d4473a;
+  --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23141210'/%3E%3Cpath fill='%230c0a08' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23191612' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23100e0b' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
+  --scene: url("erdtree-night.png"); --scene-fill: url("erdtree-night-fill.png"); --sky: #07060a;
+  --font-title: "Jacquarda Bastarda 9", "UnifrakturMaguntia", Georgia, serif;
+  --font-d: "Pixelify Sans", ui-monospace, monospace;
+  --font-b: "Pixelify Sans", ui-monospace, monospace;
+  --font-m: "Silkscreen", ui-monospace, monospace;
+  color-scheme: dark;
+}
+.th-leyndell, :root[data-theme="light"] {
+  --bg: #e6dbc1; --surface: #f4eddb; --surface-2: #eae0c7; --well: #ddd0b0; --well-lo: #c4b48e;
+  --line: #cdbb90; --outline: #5a4526; --frame: #a67c2a; --frame-in: #dcc58c;
+  --ink: #2a2016; --ink-2: #5f4f37; --ink-3: #8a7858;
+  --gold: #a67c2a; --gold-hi: #e4c577; --gold-lo: #6f5118; --gold-ink: #fff8e6;
+  --btn-face: #efe6cf; --btn-hi: #fffaf0; --btn-lo: #cbbb95;
+  --grace: rgb(255 214 120 / .55); --banner-bg: rgb(250 240 212 / .9);
+  --hp: #a3291f; --fp: #2f5ea3; --xp: #b8862c; --stamina: #3f7a2c;
+  --good: #4d7a2e; --warn: #a0621a; --bad: #9a2f22; --blood: #8f1d15;
+  --c-habit: #6a55ad; --c-task: #3f6aa6; --c-money: #3f8558; --c-train: #a8492a; --c-food: #5b7f2c; --c-steps: #a6445f;
+  --m-p: #2d7f88; --m-c: #9b7218; --m-f: #85509a;
+  --s1: #a67c2a; --s2: #3f6aa6; --s3: #a8492a; --s4: #5b7f2c; --s5: #6a55ad; --s6: #a6445f; --s7: #2d7f88; --s8: #9a2f22;
+  --r-common: #8a8272; --r-uncommon: #4f8a34; --r-rare: #3a6db3; --r-epic: #7d52b3; --r-legendary: #b07f1c; --r-mythic: #b0321f;
+  --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23e6dbc0'/%3E%3Cpath fill='%23d5c7a5' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23efe6d0' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23dccfb1' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
+  --scene: url("erdtree-day.png"); --scene-fill: url("erdtree-day-fill.png"); --sky: #cfd8d8;
+  color-scheme: light;
+}
+/* The app's own switch: Leyndell when the system is light, unless the user picked dark. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #e6dbc1; --surface: #f4eddb; --surface-2: #eae0c7; --well: #ddd0b0; --well-lo: #c4b48e;
+    --line: #cdbb90; --outline: #5a4526; --frame: #a67c2a; --frame-in: #dcc58c;
+    --ink: #2a2016; --ink-2: #5f4f37; --ink-3: #8a7858;
+    --gold: #a67c2a; --gold-hi: #e4c577; --gold-lo: #6f5118; --gold-ink: #fff8e6;
+    --btn-face: #efe6cf; --btn-hi: #fffaf0; --btn-lo: #cbbb95;
+    --grace: rgb(255 214 120 / .55); --banner-bg: rgb(250 240 212 / .9);
+    --hp: #a3291f; --fp: #2f5ea3; --xp: #b8862c; --stamina: #3f7a2c;
+    --good: #4d7a2e; --warn: #a0621a; --bad: #9a2f22; --blood: #8f1d15;
+    --c-habit: #6a55ad; --c-task: #3f6aa6; --c-money: #3f8558; --c-train: #a8492a; --c-food: #5b7f2c; --c-steps: #a6445f;
+    --m-p: #2d7f88; --m-c: #9b7218; --m-f: #85509a;
+    --s1: #a67c2a; --s2: #3f6aa6; --s3: #a8492a; --s4: #5b7f2c; --s5: #6a55ad; --s6: #a6445f; --s7: #2d7f88; --s8: #9a2f22;
+    --r-common: #8a8272; --r-uncommon: #4f8a34; --r-rare: #3a6db3; --r-epic: #7d52b3; --r-legendary: #b07f1c; --r-mythic: #b0321f;
+    --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23e6dbc0'/%3E%3Cpath fill='%23d5c7a5' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23efe6d0' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23dccfb1' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
+    --scene: url("erdtree-day.png"); --scene-fill: url("erdtree-day-fill.png"); --sky: #cfd8d8;
+    color-scheme: light;
+  }
+}
+/* A pinned .th-night inside a light page stays Night (the :root, .th-night block above). */
+
+/* ---------- ground ---------- */
+.px-app { background: var(--bg) var(--tile) 0 0 / 64px 64px; color: var(--ink); font: 16px/1.45 var(--font-b); image-rendering: pixelated; }
+.px-app canvas, .px-app img { image-rendering: pixelated; }
+.px-scene { background: var(--scene) right bottom / auto 128px no-repeat, var(--scene-fill) left bottom / auto 128px repeat-x, var(--sky); min-height: 128px; }
+.px-scene .px-title { text-shadow: 0 2px 0 var(--sky), 0 0 10px var(--sky); }
+.px-title { font: 400 44px/1 var(--font-title); letter-spacing: .01em; margin: 0; }
+.px-eyebrow { font: 12px var(--font-m); letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.px-h2 { font: 600 19px/1.2 var(--font-d); margin: 0; }
+.px-label { font: 11px var(--font-m); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.px-num { font-family: var(--font-m); font-variant-numeric: tabular-nums; }
+.px-muted { color: var(--ink-3); }
+
+/* ---------- frames ---------- */
+/* notch(E): four offset copies of the box = a 1-pixel frame with stepped corners */
+.px-panel {
+  --edge: var(--frame);
+  background: var(--surface); border: var(--u) solid var(--frame-in); padding: 14px; margin: calc(var(--u) * 2);
+  box-shadow:
+    0 calc(var(--u) * -1) 0 0 var(--edge), 0 var(--u) 0 0 var(--edge), calc(var(--u) * -1) 0 0 0 var(--edge), var(--u) 0 0 0 var(--edge),
+    0 calc(var(--u) * -2) 0 0 var(--outline), 0 calc(var(--u) * 2) 0 0 var(--outline), calc(var(--u) * -2) 0 0 0 var(--outline), calc(var(--u) * 2) 0 0 0 var(--outline),
+    var(--u) var(--u) 0 0 var(--outline), calc(var(--u) * -1) var(--u) 0 0 var(--outline), var(--u) calc(var(--u) * -1) 0 0 var(--outline), calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--outline);
+  position: relative;
+}
+.px-panel.plain { --edge: var(--line); border-color: var(--surface-2); }
+.px-panel.ornate::before {
+  content: ""; position: absolute; inset: calc(var(--u) * -4); pointer-events: none; background: var(--gold-hi);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM0 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM0 5h1v1h-1z'/%3E%3C/svg%3E") top left / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM7 0h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM7 2h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM7 5h1v1h-1z'/%3E%3C/svg%3E") top right / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M0 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM0 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM0 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1z'/%3E%3C/svg%3E") bottom left / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M7 2h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM7 5h1v1h-1zM7 6h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1z'/%3E%3C/svg%3E") bottom right / 16px 16px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM0 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM0 5h1v1h-1z'/%3E%3C/svg%3E") top left / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM7 0h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM7 2h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM7 5h1v1h-1z'/%3E%3C/svg%3E") top right / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M0 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM0 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM0 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1z'/%3E%3C/svg%3E") bottom left / 16px 16px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cpath d='M7 2h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM7 5h1v1h-1zM7 6h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1z'/%3E%3C/svg%3E") bottom right / 16px 16px no-repeat;
+}
+.px-well { background: var(--well); box-shadow: inset var(--u) var(--u) 0 0 var(--well-lo), 0 calc(var(--u) * -1) 0 0 var(--line), 0 var(--u) 0 0 var(--line), calc(var(--u) * -1) 0 0 0 var(--line), var(--u) 0 0 0 var(--line); }
+.px-rule { height: var(--u); background: color-mix(in srgb, var(--frame-in), var(--frame) 35%); position: relative; margin: 14px 0; border: 0; }
+.px-rule::after { content: ""; position: absolute; left: 50%; top: 50%; width: var(--u); height: var(--u); background: var(--gold); translate: -50% -50%;
+  box-shadow: 0 calc(var(--u) * -2) var(--gold), 0 calc(var(--u) * 2) var(--gold), calc(var(--u) * -2) 0 var(--gold), calc(var(--u) * 2) 0 var(--gold), 0 0 0 var(--u) var(--gold); }
+
+/* ---------- buttons ---------- */
+.px-btn {
+  --face: var(--btn-face); --hi: var(--btn-hi); --lo: var(--btn-lo); --edge: var(--outline);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 6px 14px; margin: var(--u);
+  font: 600 15px/1 var(--font-b); color: var(--ink); background: var(--face); border: 0; cursor: pointer;
+  box-shadow: inset var(--u) var(--u) 0 0 var(--hi), inset calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--lo),
+    0 calc(var(--u) * -1) 0 0 var(--edge), 0 var(--u) 0 0 var(--edge), calc(var(--u) * -1) 0 0 0 var(--edge), var(--u) 0 0 0 var(--edge);
+}
+.px-btn:active, .px-btn[aria-pressed="true"] {
+  box-shadow: inset var(--u) var(--u) 0 0 var(--lo), inset calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--hi),
+    0 calc(var(--u) * -1) 0 0 var(--edge), 0 var(--u) 0 0 var(--edge), calc(var(--u) * -1) 0 0 0 var(--edge), var(--u) 0 0 0 var(--edge);
+}
+.px-btn:active { translate: 0 var(--u); }
+.px-btn[aria-pressed="true"] { color: var(--gold); --edge: var(--gold-lo); }
+.px-btn:focus-visible { outline: var(--u) solid var(--gold); outline-offset: calc(var(--u) * 3); }
+.px-btn.primary { --face: var(--gold); --hi: var(--gold-hi); --lo: var(--gold-lo); color: var(--gold-ink); }
+.px-btn.danger { --face: var(--blood); --hi: color-mix(in srgb, var(--blood), white 30%); --lo: color-mix(in srgb, var(--blood), black 40%); color: #fbeee6; }
+.px-btn.icon { width: 40px; padding: 0; }
+.px-btn.small { min-height: 30px; padding: 4px 10px; font-size: 13px; }
+.px-fab { width: 56px; height: 56px; padding: 0; filter: drop-shadow(0 0 10px var(--grace)); }
+.px-seg { display: flex; background: var(--well); padding: var(--u); margin: var(--u);
+  box-shadow: 0 calc(var(--u) * -1) 0 0 var(--outline), 0 var(--u) 0 0 var(--outline), calc(var(--u) * -1) 0 0 0 var(--outline), var(--u) 0 0 0 var(--outline); }
+.px-seg > button { flex: 1; min-height: 36px; border: 0; background: none; color: var(--ink-2); font: 600 14px var(--font-b); cursor: pointer; }
+.px-seg > button[aria-pressed="true"] { background: var(--btn-face); color: var(--gold);
+  box-shadow: inset var(--u) var(--u) 0 0 var(--btn-hi), inset calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--btn-lo); }
+
+/* ---------- inputs and checks ---------- */
+.px-input { width: 100%; min-height: 42px; padding: 8px 12px; border: 0; background: var(--well); color: var(--ink); font: 16px var(--font-b); margin: var(--u);
+  box-shadow: inset var(--u) var(--u) 0 0 var(--well-lo), 0 calc(var(--u) * -1) 0 0 var(--line), 0 var(--u) 0 0 var(--line), calc(var(--u) * -1) 0 0 0 var(--line), var(--u) 0 0 0 var(--line); }
+.px-input:focus { outline: none; box-shadow: inset var(--u) var(--u) 0 0 var(--well-lo), 0 calc(var(--u) * -1) 0 0 var(--gold), 0 var(--u) 0 0 var(--gold), calc(var(--u) * -1) 0 0 0 var(--gold), var(--u) 0 0 0 var(--gold); }
+.px-check { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border: 0; padding: 0; margin: var(--u); cursor: pointer; color: transparent; background: var(--well);
+  box-shadow: inset var(--u) var(--u) 0 0 var(--well-lo), 0 calc(var(--u) * -1) 0 0 var(--ink-3), 0 var(--u) 0 0 var(--ink-3), calc(var(--u) * -1) 0 0 0 var(--ink-3), var(--u) 0 0 0 var(--ink-3); }
+.px-check[aria-checked="true"] { background: var(--gold); color: var(--gold-ink);
+  box-shadow: inset var(--u) var(--u) 0 0 var(--gold-hi), inset calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--gold-lo), 0 calc(var(--u) * -1) 0 0 var(--outline), 0 var(--u) 0 0 var(--outline), calc(var(--u) * -1) 0 0 0 var(--outline), var(--u) 0 0 0 var(--outline); }
+
+/* ---------- bars ---------- */
+.px-bar { --fill: var(--xp); height: 12px; background: var(--well); position: relative; margin: var(--u);
+  box-shadow: 0 calc(var(--u) * -1) 0 0 var(--outline), 0 var(--u) 0 0 var(--outline), calc(var(--u) * -1) 0 0 0 var(--outline), var(--u) 0 0 0 var(--outline); }
+.px-bar > i { display: block; height: 100%; width: var(--p, 50%); background: var(--fill);
+  box-shadow: inset 0 var(--u) 0 0 color-mix(in srgb, var(--fill), white 32%), inset 0 calc(var(--u) * -1) 0 0 color-mix(in srgb, var(--fill), black 32%); }
+.px-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - var(--u)), rgb(0 0 0 / .28) calc(10% - var(--u)) 10%); pointer-events: none; }
+.px-bar.hp { --fill: var(--hp); } .px-bar.fp { --fill: var(--fp); } .px-bar.stamina { --fill: var(--stamina); }
+
+/* ---------- pills and rewards ---------- */
+.px-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; margin: var(--u); font: 600 14px var(--font-b); color: var(--ink); background: var(--surface-2);
+  box-shadow: 0 calc(var(--u) * -1) 0 0 var(--line), 0 var(--u) 0 0 var(--line), calc(var(--u) * -1) 0 0 0 var(--line), var(--u) 0 0 0 var(--line); }
+.px-pill.gold { color: var(--gold); box-shadow: 0 calc(var(--u) * -1) 0 0 var(--gold-lo), 0 var(--u) 0 0 var(--gold-lo), calc(var(--u) * -1) 0 0 0 var(--gold-lo), var(--u) 0 0 0 var(--gold-lo); }
+.px-reward { display: grid; justify-items: end; gap: 2px; font: 12px var(--font-m); color: var(--ink-2); }
+.px-reward span { display: inline-flex; align-items: center; gap: 4px; }
+.px-reward .xp { color: var(--c-habit); } .px-reward .rune { color: var(--gold); }
+
+/* ---------- lists ---------- */
+.px-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: var(--u) solid var(--line); }
+.px-row:first-child { border-top: 0; }
+.px-row .main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.px-row .t { font: 600 16px/1.25 var(--font-b); }
+.px-row .s { font-size: 14px; color: var(--ink-3); }
+.px-row.done .t { text-decoration: line-through var(--u); color: var(--ink-3); }
+.px-qic { width: 30px; height: 30px; display: grid; place-items: center; flex: none; color: var(--c, var(--ink-2)); background: var(--well); margin: var(--u);
+  box-shadow: 0 calc(var(--u) * -1) 0 0 var(--line), 0 var(--u) 0 0 var(--line), calc(var(--u) * -1) 0 0 0 var(--line), var(--u) 0 0 0 var(--line); }
+
+/* ---------- navigation ---------- */
+.px-tabbar { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--surface); border-top: var(--u) solid var(--frame); box-shadow: 0 calc(var(--u) * -1) 0 0 var(--outline); padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.px-tab { display: grid; justify-items: center; gap: 3px; padding: 6px 0 2px; border: 0; background: none; color: var(--ink-3); font: 10px var(--font-m); letter-spacing: .04em; text-transform: uppercase; position: relative; cursor: pointer; }
+.px-tab[aria-current="page"] { color: var(--gold); }
+.px-tab[aria-current="page"]::before { content: ""; position: absolute; top: -4px; left: 50%; width: var(--u); height: var(--u); translate: -50% 0; background: var(--gold);
+  box-shadow: calc(var(--u) * -1) var(--u) var(--gold), var(--u) var(--u) var(--gold), 0 var(--u) var(--gold); }
+
+/* ---------- shop items ---------- */
+.px-item { --edge: var(--r-common); display: grid; gap: 6px; min-width: 0; background: var(--surface); padding: 10px; margin: calc(var(--u) * 2);
+  box-shadow: 0 calc(var(--u) * -1) 0 0 var(--edge), 0 var(--u) 0 0 var(--edge), calc(var(--u) * -1) 0 0 0 var(--edge), var(--u) 0 0 0 var(--edge),
+    0 calc(var(--u) * -2) 0 0 var(--outline), 0 calc(var(--u) * 2) 0 0 var(--outline), calc(var(--u) * -2) 0 0 0 var(--outline), calc(var(--u) * 2) 0 0 0 var(--outline),
+    var(--u) var(--u) 0 0 var(--outline), calc(var(--u) * -1) var(--u) 0 0 var(--outline), var(--u) calc(var(--u) * -1) 0 0 var(--outline), calc(var(--u) * -1) calc(var(--u) * -1) 0 0 var(--outline); }
+.px-item[data-rarity="uncommon"] { --edge: var(--r-uncommon); } .px-item[data-rarity="rare"] { --edge: var(--r-rare); }
+.px-item[data-rarity="epic"] { --edge: var(--r-epic); } .px-item[data-rarity="legendary"] { --edge: var(--r-legendary); } .px-item[data-rarity="mythic"] { --edge: var(--r-mythic); }
+.px-item .plinth { aspect-ratio: 1; display: grid; place-items: center; background: radial-gradient(closest-side, color-mix(in srgb, var(--edge), transparent 72%), transparent 80%), var(--well); }
+.px-item .name { font: 600 15px/1.2 var(--font-b); overflow-wrap: anywhere; }
+.px-item .kind { font: 11px var(--font-m); color: var(--edge); text-transform: uppercase; letter-spacing: .05em; }
+
+/* ---------- banners (toasts for big moments) ---------- */
+.px-banner { text-align: center; padding: 18px 16px; background: linear-gradient(90deg, transparent, var(--banner-bg) 18%, var(--banner-bg) 82%, transparent); }
+.px-banner b { display: block; font: 400 40px/1 var(--font-title); color: var(--gold); text-shadow: 0 0 14px var(--grace); letter-spacing: .02em; }
+.px-banner small { display: block; margin-top: 6px; font: 14px var(--font-b); color: var(--ink-2); }
+.px-banner.died b { color: var(--blood); text-shadow: 0 0 14px color-mix(in srgb, var(--blood), transparent 50%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .px-breathe { animation: px-breathe 2.4s steps(2) infinite; }
+  @keyframes px-breathe { 50% { translate: 0 var(--u); } }
+}

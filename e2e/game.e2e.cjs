@@ -52,13 +52,15 @@ function seed(be) {
 
 (async () => {
   const b = await chromium.launch(); const errs = []; const be = mockBackend(); seed(be);
-  const ctx = await b.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 2, colorScheme: process.env.DARK ? "dark" : "light" });
+  const ctx = await b.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 2, colorScheme: process.env.DARK ? "dark" : "light", serviceWorkers: "block" });
   await ctx.route(SB + "/**", r => be.handle(r)); await ctx.route("wss://**", r => r.abort());
   if (process.env.FONTS) {
     const FD = process.env.FONTS; const map = Object.fromEntries(fs.readFileSync(FD + "/map.txt", "utf8").trim().split("\n").map(l => l.split(" ")));
     await ctx.route("https://fonts.googleapis.com/**", r => r.fulfill({ status: 200, contentType: "text/css", headers: { "access-control-allow-origin": "*" }, body: fs.readFileSync(FD + "/fonts.css") }));
     await ctx.route("https://fonts.gstatic.com/**", r => { const f = map[r.request().url()]; return f ? r.fulfill({ status: 200, contentType: "font/woff2", headers: { "access-control-allow-origin": "*" }, body: fs.readFileSync(FD + "/" + f) }) : r.abort(); });
   } else await ctx.route("https://fonts.*/**", r => r.abort());
+  // The app defaults to Night; light runs follow the device so the Leyndell theme gets screenshots too.
+  if (!process.env.DARK) await ctx.addInitScript(() => { try { if (!localStorage.getItem("daybook-theme")) localStorage.setItem("daybook-theme", "auto"); } catch {} });
   const p = await ctx.newPage();
   p.on("pageerror", e => errs.push("pageerror: " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/websocket|ERR_|fonts|Failed to load resource/i.test(m.text())) errs.push("console: " + m.text()); if (m.type() === "warning" && /game:/.test(m.text())) errs.push("warn: " + m.text()); });
@@ -159,6 +161,14 @@ function seed(be) {
   check(!(await overflow()), "town has no sideways scroll");
   await p.click('[data-act="ledger"]'); await p.waitForSelector("#sheet"); await p.waitForTimeout(400); await p.screenshot({ path: `${OUT}/game-15-ledger-${W}.png` }); await p.click("#sheet [data-act=close]");
 
+  // Theme switch: Night and Leyndell
+  await p.click('[data-act="settings"]:visible'); await p.waitForSelector('#sheet [data-act="theme"]');
+  await p.click('#sheet [data-act="theme"][data-v="leyndell"]');
+  check(await p.evaluate(() => document.documentElement.dataset.theme) === "light", "Leyndell switches to the light theme");
+  await p.click('#sheet [data-act="theme"][data-v="night"]');
+  check(await p.evaluate(() => document.documentElement.dataset.theme) === "dark", "Night switches back");
+  await p.click(`#sheet [data-act="theme"][data-v="${process.env.DARK ? "night" : "auto"}"]`); await p.click("#sheet [data-act=close]");
+
   // Switch off and back on
   await p.click('[data-act="settings"]:visible'); await p.click('#sheet [data-act="game-settings"]');
   await p.screenshot({ path: `${OUT}/game-16-settings-${W}.png` });
@@ -169,10 +179,10 @@ function seed(be) {
   check(!!(await p.$("#view .herocard")), "game back on");
 
   // Reload with an empty cache: everything comes back from the server
-  const lvl = await p.textContent(".herocard .small.muted"); const gp = await p.textContent(".herocard .goldpill");
+  const lvl = await p.textContent(".herocard .hc-lv"); const gp = await p.textContent(".herocard .goldpill");
   await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith("daybook:v1")) localStorage.removeItem(k); });
   await p.reload(); await p.waitForSelector("#view .herocard", { timeout: 10000 }); await p.waitForTimeout(1500);
-  check(await p.textContent(".herocard .small.muted") === lvl && await p.textContent(".herocard .goldpill") === gp, `after reload: ${lvl}, ${gp.trim()}`);
+  check(await p.textContent(".herocard .hc-lv") === lvl && await p.textContent(".herocard .goldpill") === gp, `after reload: ${lvl}, ${gp.trim()}`);
   const n0 = ledger().length; await p.waitForTimeout(2000);
   check(ledger().length === n0, "no extra ledger writes after reload (idempotent)");
 

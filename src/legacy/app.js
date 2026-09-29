@@ -3,6 +3,7 @@ import { ECONOMY as E } from "../game/economy.js";
 import CAT from "../game/catalog.json";
 import * as GE from "../game/engine.js";
 import { avatarSvg, itemArt, DEFAULT_LOOK } from "../game/art.js";
+import { pixelIcon, ICONS as PX } from "../ui/icons.mjs";
 
 "use strict";
 /* ---------- tiny helpers ---------- */
@@ -79,7 +80,9 @@ const IC = {
   star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
 };
-const icon = (n, s = 20, w = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ""}</svg>`;
+// Pixel icons from the art thread, drawn only at whole multiples of their 12px grid; the line icons stay as a fallback.
+const pxSize = s => s <= 16 ? 12 : s <= 26 ? 24 : 36;
+const icon = (n, s = 20, w = 2) => PX[n] ? pixelIcon(n, pxSize(s)) : `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ""}</svg>`;
 
 /* ---------- state ---------- */
 const EXP_CATS = ["Groceries","Eating out","Rent","Bills","Transport","Health","Fitness","Shopping","Entertainment","Subscriptions","Travel","Other"];
@@ -530,7 +533,16 @@ function syncBadge() {
 }
 let rq = false;
 function scheduleRender() { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; render(); }); }
+// Night (dark and gold) is the design; Leyndell is its light twin. "auto" follows the device.
+const THEMES = [["night", "Night"], ["leyndell", "Leyndell"], ["auto", "Match device"]];
+function themePick() { let t = S.settings && S.settings.theme; if (!t) try { t = localStorage.getItem("daybook-theme"); } catch {} return THEMES.some(x => x[0] === t) ? t : "night"; }
+function applyTheme() {
+  const t = themePick(), el = document.documentElement;
+  if (t === "auto") delete el.dataset.theme; else el.dataset.theme = t === "leyndell" ? "light" : "dark";
+  try { localStorage.setItem("daybook-theme", t); } catch {}
+}
 function render() {
+  applyTheme();
   const main = $("#view"); const ae = document.activeElement;
   const fid = ae && ae.id && main.contains(ae) ? ae.id : null;
   const sel = fid && typeof ae.selectionStart === "number" ? [ae.selectionStart, ae.selectionEnd] : null;
@@ -1458,7 +1470,7 @@ const daysText = d => !d || d.length === 7 ? "Every day" : d.length === 5 && d.e
 const parseDays = v => [...new Set(String(v || "").split(",").filter(Boolean).map(Number).filter(n => n >= 0 && n < 7))].sort((a, b) => a - b);
 const fv = (f, n) => { const el = f.elements.namedItem(n); return el ? el.value : ""; };
 const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; return `<div class="multi wdays" role="group" aria-label="${label}"><input type="hidden" name="${name}" value="${on.join(",")}">${ALL_WD.map(i => `<button type="button" class="chip" data-act="multi" data-v="${i}" aria-pressed="${on.includes(i)}" aria-label="${wdName(i, "long")}">${wdName(i)}</button>`).join("")}</div>`; };
-const coin = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="var(--gold)"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="var(--gold-ink)" stroke-opacity=".4" stroke-width="1.4"/></svg>`;
+const coin = (s = 14) => `<span class="coin">${pixelIcon("rune", pxSize(s))}</span>`;
 const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Gold</span></span>`;
 const seed = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2c3.2 2.5 4.8 5.2 4.8 8a4.8 4.8 0 0 1-9.6 0c0-2.8 1.6-5.5 4.8-8z" fill="var(--gold)"/><path d="M8 5.2v7.4" stroke="var(--gold-ink)" stroke-opacity=".45" stroke-width="1.3"/></svg>`;
 const seedAmt = (n, s = 14) => `<span class="gold">${seed(s)}${fmtInt(n)}<span class="sr"> ${CAT.currencies.essence}</span></span>`;
@@ -1466,7 +1478,7 @@ const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class=
 const heroDoc = () => ({name: "", look: {}, equip: {}, talismans: [], ...(S.hero || {})});
 function heroEquip(equipIds) {
   const out = {};
-  for (const [slot, id] of Object.entries(equipIds || heroDoc().equip || {})) { const it = ITEM[id]; if (it && AV_SLOTS.includes(slot)) out[slot] = {color: E.rarities[it.rarity].color, rarity: it.rarity, kind: it.kind}; }
+  for (const [slot, id] of Object.entries(equipIds || heroDoc().equip || {})) { const it = ITEM[id]; if (it && AV_SLOTS.includes(slot)) out[slot] = {id, color: E.rarities[it.rarity].color, rarity: it.rarity, kind: it.kind}; }
   return out;
 }
 // Talismans worn: only ones you own, and only as many as your slots allow.
@@ -1581,7 +1593,7 @@ function boardCard(s, o = {}) {
   else {
     h += `<div class="list">`;
     qs.forEach((q, i) => { if (i === s.slots) h += `<div class="slotline"><span>Past ${s.slots}: streak and HP only</span></div>`; h += questRow(q, k, {reorder: o.reorder, i, n: qs.length}); });
-    h += `</div><div class="allclear ${r.allClear ? "on" : ""}"><span class="qic ${r.allClear ? "done" : ""}" style="--c:var(--gold-ink);--p:${r.done / r.sched}" aria-hidden="true">${icon(r.allClear ? "check" : "star", 15, r.allClear ? 3 : 2)}</span><span class="grow"><b>All clear</b><br><span class="small muted">${r.allClear ? "Every quest done today" : `Finish all ${r.sched} for a bonus`}</span></span>${rewardChip(r.allClearReward, r.allClear)}</div>`;
+    h += `</div><div class="allclear ${r.allClear ? "on" : ""}"><span class="qic ${r.allClear ? "done" : ""}" style="--c:var(--gold);--p:${r.done / r.sched}" aria-hidden="true">${icon(r.allClear ? "check" : "star", 15, r.allClear ? 3 : 2)}</span><span class="grow"><b>All clear</b><br><span class="small muted">${r.allClear ? "Every quest done today" : `Finish all ${r.sched} for a bonus`}</span></span>${rewardChip(r.allClearReward, r.allClear)}</div>`;
   }
   const canRest = o.manage && r.sched && !r.allClear && !r.rest && (s.held["item.scroll-of-grace"] || 0) > 0;
   if (o.manage) h += `<div class="row between board-foot">${qs.length > 1 ? `<button class="btn sm ${o.reorder ? "pri" : "ghost"}" data-act="reorder">${o.reorder ? "Done" : "Reorder"}</button>` : "<span></span>"}<span class="row" style="gap:14px">${canRest ? `<button class="linkbtn" data-act="rest" data-d="${k}" data-confirm="Rest today with a Scroll of Grace?">Rest today</button>` : ""}<button class="linkbtn" data-act="game-settings">Quest settings</button></span></div>`;
@@ -1598,7 +1610,7 @@ function yesterdayCard(s) {
 }
 function bountyCard(s) {
   const ps = s.board.periodic; const bs = s.bounties || []; if (!ps.length && !bs.length) return "";
-  const brow = b => `<div class="li qrow ${b.done ? "done" : ""}"><span class="qic ${b.done ? "done" : ""}" style="--c:var(--gold-ink);--p:${Math.min(1, b.v / b.n)}" aria-hidden="true">${icon(b.done ? "check" : "star", 15, b.done ? 3 : 2)}</span><div class="li-main"><span class="t">${esc(b.name)}</span><span class="sub"><span>${esc(b.text)}</span><span>${fmtInt(Math.min(b.v, b.n))} of ${fmtInt(b.n)}</span></span></div><span class="rew${b.done ? " on" : ""}"><span class="rx">+${b.reward.xp} XP</span><span class="rg">${coin(12)}${b.reward.gold}<span class="sr"> Gold</span></span><span class="rg">${seed(12)}${b.reward.essence}<span class="sr"> ${esc(CAT.currencies.essence)}</span></span></span></div>`;
+  const brow = b => `<div class="li qrow ${b.done ? "done" : ""}"><span class="qic ${b.done ? "done" : ""}" style="--c:var(--gold);--p:${Math.min(1, b.v / b.n)}" aria-hidden="true">${icon(b.done ? "check" : "star", 15, b.done ? 3 : 2)}</span><div class="li-main"><span class="t">${esc(b.name)}</span><span class="sub"><span>${esc(b.text)}</span><span>${fmtInt(Math.min(b.v, b.n))} of ${fmtInt(b.n)}</span></span></div><span class="rew${b.done ? " on" : ""}"><span class="rx">+${b.reward.xp} XP</span><span class="rg">${coin(12)}${b.reward.gold}<span class="sr"> Gold</span></span><span class="rg">${seed(12)}${b.reward.essence}<span class="sr"> ${esc(CAT.currencies.essence)}</span></span></span></div>`;
   const rows = ps.map(p => {
     const kind = p.kind === "monthly" ? "Monthly" : "Weekly"; const flav = GE.flavor(CAT, "periodic", p.key + ":" + p.period);
     const lead = p.cat === "task" ? `<button class="chk sq" style="--c:var(--c-task)" aria-pressed="${p.done}" data-act="toggle-task" data-id="${p.ref}" aria-label="Complete ${esc(p.name)}">${icon("check", 16, 3)}</button>`
@@ -1611,28 +1623,28 @@ function bountyCard(s) {
 }
 function tutorialCard(s) {
   if (s.tutorial.done) return "";
-  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("star", 15)}</span><div class="grow"><div class="label">Your first quest</div><b class="tut-t">${esc(CAT.tutorial.name)}</b><div class="small muted">${esc(CAT.tutorial.text)}</div></div>${rewardChip(s.tutorial.reward, false)}</div></section>`;
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold);--p:0" aria-hidden="true">${icon("star", 15)}</span><div class="grow"><div class="label">Your first quest</div><b class="tut-t">${esc(CAT.tutorial.name)}</b><div class="small muted">${esc(CAT.tutorial.text)}</div></div>${rewardChip(s.tutorial.reward, false)}</div></section>`;
 }
 function heroCard(s) {
   const hd = heroDoc(); const hpP = s.maxHp ? s.hp / s.maxHp : 0; const tone = hpP > .5 ? "good" : hpP > .25 ? "warn" : "bad";
-  return `<section class="card herocard">
-    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(104)}${companion() ? `<span class="hc-pet">${itemArt(companion(), E.rarities[companion().rarity].color, 34)}</span>` : ""}${heroDoc().mount && ITEM[heroDoc().mount] ? `<span class="hc-mount">${itemArt(ITEM[heroDoc().mount], E.rarities[ITEM[heroDoc().mount].rarity].color, 30)}</span>` : ""}</button>
+  return `<section class="card herocard px-panel ornate">
+    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(128)}${companion() ? `<span class="hc-pet">${itemArt(companion(), E.rarities[companion().rarity].color, 34)}</span>` : ""}${heroDoc().mount && ITEM[heroDoc().mount] ? `<span class="hc-mount">${itemArt(ITEM[heroDoc().mount], E.rarities[ITEM[heroDoc().mount].rarity].color, 30)}</span>` : ""}</button>
     <div class="hc-main">
-      <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}${ORIGIN[hd.origin] ? ` ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
+      <div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="hc-lv">Level ${s.level}${ORIGIN[hd.origin] ? ` · ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
       <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP${s.hp < s.maxHp && s.held["item.flask-of-crimson-tears"] ? ` <button class="linkbtn flaskbtn" data-act="flask">Drink a flask (${s.held["item.flask-of-crimson-tears"]})</button>` : ""}</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
-      <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
+      <div class="row wrap" style="gap:6px"><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
     </div></section>`;
 }
 function rekindleCard(s) {
   const r = s.rekindle; if (!r) return "";
   const day = new Date(GE.parseKey(r.date)).toLocaleDateString(undefined, {weekday: "long"}); const enough = s.essence >= r.cost;
   const why = !r.ready ? `You can rekindle again ${fmtDate(r.next)}.` : !enough ? `You have ${s.essence} ${CAT.currencies.essence}. Weekly bounties give one each.` : "";
-  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("flame", 15)}</span><div class="grow"><b class="tut-t">Your ${r.streak}-day streak broke on ${day}</b><div class="small muted">Rekindle it for ${r.cost} ${esc(CAT.currencies.essence)} and it carries on as if ${day} counted. ${why}</div></div>${r.ready && enough ? `<button class="btn sm" data-act="rekindle" data-confirm="Spend ${r.cost}?">${seed(13)}${r.cost}</button>` : ""}</div></section>`;
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold);--p:0" aria-hidden="true">${icon("flame", 15)}</span><div class="grow"><b class="tut-t">Your ${r.streak}-day streak broke on ${day}</b><div class="small muted">Rekindle it for ${r.cost} ${esc(CAT.currencies.essence)} and it carries on as if ${day} counted. ${why}</div></div>${r.ready && enough ? `<button class="btn sm" data-act="rekindle" data-confirm="Spend ${r.cost}?">${seed(13)}${r.cost}</button>` : ""}</div></section>`;
 }
 function originCard() {
   if (heroDoc().origin) return "";
-  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("shield", 15)}</span><div class="grow"><div class="label">New</div><b class="tut-t">Choose your origin</b><div class="small muted">Pick where your Tarnished comes from and get that origin's starter gear. It's for looks and gives no stats.</div></div><button class="btn sm" data-act="pick-origin">Choose</button></div></section>`;
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold);--p:0" aria-hidden="true">${icon("shield", 15)}</span><div class="grow"><div class="label">New</div><b class="tut-t">Choose your origin</b><div class="small muted">Pick where your Tarnished comes from and get that origin's starter gear. It's for looks and gives no stats.</div></div><button class="btn sm" data-act="pick-origin">Choose</button></div></section>`;
 }
 function downedCard(s) {
   if (!s.downedRisk) return "";
@@ -1726,7 +1738,7 @@ function armoryView(s) {
     const group = items.filter(i => i.rarity === rar && pick(i)); if (!group.length) continue;
     const R = E.rarities[rar]; const set = at === "armor" ? SET_OF[group[0].setId] : null;
     const lvl = Math.min(...group.map(i => GE.itemPrice(i, E).level));
-    h += `<section class="card" style="--r:${R.color}"><div class="card-h"><h2><span class="rdot"></span> ${esc(CAT.rarityNames[rar])}${set ? ` · ${esc(set.name)} set` : ""}</h2>${lvl > s.level ? `<span class="pill">${icon("lock", 12, 2.4)}Unlocks at level ${lvl}</span>` : ""}</div><div class="items">`;
+    h += `<section class="card" style="--r:var(--r-${rar})"><div class="card-h"><h2><span class="rdot"></span> ${esc(CAT.rarityNames[rar])}${set ? ` · ${esc(set.name)} set` : ""}</h2>${lvl > s.level ? `<span class="pill">${icon("lock", 12, 2.4)}Unlocks at level ${lvl}</span>` : ""}</div><div class="items">`;
     h += group.map(it => {
       const p = GE.itemPrice(it, E); const owned = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned}, E);
       const on = it.type === "talisman" ? worn.has(it.id) : eq[it.slot] === it.id;
@@ -1736,7 +1748,7 @@ function armoryView(s) {
         : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
       const sub = it.type === "talisman" ? perkText(it.perk) : it.type === "pouch" ? "+1 talisman slot" : SLOT_NAME[it.slot];
       const boss = bossSource(it);
-      return `<div class="item"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(sub)}</div>${boss ? `<div class="tiny drop">${icon("shield", 11, 2.4)}Also drops from ${esc(boss)}</div>` : ""}${btn}</div>`;
+      return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, R.color, 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(sub)}</div>${boss ? `<div class="tiny drop">${icon("shield", 11, 2.4)}Also drops from ${esc(boss)}</div>` : ""}${btn}</div>`;
     }).join("");
     h += `</div></section>`;
   }
@@ -1757,7 +1769,7 @@ function itemsView(s, gold) {
       : `<span class="price-short" title="${fmtInt(c.short || 0)} more Gold needed">${coin(13)}${fmtInt(cfg.gold)}</span>`;
     const text = it.kind === "flask" ? `Drink to restore ${cfg.hp} HP.` : it.text;
     const have = it.type === "upgrade" ? `${held} of ${cfg.hold} bought` : `You hold ${held} of ${cfg.hold}`;
-    return `<div class="item" style="--r:${R.color}"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(text)}</div><div class="tiny">${have}</div>${btn}</div>`;
+    return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, R.color, 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(text)}</div><div class="tiny">${have}</div>${btn}</div>`;
   }).join("");
   h += `</div></section>`;
   h += `<section class="card"><div class="card-h"><h2>Rekindling</h2></div><p class="small muted">If your streak broke two days ago, the Hero page offers to rekindle it for ${E.rekindle.essence} ${esc(CAT.currencies.essence)}, once every ${E.rekindle.cooldownDays} days. You have ${seedAmt(s.essence, 13)}. Seeds come from weekly bounties and every ${E.levelUp.essenceEvery} levels.</p></section>`;
@@ -1774,16 +1786,16 @@ function wardrobeView(s) {
     const mine = gear.filter(i => i.slot === sl.id).sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
     return `<div class="slotrow"><div class="row between"><b>${esc(sl.name)}</b><span class="small muted">${eq[sl.id] && ITEM[eq[sl.id]] ? esc(ITEM[eq[sl.id]].name) : "Nothing on"}</span></div><div class="wopts">
       <button class="wopt" data-act="equip" data-slot="${sl.id}" data-id="" aria-pressed="${!eq[sl.id]}"><span class="wnone">${icon("x", 18)}</span>None</button>
-      ${mine.map(it => { const col = E.rarities[it.rarity].color; return `<button class="wopt" style="--r:${col}" data-act="equip" data-slot="${sl.id}" data-id="${it.id}" aria-pressed="${eq[sl.id] === it.id}" aria-label="Wear ${esc(it.name)}, ${esc(CAT.rarityNames[it.rarity])}">${itemArt(it, col, 34)}<span>${esc(it.name)}</span></button>`; }).join("")}</div></div>`;
+      ${mine.map(it => { const col = E.rarities[it.rarity].color; return `<button class="wopt" style="--r:var(--r-${it.rarity})" data-act="equip" data-slot="${sl.id}" data-id="${it.id}" aria-pressed="${eq[sl.id] === it.id}" aria-label="Wear ${esc(it.name)}, ${esc(CAT.rarityNames[it.rarity])}">${itemArt(it, col, 34)}<span>${esc(it.name)}</span></button>`; }).join("")}</div></div>`;
   }).join("");
   h += `</section>`;
   // Talismans: the slots you have, what's in them, and what you own.
   const P = heroPerks();
   h += `<section class="card"><div class="card-h"><h2>Talismans</h2><span class="small muted">${worn.length} of ${n} ${n === 1 ? "slot" : "slots"}</span></div>
-    <div class="tslots">${Array.from({length: E.talismans.slotsMax}, (_, i) => { const it = ITEM[worn[i]]; return i >= n ? `<span class="tslot locked" title="Needs a talisman pouch">${icon("lock", 14, 2.4)}</span>` : it ? `<span class="tslot" style="--r:${E.rarities[it.rarity].color}" title="${esc(it.name)}">${itemArt(it, E.rarities[it.rarity].color, 30)}</span>` : `<span class="tslot empty"></span>`; }).join("")}</div>
+    <div class="tslots">${Array.from({length: E.talismans.slotsMax}, (_, i) => { const it = ITEM[worn[i]]; return i >= n ? `<span class="tslot locked" title="Needs a talisman pouch">${icon("lock", 14, 2.4)}</span>` : it ? `<span class="tslot" style="--r:var(--r-${it.rarity})" title="${esc(it.name)}">${itemArt(it, E.rarities[it.rarity].color, 30)}</span>` : `<span class="tslot empty"></span>`; }).join("")}</div>
     <p class="small ${perkText(P) ? "" : "muted"}" style="margin:8px 0 4px">${perkText(P) || "No perks active."}</p>`;
   if (!tals.length) h += `<div class="empty"><span>Talismans give small perks, like more Gold or less day-end damage.</span><button class="btn sm" data-act="armory-tab" data-v="talismans">See talismans</button></div>`;
-  else h += `<div class="wopts">${tals.map(it => { const col = E.rarities[it.rarity].color; const on = worn.includes(it.id); return `<button class="wopt" style="--r:${col}" data-act="talisman" data-id="${it.id}" aria-pressed="${on}" aria-label="${on ? "Take off" : "Wear"} ${esc(it.name)}: ${esc(perkText(it.perk))}">${itemArt(it, col, 30)}<span>${esc(it.name)}</span></button>`; }).join("")}</div>`;
+  else h += `<div class="wopts">${tals.map(it => { const col = E.rarities[it.rarity].color; const on = worn.includes(it.id); return `<button class="wopt" style="--r:var(--r-${it.rarity})" data-act="talisman" data-id="${it.id}" aria-pressed="${on}" aria-label="${on ? "Take off" : "Wear"} ${esc(it.name)}: ${esc(perkText(it.perk))}">${itemArt(it, col, 30)}<span>${esc(it.name)}</span></button>`; }).join("")}</div>`;
   return h + `</section></div>`;
 }
 const bar = (v, max, c) => `<div class="meter" role="progressbar" aria-valuenow="${v}" aria-valuemax="${max}"><i style="width:${max ? Math.min(100, v / max * 100) : 0}%;--c:${c}"></i></div>`;
@@ -1796,7 +1808,7 @@ function spiritsView(s) {
   h += `<section class="card"><div class="card-h"><h2>Companion</h2>${comp ? `<button class="btn sm ghost" data-act="summon" data-id="">Dismiss</button>` : ""}</div>`;
   if (comp) {
     const b = S2.bond[comp.id];
-    h += `<div class="row" style="gap:14px;align-items:center"><span class="pet-art" style="--r:${col(comp)}">${itemArt(comp, col(comp), 56)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(comp.name)}${comp.type === "ash" && b ? ` +${b.level}` : ""}</b>`
+    h += `<div class="row" style="gap:14px;align-items:center"><span class="pet-art" style="--r:var(--r-${comp.rarity})">${itemArt(comp, col(comp), 56)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(comp.name)}${comp.type === "ash" && b ? ` +${b.level}` : ""}</b>`
       + (comp.type === "ash" && b ? (b.next ? `<div class="small muted">Bond ${b.points} of ${b.next} for +${b.level + 1}</div>${bar(b.points, b.next, "var(--c-quest)")}` : `<div class="small muted">Fully bonded</div>`) : `<div class="small muted">${esc(CAT.rarityNames[comp.rarity])} companion</div>`) + `</div></div>`;
   } else h += `<p class="small muted">No companion yet. Awaken a Spirit Ash, then summon it to walk beside you. It grows Bond from every quest you finish.</p>`;
   h += `</section>`;
@@ -1804,7 +1816,7 @@ function spiritsView(s) {
   const aw = S2.awakening;
   if (aw) {
     const it = ITEM[aw.id];
-    h += `<section class="card" style="--r:${col(it)}"><div class="card-h"><h2>Awakening</h2><span class="small muted">${aw.progress} of ${aw.goal} quests</span></div><div class="row" style="gap:14px;align-items:center"><span class="pet-art dim">${itemArt(it, col(it), 48)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(it.name)}</b>${bar(aw.progress, aw.goal, col(it))}<div class="small muted">${aw.ready ? "Ready. Awaken it to summon it." : "Every quest you finish brings it closer."}</div></div>${aw.ready ? `<button class="btn sm pri" data-act="awaken">Awaken</button>` : ""}</div></section>`;
+    h += `<section class="card" style="--r:var(--r-${it.rarity})"><div class="card-h"><h2>Awakening</h2><span class="small muted">${aw.progress} of ${aw.goal} quests</span></div><div class="row" style="gap:14px;align-items:center"><span class="pet-art dim">${itemArt(it, col(it), 48)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(it.name)}</b>${bar(aw.progress, aw.goal, col(it))}<div class="small muted">${aw.ready ? "Ready. Awaken it to summon it." : "Every quest you finish brings it closer."}</div></div>${aw.ready ? `<button class="btn sm pri" data-act="awaken">Awaken</button>` : ""}</div></section>`;
   }
   // Your ashes
   if (owned.length) {
@@ -1820,18 +1832,18 @@ function spiritsView(s) {
   h += `<section class="card"><div class="card-h"><h2>Legends</h2></div><p class="small muted" style="margin-bottom:6px">They join you after a long streak of one kind of quest.</p><div class="list">` + Object.entries(npc).map(([id, n]) => {
     const it = ITEM[id]; const on = st.summoned === id;
     const act = !n.unlocked ? `<span class="pill">${icon("lock", 12, 2.4)}${n.best} / ${n.days}</span>` : on ? `<span class="pill good">Summoned</span>` : `<button class="btn sm" data-act="summon" data-id="${id}">Summon</button>`;
-    return `<div class="li" style="padding:8px 0;gap:12px;align-items:flex-start"><span class="pet-art sm${n.unlocked ? "" : " dim"}" style="--r:${col(it)}">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}<br><span class="tiny faint">${esc(npcGoal(n))}. ${n.cur ? `Now ${n.cur}, best ${n.best}.` : n.best ? `Best ${n.best}.` : ""}</span></span>${act}</div>`;
+    return `<div class="li" style="padding:8px 0;gap:12px;align-items:flex-start"><span class="pet-art sm${n.unlocked ? "" : " dim"}" style="--r:var(--r-${it.rarity})">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}<br><span class="tiny faint">${esc(npcGoal(n))}. ${n.cur ? `Now ${n.cur}, best ${n.best}.` : n.best ? `Best ${n.best}.` : ""}</span></span>${act}</div>`;
   }).join("") + `</div></section>`;
   // Torrent
   const tor = ITEM["mount.torrent"]; const torOk = s.level >= E.stable.torrent.level; const riding = heroDoc().mount === tor.id;
-  h += `<section class="card"><div class="row" style="gap:12px;align-items:center"><span class="pet-art sm${torOk ? "" : " dim"}" style="--r:${col(tor)}">${itemArt(tor, col(tor), 30)}</span><span class="grow t"><b>${esc(tor.name)}</b><br><span class="tiny faint">${torOk ? "Your spectral steed" : `Joins you at level ${E.stable.torrent.level}`}</span></span>${torOk ? `<button class="btn sm${riding ? "" : " pri"}" data-act="ride">${riding ? "Dismount" : "Ride"}</button>` : `<span class="pill">${icon("lock", 12, 2.4)}Level ${E.stable.torrent.level}</span>`}</div></section>`;
+  h += `<section class="card"><div class="row" style="gap:12px;align-items:center"><span class="pet-art sm${torOk ? "" : " dim"}" style="--r:var(--r-${tor.rarity})">${itemArt(tor, col(tor), 30)}</span><span class="grow t"><b>${esc(tor.name)}</b><br><span class="tiny faint">${torOk ? "Your spectral steed" : `Joins you at level ${E.stable.torrent.level}`}</span></span>${torOk ? `<button class="btn sm${riding ? "" : " pri"}" data-act="ride">${riding ? "Dismount" : "Ride"}</button>` : `<span class="pill">${icon("lock", 12, 2.4)}Level ${E.stable.torrent.level}</span>`}</div></section>`;
   // Twin Maiden Husks: ashes for sale
   const sale = GE.shopItems(CAT, "ash", E);
   h += `<section class="card"><div class="card-h"><h2>Twin Maiden Husks</h2></div><div class="items">` + sale.map(it => {
     const p = GE.itemPrice(it, E); const own = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned: own}, E);
     const btn = own ? `<span class="pill">Owned</span>` : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
       : c.reason === "level" ? `<span class="price-short">${icon("lock", 13, 2.4)}Level ${c.need}</span>` : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
-    return `<div class="item" style="--r:${col(it)}"><div class="art">${itemArt(it, col(it), 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(CAT.rarityNames[it.rarity])} · ${E.stable.awakenQuests[it.rarity]} quests to awaken</div>${btn}</div>`;
+    return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, col(it), 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(CAT.rarityNames[it.rarity])} · ${E.stable.awakenQuests[it.rarity]} quests to awaken</div>${btn}</div>`;
   }).join("") + `</div></section>`;
   return h + `</div></div>`;
 }
@@ -1889,10 +1901,10 @@ const lookFields = L => `<div class="field"><span>Skin</span><div class="swatche
   <div class="field"><span>Hair color</span><div class="swatches">${CAT.looks.hair.map(c => `<button type="button" class="sw" style="--c:${c}" data-act="look-pick" data-name="hair" data-v="${c}" aria-pressed="${c === L.hair}" aria-label="Hair color"></button>`).join("")}</div><input type="hidden" name="hair" value="${L.hair}"></div>
   <div class="field"><span>Hair style</span><div class="seg" role="group">${CAT.looks.hairStyle.map(o => `<button type="button" data-act="look-pick" data-name="hairStyle" data-v="${o.id}" aria-pressed="${o.id === L.hairStyle}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="hairStyle" value="${L.hairStyle}"></div>
   <div class="field"><span>Build</span><div class="seg" role="group">${CAT.looks.body.map(o => `<button type="button" data-act="look-pick" data-name="body" data-v="${o.id}" aria-pressed="${o.id === L.body}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="body" value="${L.body}"></div>`;
-const originFields = sel => `<div class="field"><span>Origin</span><div class="stack" style="gap:8px" role="group" aria-label="Origin">${CAT.origins.map(o => `<button type="button" class="pickt origin" data-act="origin-pick" data-name="origin" data-v="${o.id}" aria-pressed="${o.id === sel}"><span class="og-av" aria-hidden="true">${avatarSvg({equip: heroEquip(kitEquip(originKit(o))), size: 40})}</span><span class="grow"><b>${esc(o.name)}</b><br><span class="small muted">${esc(o.text)}</span></span><span class="tick">${icon("check", 16, 3)}</span></button>`).join("")}<input type="hidden" name="origin" value="${sel}"></div></div>`;
+const originFields = sel => `<div class="field"><span>Origin</span><div class="stack" style="gap:8px" role="group" aria-label="Origin">${CAT.origins.map(o => `<button type="button" class="pickt origin" data-act="origin-pick" data-name="origin" data-v="${o.id}" aria-pressed="${o.id === sel}"><span class="og-av" aria-hidden="true">${avatarSvg({equip: heroEquip(kitEquip(originKit(o))), size: 64})}</span><span class="grow"><b>${esc(o.name)}</b><br><span class="small muted">${esc(o.text)}</span></span><span class="tick">${icon("check", 16, 3)}</span></button>`).join("")}<input type="hidden" name="origin" value="${sel}"></div></div>`;
 function sOrigin() {
   const sel = CAT.origins[0].id;
-  return () => sheetHead("Choose your origin") + `<form data-form="origin" class="stack"><div class="lookprev" data-look="1">${avatarSvg({look: heroDoc().look, equip: heroEquip(kitEquip(originKit(ORIGIN[sel]))), size: 132})}</div>
+  return () => sheetHead("Choose your origin") + `<form data-form="origin" class="stack"><div class="lookprev" data-look="1">${avatarSvg({look: heroDoc().look, equip: heroEquip(kitEquip(originKit(ORIGIN[sel]))), size: 128})}</div>
     ${originFields(sel)}<p class="tiny faint">You choose once. Starter gear gives no stats and stays in your Wardrobe next to anything you buy.</p>
     <div class="sh-foot"><button class="btn pri">Confirm origin</button></div></form>`;
 }
@@ -1919,7 +1931,7 @@ function sOnboard() {
   return () => sheetHead("Create your hero") + `<form data-form="onboard" class="stack ob">
     <div class="ob-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
     <fieldset data-step="1" class="stack">
-      <div class="lookprev">${avatarSvg({look: L, equip: heroEquip(kitEquip(originKit(ORIGIN[o0]))), size: 132})}</div>
+      <div class="lookprev">${avatarSvg({look: L, equip: heroEquip(kitEquip(originKit(ORIGIN[o0]))), size: 128})}</div>
       <label class="field"><span>Hero name</span><input name="heroName" maxlength="24" value="${esc(S.settings.name || "")}" placeholder="What should the Roundtable call you?" autocomplete="off"></label>
       ${originFields(o0)}
       <p class="tiny faint">Starter gear is for looks and gives no stats. You can change skin and hair later in the Wardrobe.</p>
@@ -1972,7 +1984,7 @@ function sReward(id, starter) {
 }
 function inviteCard() {
   const g = S.settings.game; if (g && g.start) return "";
-  return `<section class="card invite"><div class="inv-av" aria-hidden="true">${avatarSvg({size: 86})}</div><div class="stack" style="gap:8px;min-width:0"><div class="label">New</div><h2>Turn your days into an adventure</h2><p class="small">Create a hero. Your habits, tasks, steps and workouts become quests that earn XP and Gold, and Gold buys gear and real-life treats you pick.</p><button class="btn" data-act="start-game">Create your hero</button></div></section>`;
+  return `<section class="card invite"><div class="inv-av" aria-hidden="true">${avatarSvg({size: 64})}</div><div class="stack" style="gap:8px;min-width:0"><div class="label">New</div><h2>Turn your days into an adventure</h2><p class="small">Create a hero. Your habits, tasks, steps and workouts become quests that earn XP and Gold, and Gold buys gear and real-life treats you pick.</p><button class="btn" data-act="start-game">Create your hero</button></div></section>`;
 }
 
 const GAME_ACTIONS = {
@@ -1984,12 +1996,12 @@ const GAME_ACTIONS = {
   },
   "origin-pick": el => {
     setRadio(el); const f = el.closest("form"); const p = f && f.querySelector(".lookprev"); const o = ORIGIN[el.dataset.v];
-    if (p && o) p.innerHTML = avatarSvg({look: p.dataset.look ? heroDoc().look : DEFAULT_LOOK, equip: heroEquip(kitEquip(originKit(o))), size: 132});
+    if (p && o) p.innerHTML = avatarSvg({look: p.dataset.look ? heroDoc().look : DEFAULT_LOOK, equip: heroEquip(kitEquip(originKit(o))), size: 128});
   },
   "pick-origin": () => openSheet(sOrigin()),
   "look-pick": el => {
     setRadio(el); const f = el.closest("form"); const p = f && f.querySelector(".lookprev");
-    if (p) p.innerHTML = avatarSvg({look: formLook(f), equip: p.dataset.equip ? heroEquip() : {}, size: 132});
+    if (p) p.innerHTML = avatarSvg({look: formLook(f), equip: p.dataset.equip ? heroEquip() : {}, size: 128});
   },
   multi: el => {
     el.setAttribute("aria-pressed", el.getAttribute("aria-pressed") === "true" ? "false" : "true");
@@ -2232,7 +2244,8 @@ function sSettings() {
     <label class="field"><span>Expense categories, one per line</span><textarea name="expenseCats" rows="5">${esc(s.expenseCats.join("\n"))}</textarea></label>
     <label class="field"><span>Income categories, one per line</span><textarea name="incomeCats" rows="3">${esc(s.incomeCats.join("\n"))}</textarea></label>
     <div class="sh-foot" style="margin-top:4px"><button class="btn pri">Save settings</button></div></form>
-    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Gold." : s.game && s.game.start ? "Your hero, Gold and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
+    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Look</h2></div><div class="seg g3" role="group" aria-label="Theme">${THEMES.map(([k, l]) => `<button type="button" data-act="theme" data-v="${k}" aria-pressed="${themePick() === k}">${l}</button>`).join("")}</div><p class="small muted" style="margin-top:10px">Night is dark stone and Erdtree gold. Leyndell is the same pieces in pale limestone.</p></section>
+    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Gold." : s.game && s.game.start ? "Your hero, Gold and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button><button class="btn ghost" data-act="import">Restore from backup</button></div></section>
     ${db ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Apple Health</h2><span class="pill" id="hl-state">${healthInfo === undefined ? "Checking…" : healthInfo ? "Connected" : "Not set up"}</span></div><p class="small muted" style="margin-bottom:12px">${healthInfo && healthInfo.last_used ? `Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "An iPhone Shortcut sends your steps from Apple Health every evening."}</p><button class="btn" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up iPhone sync"}</button></section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin-bottom:12px">Signed in as ${esc((account.user && account.user.email) || "")}.</p><button class="btn ghost" data-act="sign-out" data-confirm="Tap again to sign out">Sign out</button></section>` : ""}`;
@@ -2394,6 +2407,7 @@ function setRadio(el) {
 const A = {
   close: () => closeSheet(),
   settings: () => { openSheet(sSettings(), true); if (db) refreshHealthInfo(); },
+  theme: e => { setSettings({theme: e.dataset.v}); applyTheme(); paintSheet(); },
   "health-setup": () => { healthToken = null; openSheet(sHealth(), true); refreshHealthInfo(); },
   "health-refresh": () => refreshHealthInfo(),
   "health-token": async () => {
