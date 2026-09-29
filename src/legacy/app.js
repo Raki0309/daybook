@@ -1471,10 +1471,10 @@ const parseDays = v => [...new Set(String(v || "").split(",").filter(Boolean).ma
 const fv = (f, n) => { const el = f.elements.namedItem(n); return el ? el.value : ""; };
 const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; return `<div class="multi wdays" role="group" aria-label="${label}"><input type="hidden" name="${name}" value="${on.join(",")}">${ALL_WD.map(i => `<button type="button" class="chip" data-act="multi" data-v="${i}" aria-pressed="${on.includes(i)}" aria-label="${wdName(i, "long")}">${wdName(i)}</button>`).join("")}</div>`; };
 const coin = (s = 14) => `<span class="coin">${pixelIcon("rune", pxSize(s))}</span>`;
-const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Gold</span></span>`;
+const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Runes</span></span>`;
 const seed = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2c3.2 2.5 4.8 5.2 4.8 8a4.8 4.8 0 0 1-9.6 0c0-2.8 1.6-5.5 4.8-8z" fill="var(--gold)"/><path d="M8 5.2v7.4" stroke="var(--gold-ink)" stroke-opacity=".45" stroke-width="1.3"/></svg>`;
 const seedAmt = (n, s = 14) => `<span class="gold">${seed(s)}${fmtInt(n)}<span class="sr"> ${CAT.currencies.essence}</span></span>`;
-const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Gold</span></span></span>`;
+const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Runes</span></span></span>`;
 const heroDoc = () => ({name: "", look: {}, equip: {}, talismans: [], ...(S.hero || {})});
 function heroEquip(equipIds) {
   const out = {};
@@ -1485,7 +1485,7 @@ function heroEquip(equipIds) {
 const talismanSlots = () => GE.talismanSlots(Object.keys(S.inv), CAT, E);
 const heroTalismans = () => (heroDoc().talismans || []).filter(id => ITEM[id] && S.inv[id]).slice(0, talismanSlots());
 const heroPerks = () => GE.talismanPerks(heroTalismans(), CAT, E);
-const PERK_TEXT = {maxHp: v => `+${v} max HP`, heal: v => `+${v} HP per quest done`, dmgPct: v => `${v}% less day-end damage`, goldPct: v => `+${v}% Gold from quests`, xpPct: v => `+${v}% XP from quests`, streakRate: () => "Streak bonus builds twice as fast"};
+const PERK_TEXT = {maxHp: v => `+${v} max HP`, heal: v => `+${v} HP per quest done`, dmgPct: v => `${v}% less day-end damage`, goldPct: v => `+${v}% Runes from quests`, xpPct: v => `+${v}% XP from quests`, streakRate: () => "Streak bonus builds twice as fast"};
 const perkText = P => Object.entries(P || {}).filter(([, v]) => v).map(([k, v]) => PERK_TEXT[k] ? PERK_TEXT[k](v) : k).join(" · ");
 // An origin's starter kit: its set's four pieces plus its weapon.
 const originKit = o => [...CAT.items.filter(i => o.setId && i.setId === o.setId).map(i => i.id), o.weapon].filter(id => ITEM[id]);
@@ -1545,9 +1545,9 @@ function gameFeedback() {
   if (fresh) { toast(`${ITEM[fresh].name} wants to join you. Summon them from Spirits in the Town`); return; }
   if (gPrev.ready && !p.ready) { toast(`${ITEM[s.stable.awakening.id].name} is ready to awaken. Open Spirits in the Town`); return; }
   if (Date.now() - gWatch > 2500) return;
-  if (s.level > p.level) { gWatch = 0; toast(`Level ${s.level}! +${fmtInt(E.levelUp.gold * (s.level - p.level))} Gold and full HP`); return; }
-  if (s.tutorial.done && !p.tut) { gWatch = 0; toast(`${CAT.tutorial.name} complete: +${E.earn.tutorial.xp} XP, +${E.earn.tutorial.gold} Gold`); return; }
-  if (s.xp > p.xp) { gWatch = 0; toast(`+${s.xp - p.xp} XP, +${fmtInt(s.gold - p.gold)} Gold`); }
+  if (s.level > p.level) { gWatch = 0; toast(`Level ${s.level}! +${fmtInt(E.levelUp.gold * (s.level - p.level))} Runes and full HP`); return; }
+  if (s.tutorial.done && !p.tut) { gWatch = 0; toast(`${CAT.tutorial.name} complete: +${E.earn.tutorial.xp} XP, +${E.earn.tutorial.gold} Runes`); return; }
+  if (s.xp > p.xp) { gWatch = 0; toast(`+${s.xp - p.xp} XP, +${fmtInt(s.gold - p.gold)} Runes`); }
 }
 const reservedGold = except => sum(Object.values(S.rewards).filter(r => r.id !== except).map(r => +r.reserved || 0));
 const spendable = (s, except) => Math.max(0, s.gold - reservedGold(except));
@@ -1610,7 +1610,7 @@ function yesterdayCard(s) {
 }
 function bountyCard(s) {
   const ps = s.board.periodic; const bs = s.bounties || []; if (!ps.length && !bs.length) return "";
-  const brow = b => `<div class="li qrow ${b.done ? "done" : ""}"><span class="qic ${b.done ? "done" : ""}" style="--c:var(--gold);--p:${Math.min(1, b.v / b.n)}" aria-hidden="true">${icon(b.done ? "check" : "star", 15, b.done ? 3 : 2)}</span><div class="li-main"><span class="t">${esc(b.name)}</span><span class="sub"><span>${esc(b.text)}</span><span>${fmtInt(Math.min(b.v, b.n))} of ${fmtInt(b.n)}</span></span></div><span class="rew${b.done ? " on" : ""}"><span class="rx">+${b.reward.xp} XP</span><span class="rg">${coin(12)}${b.reward.gold}<span class="sr"> Gold</span></span><span class="rg">${seed(12)}${b.reward.essence}<span class="sr"> ${esc(CAT.currencies.essence)}</span></span></span></div>`;
+  const brow = b => `<div class="li qrow ${b.done ? "done" : ""}"><span class="qic ${b.done ? "done" : ""}" style="--c:var(--gold);--p:${Math.min(1, b.v / b.n)}" aria-hidden="true">${icon(b.done ? "check" : "star", 15, b.done ? 3 : 2)}</span><div class="li-main"><span class="t">${esc(b.name)}</span><span class="sub"><span>${esc(b.text)}</span><span>${fmtInt(Math.min(b.v, b.n))} of ${fmtInt(b.n)}</span></span></div><span class="rew${b.done ? " on" : ""}"><span class="rx">+${b.reward.xp} XP</span><span class="rg">${coin(12)}${b.reward.gold}<span class="sr"> Runes</span></span><span class="rg">${seed(12)}${b.reward.essence}<span class="sr"> ${esc(CAT.currencies.essence)}</span></span></span></div>`;
   const rows = ps.map(p => {
     const kind = p.kind === "monthly" ? "Monthly" : "Weekly"; const flav = GE.flavor(CAT, "periodic", p.key + ":" + p.period);
     const lead = p.cat === "task" ? `<button class="chk sq" style="--c:var(--c-task)" aria-pressed="${p.done}" data-act="toggle-task" data-id="${p.ref}" aria-label="Complete ${esc(p.name)}">${icon("check", 16, 3)}</button>`
@@ -1633,7 +1633,7 @@ function heroCard(s) {
       <div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="hc-lv">Level ${s.level}${ORIGIN[hd.origin] ? ` · ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
       <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP${s.hp < s.maxHp && s.held["item.flask-of-crimson-tears"] ? ` <button class="linkbtn flaskbtn" data-act="flask">Drink a flask (${s.held["item.flask-of-crimson-tears"]})</button>` : ""}</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
-      <div class="row wrap" style="gap:6px"><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
+      <div class="row wrap" style="gap:6px"><button class="goldpill" data-act="ledger" aria-label="Runes: ${fmtInt(s.gold)}. Open the log">${goldAmt(s.gold)}</button><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
     </div></section>`;
 }
 function rekindleCard(s) {
@@ -1648,7 +1648,7 @@ function originCard() {
 }
 function downedCard(s) {
   if (!s.downedRisk) return "";
-  return `<section class="card alert"><b>You're out of HP.</b> <span class="small">Check off anything you did yesterday. If yesterday stays as it is, you'll be Downed when today ends and lose ${Math.round(E.downed.goldLossPct * 100)}% of your Gold. Levels and gear are never lost.</span></section>`;
+  return `<section class="card alert"><b>You're out of HP.</b> <span class="small">Check off anything you did yesterday. If yesterday stays as it is, you'll be Downed when today ends and lose ${Math.round(E.downed.goldLossPct * 100)}% of your Runes. Levels and gear are never lost.</span></section>`;
 }
 
 /* ---- Hero (Today when the game is on) ---- */
@@ -1682,10 +1682,10 @@ function vQuests() {
   h += `<div class="grid2">${boardCard(s, {manage: true, reorder: ui.reorder})}<div class="stack">${yesterdayCard(s)}${bountyCard(s)}`;
   h += `<section class="card"><div class="card-h"><h2>How quests work</h2></div><ul class="small muted rules">
     <li>Habits, daily tasks, your step goal, workout days and learning are your daily quests.</li>
-    <li>The first ${s.slots} in board order earn XP and Gold. Reorder to choose which.</li>
+    <li>The first ${s.slots} in board order earn XP and Runes. Reorder to choose which.</li>
     <li>Finish them all for the all-clear bonus and to grow your streak. Each streak day adds ${Math.round(E.streakBonus.perDay * 100)}% to rewards, up to ${Math.round(E.streakBonus.cap * 100)}%.</li>
     <li>Each missed quest costs ${E.hp.missDamage} HP (${E.hp.dailyDamageCap} at most per day). Steps from Health and workouts logged live count as verified and earn ${Math.round((E.earn.verifiedMult - 1) * 100)}% more.</li>
-    <li>Each week from your first Monday brings ${E.bounties.perWeek} bounties sized to your quests. Each pays ${E.bounties.reward.xp} XP, ${E.bounties.reward.gold} Gold and ${E.bounties.reward.essence} ${esc(CAT.currencies.essence.replace(/s$/, ""))}. Weekly and monthly tasks and times-per-week habits pay too.</li>
+    <li>Each week from your first Monday brings ${E.bounties.perWeek} bounties sized to your quests. Each pays ${E.bounties.reward.xp} XP, ${E.bounties.reward.gold} Runes and ${E.bounties.reward.essence} ${esc(CAT.currencies.essence.replace(/s$/, ""))}. Weekly and monthly tasks and times-per-week habits pay too.</li>
     <li>A Scroll of Grace from the Armory turns a missed day into a rest day, with no HP lost and no streak broken.</li></ul></section>`;
   return h + `</div></div>` + fab("add-habit", "Add quest");
 }
@@ -1719,7 +1719,7 @@ function learnView() {
 function vTown() {
   const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["spirits", "Spirits"], ["tavern", "Tavern"]];
   const tt = tabs.some(x => x[0] === ui.townTab) ? ui.townTab : "armory";
-  let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}${s.essence ? `, ${CAT.currencies.essence}: ${s.essence}` : ""}. Open the log">${goldAmt(s.gold)}${s.essence ? seedAmt(s.essence) : ""}</button>`, "Town");
+  let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Runes: ${fmtInt(s.gold)}${s.essence ? `, ${CAT.currencies.essence}: ${s.essence}` : ""}. Open the log">${goldAmt(s.gold)}${s.essence ? seedAmt(s.essence) : ""}</button>`, "Town");
   h += `<div class="seg g4" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
   return h + ({armory: armoryView, wardrobe: wardrobeView, spirits: spiritsView, tavern: tavernView}[tt])(s);
 }
@@ -1731,7 +1731,7 @@ function armoryView(s) {
   const res = reservedGold();
   let h = `<div class="seg g4" role="group" aria-label="Armory section" style="margin-bottom:12px">${tabs.map(([v, l]) => `<button data-act="armory-tab" data-v="${v}" aria-pressed="${at === v}">${l}</button>`).join("")}</div>`;
   if (at === "items") return h + itemsView(s, gold);
-  if (res) h += `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Gold is set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>`;
+  if (res) h += `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Runes are set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>`;
   if (at === "talismans") h += `<p class="small muted" style="margin-bottom:12px">Talismans are the only gear with perks. You have ${talismanSlots()} talisman ${talismanSlots() === 1 ? "slot" : "slots"}; each pouch adds one, up to ${E.talismans.slotsMax}.</p>`;
   h += `<div class="stack">`;
   for (const rar of E.rarityOrder) {
@@ -1745,7 +1745,7 @@ function armoryView(s) {
       const btn = owned ? `<span class="pill ${on ? "good" : ""}">${on ? "Equipped" : "Owned"}</span>`
         : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
         : c.reason === "level" ? `<span class="price-short" title="Unlocks at level ${c.need}">${icon("lock", 13, 2.4)}${fmtInt(p.gold)}</span>`
-        : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
+        : `<span class="price-short" title="${fmtInt(c.short)} more Runes needed">${coin(13)}${fmtInt(p.gold)}</span>`;
       const sub = it.type === "talisman" ? perkText(it.perk) : it.type === "pouch" ? "+1 talisman slot" : SLOT_NAME[it.slot];
       const boss = bossSource(it);
       return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, R.color, 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(sub)}</div>${boss ? `<div class="tiny drop">${icon("shield", 11, 2.4)}Also drops from ${esc(boss)}</div>` : ""}${btn}</div>`;
@@ -1756,7 +1756,7 @@ function armoryView(s) {
     const drops = CAT.items.filter(i => i.type === "pouch" && !i.purchasable);
     h += `<section class="card"><div class="card-h"><h2>Boss drops</h2></div><div class="list">${drops.map(i => `<div class="li" style="padding:9px 0"><span class="grow t">${esc(i.name)}</span><span class="small muted">${S.inv[i.id] ? "Owned" : esc(bossSource(i))}</span></div>`).join("")}</div><p class="tiny faint" style="margin-top:8px">Boss fights open from level ${Math.min(...Object.values(E.bosses).map(b => b.level))}.</p></section>`;
   }
-  h += `<p class="tiny faint">Gold is earned only by completing quests. It can't be bought.</p>`;
+  h += `<p class="tiny faint">Runes are earned only by completing quests. They can't be bought.</p>`;
   return h + `</div>`;
 }
 function itemsView(s, gold) {
@@ -1766,7 +1766,7 @@ function itemsView(s, gold) {
     const cfg = E.items[it.id]; const held = s.held[it.id] || 0; const R = E.rarities[it.rarity]; const c = GE.canBuy(it, {level: s.level, gold, owned: held}, E);
     const btn = c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(cfg.gold)}?">${coin(13)}${fmtInt(cfg.gold)}</button>`
       : c.reason === "full" ? `<span class="pill">${it.type === "upgrade" ? "All used" : `Holding ${held}, the most`}</span>`
-      : `<span class="price-short" title="${fmtInt(c.short || 0)} more Gold needed">${coin(13)}${fmtInt(cfg.gold)}</span>`;
+      : `<span class="price-short" title="${fmtInt(c.short || 0)} more Runes needed">${coin(13)}${fmtInt(cfg.gold)}</span>`;
     const text = it.kind === "flask" ? `Drink to restore ${cfg.hp} HP.` : it.text;
     const have = it.type === "upgrade" ? `${held} of ${cfg.hold} bought` : `You hold ${held} of ${cfg.hold}`;
     return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, R.color, 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(text)}</div><div class="tiny">${have}</div>${btn}</div>`;
@@ -1781,7 +1781,7 @@ function wardrobeView(s) {
   const og = ORIGIN[hd.origin];
   let h = `<div class="grid2" style="align-items:start"><section class="card ward"><div class="ward-av">${heroAvatar(150, "Your hero")}</div><div class="stack" style="gap:6px;min-width:0"><div class="hc-name">${esc(hd.name || "Tarnished")}</div><div class="small muted">Level ${s.level}${og ? ` ${esc(og.name)}` : ""} · ${gear.length} ${gear.length === 1 ? "piece" : "pieces"} of gear</div><button class="btn sm ghost" style="align-self:flex-start;margin-top:6px" data-act="edit-look">${icon("edit", 15)}Change look</button>${og ? "" : `<button class="btn sm" style="align-self:flex-start" data-act="pick-origin">Choose origin</button>`}</div></section>`;
   h += `<section class="card"><div class="card-h"><h2>Gear</h2></div>`;
-  if (!gear.length) h += `<div class="empty"><span>You don't own any gear yet. The Armory sells it for Gold from quests.</span><button class="btn sm" data-act="town-tab" data-v="armory">Visit the Armory</button></div>`;
+  if (!gear.length) h += `<div class="empty"><span>You don't own any gear yet. The Armory sells it for Runes from quests.</span><button class="btn sm" data-act="town-tab" data-v="armory">Visit the Armory</button></div>`;
   else h += CAT.slots.filter(sl => gear.some(i => i.slot === sl.id)).map(sl => {
     const mine = gear.filter(i => i.slot === sl.id).sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
     return `<div class="slotrow"><div class="row between"><b>${esc(sl.name)}</b><span class="small muted">${eq[sl.id] && ITEM[eq[sl.id]] ? esc(ITEM[eq[sl.id]].name) : "Nothing on"}</span></div><div class="wopts">
@@ -1794,7 +1794,7 @@ function wardrobeView(s) {
   h += `<section class="card"><div class="card-h"><h2>Talismans</h2><span class="small muted">${worn.length} of ${n} ${n === 1 ? "slot" : "slots"}</span></div>
     <div class="tslots">${Array.from({length: E.talismans.slotsMax}, (_, i) => { const it = ITEM[worn[i]]; return i >= n ? `<span class="tslot locked" title="Needs a talisman pouch">${icon("lock", 14, 2.4)}</span>` : it ? `<span class="tslot" style="--r:var(--r-${it.rarity})" title="${esc(it.name)}">${itemArt(it, E.rarities[it.rarity].color, 30)}</span>` : `<span class="tslot empty"></span>`; }).join("")}</div>
     <p class="small ${perkText(P) ? "" : "muted"}" style="margin:8px 0 4px">${perkText(P) || "No perks active."}</p>`;
-  if (!tals.length) h += `<div class="empty"><span>Talismans give small perks, like more Gold or less day-end damage.</span><button class="btn sm" data-act="armory-tab" data-v="talismans">See talismans</button></div>`;
+  if (!tals.length) h += `<div class="empty"><span>Talismans give small perks, like more Runes or less day-end damage.</span><button class="btn sm" data-act="armory-tab" data-v="talismans">See talismans</button></div>`;
   else h += `<div class="wopts">${tals.map(it => { const col = E.rarities[it.rarity].color; const on = worn.includes(it.id); return `<button class="wopt" style="--r:var(--r-${it.rarity})" data-act="talisman" data-id="${it.id}" aria-pressed="${on}" aria-label="${on ? "Take off" : "Wear"} ${esc(it.name)}: ${esc(perkText(it.perk))}">${itemArt(it, col, 30)}<span>${esc(it.name)}</span></button>`; }).join("")}</div>`;
   return h + `</section></div>`;
 }
@@ -1842,7 +1842,7 @@ function spiritsView(s) {
   h += `<section class="card"><div class="card-h"><h2>Twin Maiden Husks</h2></div><div class="items">` + sale.map(it => {
     const p = GE.itemPrice(it, E); const own = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned: own}, E);
     const btn = own ? `<span class="pill">Owned</span>` : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
-      : c.reason === "level" ? `<span class="price-short">${icon("lock", 13, 2.4)}Level ${c.need}</span>` : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
+      : c.reason === "level" ? `<span class="price-short">${icon("lock", 13, 2.4)}Level ${c.need}</span>` : `<span class="price-short" title="${fmtInt(c.short)} more Runes needed">${coin(13)}${fmtInt(p.gold)}</span>`;
     return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, col(it), 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(CAT.rarityNames[it.rarity])} · ${E.stable.awakenQuests[it.rarity]} quests to awaken</div>${btn}</div>`;
   }).join("") + `</div></section>`;
   return h + `</div></div>`;
@@ -1851,7 +1851,7 @@ function tavernView(s) {
   const rs = Object.values(S.rewards).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a.price - b.price || (a.created || 0) - (b.created || 0));
   const avg = GE.avgDailyGold(s.ledger, s.today, s.start, E); const res = reservedGold(); const free = spendable(s);
   const daysFor = n => avg > 0 ? Math.max(1, Math.ceil(n / avg)) : null;
-  let h = `<div class="tiles t3" style="margin-bottom:14px">${statTile("Gold", fmtInt(s.gold))}${statTile("Set aside", fmtInt(Math.min(res, s.gold)))}${statTile("Per day", avg ? `≈ ${fmtInt(avg)}` : "–", avg ? `last ${E.tavern.avgDays} days` : "no quests yet")}</div>`;
+  let h = `<div class="tiles t3" style="margin-bottom:14px">${statTile("Runes", fmtInt(s.gold))}${statTile("Set aside", fmtInt(Math.min(res, s.gold)))}${statTile("Per day", avg ? `≈ ${fmtInt(avg)}` : "–", avg ? `last ${E.tavern.avgDays} days` : "no quests yet")}</div>`;
   h += `<div class="grid2">`;
   const goal = rs.find(r => r.pinned);
   if (goal) {
@@ -1859,11 +1859,11 @@ function tavernView(s) {
     h += `<section class="card goal span2"><div class="card-h"><h2>Saving for</h2><button class="linkbtn" data-act="edit-reward" data-id="${goal.id}">Edit</button></div>
       <div class="row"><span class="ticon lg" aria-hidden="true">${esc(goal.icon || "🎁")}</span><div class="grow"><b>${esc(goal.name)}</b><div class="small muted">${goldAmt(have, 13)} of ${goldAmt(goal.price, 13)}${left > 0 ? d ? ` · about ${d} more ${d === 1 ? "day" : "days"} of quests` : "" : " · ready to redeem"}</div></div></div>
       <div class="meter" role="progressbar" aria-label="Saved toward ${esc(goal.name)}" aria-valuenow="${have}" aria-valuemax="${goal.price}"><i style="width:${have / goal.price * 100}%;--c:var(--gold)"></i></div>
-      <form class="inline-add" data-form="reserve" data-id="${goal.id}"><input id="rs-amt" name="amt" inputmode="numeric" placeholder="Gold to set aside" aria-label="Gold to set aside" autocomplete="off"><button class="btn">Set aside</button></form>
-      <p class="tiny faint" style="margin-top:8px">${goal.reserved ? `${fmtInt(goal.reserved)} Gold is set aside, so the Armory and other rewards can't spend it. <button class="linkbtn" data-act="release" data-id="${goal.id}">Release it</button>` : "Gold you set aside can only go to this reward."}</p></section>`;
+      <form class="inline-add" data-form="reserve" data-id="${goal.id}"><input id="rs-amt" name="amt" inputmode="numeric" placeholder="Runes to set aside" aria-label="Runes to set aside" autocomplete="off"><button class="btn">Set aside</button></form>
+      <p class="tiny faint" style="margin-top:8px">${goal.reserved ? `${fmtInt(goal.reserved)} Runes are set aside, so the Armory and other rewards can't spend it. <button class="linkbtn" data-act="release" data-id="${goal.id}">Release it</button>` : "Runes you set aside can only go to this reward."}</p></section>`;
   }
   h += `<section class="card span2"><div class="card-h"><h2>Rewards</h2><button class="btn sm pri" data-act="new-reward">${icon("plus", 14)}New reward</button></div>`;
-  if (!rs.length) h += `<p class="small muted" style="margin-bottom:6px">Name real-life treats and give each a Gold price. When you've earned enough, redeem it and enjoy it.</p>`;
+  if (!rs.length) h += `<p class="small muted" style="margin-bottom:6px">Name real-life treats and give each a price in Runes. When you've earned enough, redeem it and enjoy it.</p>`;
   else h += `<div class="list">${rs.map(r => {
     const c = GE.canRedeem(r, {gold: spendable(s, r.id), today: s.today}); const d = daysFor(r.price);
     const meta = [goldAmt(r.price, 13), d ? `≈ ${d} ${d === 1 ? "day" : "days"} of quests` : "", !r.repeatable ? "One time" : r.cooldownDays ? ({1: "Once a day", 7: "Once a week", 30: "Once a month"}[r.cooldownDays] || `Once every ${r.cooldownDays} days`) : ""].filter(Boolean).map(x => `<span>${x}</span>`).join("");
@@ -1889,12 +1889,12 @@ function ledgerLabel(e) {
 }
 function sLedger() {
   return () => {
-    const s = gameState(); if (!s) return sheetHead("Gold") + `<p class="faint">The game is off.</p>`;
+    const s = gameState(); if (!s) return sheetHead("Runes") + `<p class="faint">The game is off.</p>`;
     const es = Object.values(s.ledger).filter(e => (e.cur === "gold" || e.cur === "essence") && +e.amt).sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0) || b.id.localeCompare(a.id)).slice(0, 100);
-    let h = sheetHead("Gold") + `<div class="row between" style="margin-bottom:10px"><span class="snum">${goldAmt(s.gold, 22)}</span><span class="small muted">${s.essence ? `${seedAmt(s.essence, 16)} ${esc(CAT.currencies.essence)}` : ""}${reservedGold() ? ` · ${fmtInt(spendable(s))} Gold free to spend` : ""}</span></div><p class="small muted" style="margin-bottom:12px">Every change to your Gold and ${esc(CAT.currencies.essence)} is listed here.</p>`;
+    let h = sheetHead("Runes") + `<div class="row between" style="margin-bottom:10px"><span class="snum">${goldAmt(s.gold, 22)}</span><span class="small muted">${s.essence ? `${seedAmt(s.essence, 16)} ${esc(CAT.currencies.essence)}` : ""}${reservedGold() ? ` · ${fmtInt(spendable(s))} Runes free to spend` : ""}</span></div><p class="small muted" style="margin-bottom:12px">Every change to your Runes and ${esc(CAT.currencies.essence)} is listed here.</p>`;
     let last = ""; h += `<div class="list">`;
     es.forEach(e => { if (e.date !== last) { h += `<div class="label" style="padding:14px 0 4px">${relDay(e.date)}</div>`; last = e.date; } h += `<div class="li" style="padding:9px 0"><span class="grow t">${esc(ledgerLabel(e))}</span><span class="mono" style="font-weight:600;display:inline-flex;align-items:center;gap:4px;color:${e.amt > 0 ? "var(--good-ink)" : "var(--ink)"}">${e.cur === "essence" ? seed(13) : ""}${e.amt > 0 ? "+" : "−"}${fmtInt(Math.abs(e.amt))}</span></div>`; });
-    return h + (es.length ? "" : `<p class="faint small">Nothing yet. Complete a quest to earn your first Gold.</p>`) + `</div>`;
+    return h + (es.length ? "" : `<p class="faint small">Nothing yet. Complete a quest to start earning Runes.</p>`) + `</div>`;
   };
 }
 const lookFields = L => `<div class="field"><span>Skin</span><div class="swatches">${CAT.looks.skin.map(c => `<button type="button" class="sw" style="--c:${c}" data-act="look-pick" data-name="skin" data-v="${c}" aria-pressed="${c === L.skin}" aria-label="Skin tone"></button>`).join("")}</div><input type="hidden" name="skin" value="${L.skin}"></div>
@@ -1948,7 +1948,7 @@ function sOnboard() {
       <div class="sh-foot"><button type="button" class="btn ghost" data-act="ob-step" data-d="-1">Back</button><button type="button" class="btn pri" data-act="ob-step" data-d="1">Next</button></div>
     </fieldset>
     <fieldset data-step="3" class="stack" hidden>
-      <p class="small muted">Gold from quests buys real-life treats you choose, in the Tavern. Pick a few to start. You can change prices and add your own later.</p>
+      <p class="small muted">Runes from quests buy real-life treats you choose, in the Tavern. Pick a few to start. You can change prices and add your own later.</p>
       <div class="multi stack" style="gap:8px" role="group" aria-label="Starter rewards"><input type="hidden" name="starters" value="${[...pre].join(",")}">
         ${CAT.tavernStarters.map(x => `<button type="button" class="pickt" data-act="multi" data-v="${x.id}" aria-pressed="${pre.has(x.id)}"><span class="ticon" aria-hidden="true">${x.icon}</span><span class="grow"><b>${esc(x.name)}</b><br>${goldAmt(x.price, 13)}</span><span class="tick">${icon("check", 16, 3)}</span></button>`).join("")}</div>
       <div class="sh-foot"><button type="button" class="btn ghost" data-act="ob-step" data-d="-1">Back</button><button class="btn pri">Begin the adventure</button></div>
@@ -1967,7 +1967,7 @@ function sGameSettings() {
     <div class="field"><span>Learning days</span>${multiDays("learnDays", L.days, "Learning days")}</div></div>
     <p class="tiny faint">Habits and daily tasks pick their own days in their edit screens.</p>
     <div class="sh-foot"><button class="btn pri">Save</button></div></form>
-    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Switch the game off</h2></div><p class="small muted" style="margin-bottom:12px">Your trackers keep working as before. Your hero, Gold and gear wait for you, and the days while it's off count as rest days.</p><button class="btn danger" data-act="game-off" data-confirm="Tap again to switch off">Switch off</button></section>`;
+    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Switch the game off</h2></div><p class="small muted" style="margin-bottom:12px">Your trackers keep working as before. Your hero, Runes and gear wait for you, and the days while it's off count as rest days.</p><button class="btn danger" data-act="game-off" data-confirm="Tap again to switch off">Switch off</button></section>`;
 }
 function sReward(id, starter) {
   const x = id ? S.rewards[id] : null; const d = x || starter || {};
@@ -1975,7 +1975,7 @@ function sReward(id, starter) {
   return () => sheetHead(x ? "Edit reward" : "New reward") + `<form data-form="reward" data-id="${id || ""}" class="stack">
     <label class="field"><span>Reward</span><input name="name" required maxlength="60" value="${esc(d.name || "")}" placeholder="e.g. Cinema night" autocomplete="off" autofocus></label>
     <div class="field"><span>Icon</span><div class="chips emoji">${CAT.tavernIcons.map(c => `<button type="button" class="chip" data-act="radio" data-name="icon" data-v="${c}" aria-pressed="${c === icon0}">${c}</button>`).join("")}</div><input type="hidden" name="icon" value="${icon0}"></div>
-    <label class="field"><span>Price in Gold</span><input id="rw-price" name="price" inputmode="numeric" required value="${d.price || ""}" placeholder="e.g. 150" autocomplete="off"></label>
+    <label class="field"><span>Price in Runes</span><input id="rw-price" name="price" inputmode="numeric" required value="${d.price || ""}" placeholder="e.g. 150" autocomplete="off"></label>
     <div class="chips">${E.tavern.tiers.map(([l, v]) => `<button type="button" class="chip" data-act="fill" data-target="rw-price" data-v="${v}">${l} · ${fmtInt(v)}</button>`).join("")}</div>
     <div class="field"><span>How often</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="repeatable" data-v="1" aria-pressed="${rep}">Again and again</button><button type="button" data-act="radio" data-name="repeatable" data-v="0" aria-pressed="${!rep}">One time</button></div><input type="hidden" name="repeatable" value="${rep ? 1 : 0}"></div>
     <label class="field" data-show="repeatable=1" ${rep ? "" : "hidden"}><span>Wait between redeems</span><select name="cooldown">${[[0, "No wait"], [1, "A day"], [7, "A week"], [30, "A month"]].map(([v, l]) => `<option value="${v}" ${v === cd ? "selected" : ""}>${l}</option>`).join("")}</select></label>
@@ -1984,7 +1984,7 @@ function sReward(id, starter) {
 }
 function inviteCard() {
   const g = S.settings.game; if (g && g.start) return "";
-  return `<section class="card invite"><div class="inv-av" aria-hidden="true">${avatarSvg({size: 64})}</div><div class="stack" style="gap:8px;min-width:0"><div class="label">New</div><h2>Turn your days into an adventure</h2><p class="small">Create a hero. Your habits, tasks, steps and workouts become quests that earn XP and Gold, and Gold buys gear and real-life treats you pick.</p><button class="btn" data-act="start-game">Create your hero</button></div></section>`;
+  return `<section class="card invite"><div class="inv-av" aria-hidden="true">${avatarSvg({size: 64})}</div><div class="stack" style="gap:8px;min-width:0"><div class="label">New</div><h2>Turn your days into an adventure</h2><p class="small">Create a hero. Your habits, tasks, steps and workouts become quests that earn XP and Runes, and Runes buy gear and real-life treats you pick.</p><button class="btn" data-act="start-game">Create your hero</button></div></section>`;
 }
 
 const GAME_ACTIONS = {
@@ -2069,13 +2069,13 @@ const GAME_ACTIONS = {
     const it = ITEM[el.dataset.id]; const s = gameState(); if (!it || !s || !canSpend()) return;
     if (E.items[it.id]) {
       const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: s.held[it.id] || 0}, E);
-      if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "full" ? "You can't hold more of these" : "Not for sale"); return; }
+      if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Runes` : c.reason === "full" ? "You can't hold more of these" : "Not for sale"); return; }
       const at = Date.now();
       putMany("ledger", [{id: `buy:${it.id}:${at.toString(36)}`, date: today(), cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}]);
       toast(it.type === "upgrade" ? `${it.name} used: ${s.slots + 1} daily quests now earn rewards` : `${it.name} added. Use it from the Hero page`); return;
     }
     const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: !!S.inv[it.id]}, E);
-    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "level" ? `Unlocks at level ${c.need}` : "You already own this"); return; }
+    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Runes` : c.reason === "level" ? `Unlocks at level ${c.need}` : "You already own this"); return; }
     const at = Date.now(), date = today(); const eq = heroDoc().equip || {};
     putMany("ledger", [{id: "buy:" + it.id, date, cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}], true);
     put("inv", {id: it.id, date, at, src: "armory"});
@@ -2101,13 +2101,13 @@ const GAME_ACTIONS = {
   redeem: el => {
     const r = S.rewards[el.dataset.id]; const s = gameState(); if (!r || !s || !canSpend()) return;
     const c = GE.canRedeem(r, {gold: spendable(s, r.id), today: s.today});
-    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "cooldown" ? `You can redeem this again ${fmtDate(c.until)}` : "Already redeemed"); return; }
+    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Runes` : c.reason === "cooldown" ? `You can redeem this again ${fmtDate(c.until)}` : "Already redeemed"); return; }
     const at = Date.now();
     putMany("ledger", [{id: `tav:${r.id}:${at.toString(36)}`, date: s.today, cur: "gold", amt: -r.price, src: "tavern", srcId: r.id, bal: s.gold - r.price, at, name: r.name, icon: r.icon || "🎁"}], true);
     put("rewards", {...r, lastDate: s.today, count: (r.count || 0) + 1, redeemedAt: at, reserved: 0, pinned: r.repeatable ? !!r.pinned : false});
     toast(`Enjoy it: ${r.name}`);
   },
-  release: el => { const r = S.rewards[el.dataset.id]; if (r) { put("rewards", {...r, reserved: 0}); toast("Released. That Gold is free to spend."); } },
+  release: el => { const r = S.rewards[el.dataset.id]; if (r) { put("rewards", {...r, reserved: 0}); toast("Released. Those Runes are free to spend."); } },
   "focus-start": () => { const i = $("#fc-topic"); focus = {start: Date.now(), topic: i ? i.value.trim() : ""}; lsSet(FOCUS_KEY, focus); render(); },
   "focus-stop": () => {
     if (!focus) return; const f = focus; focus = null; lsSet(FOCUS_KEY, null);
@@ -2160,7 +2160,7 @@ const GAME_FORMS = {
   },
   reward: (fd, f) => {
     const id = f.dataset.id; const x = id ? S.rewards[id] : null; const name = String(fd.get("name") || "").trim(); if (!name) return;
-    const price = Math.round(num(fd.get("price"))); if (!(price > 0 && price <= E.tavern.maxPrice)) { toast("Enter a price in Gold"); $("#rw-price").focus(); return; }
+    const price = Math.round(num(fd.get("price"))); if (!(price > 0 && price <= E.tavern.maxPrice)) { toast("Enter a price in Runes"); $("#rw-price").focus(); return; }
     const repeatable = fd.get("repeatable") === "1", pinned = fd.get("pinned") === "1";
     if (pinned) Object.values(S.rewards).forEach(r => { if (r.pinned && r.id !== id) put("rewards", {...r, pinned: false, reserved: 0}, true); });
     put("rewards", {...(x || {id: uid(), created: Date.now(), count: 0}), name, icon: fd.get("icon") || "🎁", price, repeatable, cooldownDays: repeatable ? +fd.get("cooldown") || 0 : 0, pinned, reserved: pinned ? Math.min(+(x && x.reserved) || 0, price) : 0});
@@ -2168,10 +2168,10 @@ const GAME_FORMS = {
   },
   reserve: (fd, f) => {
     const r = S.rewards[f.dataset.id]; const s = gameState(); if (!r || !s) return;
-    const n = Math.floor(num(fd.get("amt"))); if (!(n > 0)) { toast("Enter how much Gold to set aside"); return; }
+    const n = Math.floor(num(fd.get("amt"))); if (!(n > 0)) { toast("Enter how many Runes to set aside"); return; }
     const add = Math.min(n, spendable(s), r.price - (+r.reserved || 0));
-    if (add <= 0) { toast(spendable(s) <= 0 ? "No free Gold to set aside" : "This reward is already covered"); return; }
-    put("rewards", {...r, reserved: (+r.reserved || 0) + add}); toast(`Set aside ${fmtInt(add)} Gold`);
+    if (add <= 0) { toast(spendable(s) <= 0 ? "No free Runes to set aside" : "This reward is already covered"); return; }
+    put("rewards", {...r, reserved: (+r.reserved || 0) + add}); toast(`Set aside ${fmtInt(add)} Runes`);
   },
 };
 
@@ -2245,7 +2245,7 @@ function sSettings() {
     <label class="field"><span>Income categories, one per line</span><textarea name="incomeCats" rows="3">${esc(s.incomeCats.join("\n"))}</textarea></label>
     <div class="sh-foot" style="margin-top:4px"><button class="btn pri">Save settings</button></div></form>
     <section class="card" style="margin-top:18px"><div class="card-h"><h2>Look</h2></div><div class="seg g3" role="group" aria-label="Theme">${THEMES.map(([k, l]) => `<button type="button" data-act="theme" data-v="${k}" aria-pressed="${themePick() === k}">${l}</button>`).join("")}</div><p class="small muted" style="margin-top:10px">Night is dark stone and Erdtree gold. Leyndell is the same pieces in pale limestone.</p></section>
-    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Gold." : s.game && s.game.start ? "Your hero, Gold and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
+    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Runes." : s.game && s.game.start ? "Your hero, Runes and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button><button class="btn ghost" data-act="import">Restore from backup</button></div></section>
     ${db ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Apple Health</h2><span class="pill" id="hl-state">${healthInfo === undefined ? "Checking…" : healthInfo ? "Connected" : "Not set up"}</span></div><p class="small muted" style="margin-bottom:12px">${healthInfo && healthInfo.last_used ? `Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "An iPhone Shortcut sends your steps from Apple Health every evening."}</p><button class="btn" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up iPhone sync"}</button></section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin-bottom:12px">Signed in as ${esc((account.user && account.user.email) || "")}.</p><button class="btn ghost" data-act="sign-out" data-confirm="Tap again to sign out">Sign out</button></section>` : ""}`;
