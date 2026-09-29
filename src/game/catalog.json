@@ -1,0 +1,1040 @@
+{
+ "version": 1,
+ "slots": [
+  {
+   "id": "helm",
+   "name": "Helm"
+  },
+  {
+   "id": "armor",
+   "name": "Armor"
+  },
+  {
+   "id": "boots",
+   "name": "Boots"
+  },
+  {
+   "id": "cape",
+   "name": "Cape"
+  },
+  {
+   "id": "weapon",
+   "name": "Weapon"
+  },
+  {
+   "id": "aura",
+   "name": "Aura"
+  }
+ ],
+ "rarityNames": {
+  "common": "Common",
+  "uncommon": "Uncommon",
+  "rare": "Rare",
+  "epic": "Epic",
+  "legendary": "Legendary",
+  "mythic": "Mythic"
+ },
+ "sets": [
+  {
+   "id": "set.common",
+   "name": "Traveler's",
+   "rarity": "common",
+   "bonus": null
+  },
+  {
+   "id": "set.uncommon",
+   "name": "Ironbound",
+   "rarity": "uncommon",
+   "bonus": "Faint dust trail when walking"
+  },
+  {
+   "id": "set.rare",
+   "name": "Stormrunner",
+   "rarity": "rare",
+   "bonus": "Crackling spark trail"
+  },
+  {
+   "id": "set.epic",
+   "name": "Nightwarden",
+   "rarity": "epic",
+   "bonus": "Shadow wisps and a night tint"
+  },
+  {
+   "id": "set.legendary",
+   "name": "Sunforged",
+   "rarity": "legendary",
+   "bonus": "Animated sunrise glow with light rays"
+  },
+  {
+   "id": "set.mythic",
+   "name": "Eternal",
+   "rarity": "mythic",
+   "bonus": "Starfield overlay and a unique idle animation"
+  }
+ ],
+ "classes": [
+  {
+   "id": "warrior",
+   "name": "Warrior",
+   "stat": "str",
+   "weapon": "Swords"
+  },
+  {
+   "id": "ranger",
+   "name": "Ranger",
+   "stat": "end",
+   "weapon": "Bows"
+  },
+  {
+   "id": "mage",
+   "name": "Mage",
+   "stat": "int",
+   "weapon": "Staves and tomes"
+  },
+  {
+   "id": "monk",
+   "name": "Monk",
+   "stat": "dis",
+   "weapon": "Wraps and beads"
+  }
+ ],
+ "stats": {
+  "str": "Strength",
+  "end": "Endurance",
+  "int": "Intellect",
+  "dis": "Discipline"
+ },
+ "items": [
+  {
+   "id": "gear.helm.common",
+   "name": "Traveler's Hood",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.helm.uncommon",
+   "name": "Ironbound Helm",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.helm.rare",
+   "name": "Stormrunner Circlet",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.helm.epic",
+   "name": "Nightwarden Cowl",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.helm.legendary",
+   "name": "Sunforged Crown",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.helm.mythic",
+   "name": "Eternal Halo",
+   "type": "gear",
+   "slot": "helm",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": null,
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "365-day overall streak"
+  },
+  {
+   "id": "gear.armor.common",
+   "name": "Traveler's Tunic",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.armor.uncommon",
+   "name": "Ironbound Mail",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.armor.rare",
+   "name": "Stormrunner Jerkin",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.armor.epic",
+   "name": "Nightwarden Plate",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.armor.legendary",
+   "name": "Sunforged Aegis",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.armor.mythic",
+   "name": "Eternal Raiment",
+   "type": "gear",
+   "slot": "armor",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": null,
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Complete all 4 launch campaigns"
+  },
+  {
+   "id": "gear.boots.common",
+   "name": "Traveler's Boots",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.boots.uncommon",
+   "name": "Ironbound Greaves",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.boots.rare",
+   "name": "Stormrunner Striders",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.boots.epic",
+   "name": "Nightwarden Treads",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.boots.legendary",
+   "name": "Sunforged Sabatons",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.boots.mythic",
+   "name": "Eternal Wingsteps",
+   "type": "gear",
+   "slot": "boots",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": null,
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "1,000,000 lifetime steps"
+  },
+  {
+   "id": "gear.cape.common",
+   "name": "Traveler's Cloak",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.cape.uncommon",
+   "name": "Ironbound Mantle",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.cape.rare",
+   "name": "Stormrunner Cape",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.cape.epic",
+   "name": "Nightwarden Shroud",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.cape.legendary",
+   "name": "Sunforged Mantle",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": null,
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.cape.mythic",
+   "name": "Eternal Starcloak",
+   "type": "gear",
+   "slot": "cape",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": null,
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Top contribution tier in a World Boss victory"
+  },
+  {
+   "id": "gear.aura.common",
+   "name": "Firefly Glow",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "common",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.aura.uncommon",
+   "name": "Petal Drift",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "uncommon",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.aura.rare",
+   "name": "Frostbreath",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "rare",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.aura.epic",
+   "name": "Voidflame",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "epic",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.aura.legendary",
+   "name": "Solar Flare",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "legendary",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.aura.mythic",
+   "name": "Starfall",
+   "type": "gear",
+   "slot": "aura",
+   "rarity": "mythic",
+   "setId": null,
+   "cls": null,
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Reach level 50"
+  },
+  {
+   "id": "gear.weapon.warrior.common",
+   "name": "Wooden Sword",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": "warrior",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.warrior.uncommon",
+   "name": "Iron Longsword",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": "warrior",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.warrior.rare",
+   "name": "Stormcleaver",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": "warrior",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.warrior.epic",
+   "name": "Nightfang Greatsword",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": "warrior",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.warrior.legendary",
+   "name": "Sunforged Blade",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": "warrior",
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.warrior.mythic",
+   "name": "Eternal Edge",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": "warrior",
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
+  },
+  {
+   "id": "gear.weapon.ranger.common",
+   "name": "Hunting Bow",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": "ranger",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.ranger.uncommon",
+   "name": "Ironwood Longbow",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": "ranger",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.ranger.rare",
+   "name": "Stormstring Bow",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": "ranger",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.ranger.epic",
+   "name": "Nightwarden Recurve",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": "ranger",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.ranger.legendary",
+   "name": "Sunforged Longbow",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": "ranger",
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.ranger.mythic",
+   "name": "Eternal Arc",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": "ranger",
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
+  },
+  {
+   "id": "gear.weapon.mage.common",
+   "name": "Apprentice Wand",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": "mage",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.mage.uncommon",
+   "name": "Ironbound Tome",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": "mage",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.mage.rare",
+   "name": "Stormcaller Staff",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": "mage",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.mage.epic",
+   "name": "Nightwarden Grimoire",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": "mage",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.mage.legendary",
+   "name": "Sunforged Scepter",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": "mage",
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.mage.mythic",
+   "name": "Eternal Codex",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": "mage",
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
+  },
+  {
+   "id": "gear.weapon.monk.common",
+   "name": "Linen Wraps",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "common",
+   "setId": "set.common",
+   "cls": "monk",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.monk.uncommon",
+   "name": "Iron Knuckles",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "uncommon",
+   "setId": "set.uncommon",
+   "cls": "monk",
+   "source": [
+    "shop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.monk.rare",
+   "name": "Stormpalm Wraps",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "rare",
+   "setId": "set.rare",
+   "cls": "monk",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.monk.epic",
+   "name": "Nightwarden Prayer Beads",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "epic",
+   "setId": "set.epic",
+   "cls": "monk",
+   "source": [
+    "shop",
+    "drop"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.monk.legendary",
+   "name": "Sunforged Fists",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "legendary",
+   "setId": "set.legendary",
+   "cls": "monk",
+   "source": [
+    "shop",
+    "drop",
+    "campaign"
+   ],
+   "purchasable": true
+  },
+  {
+   "id": "gear.weapon.monk.mythic",
+   "name": "Eternal Lotus",
+   "type": "gear",
+   "slot": "weapon",
+   "rarity": "mythic",
+   "setId": "set.mythic",
+   "cls": "monk",
+   "source": [
+    "achievement"
+   ],
+   "purchasable": false,
+   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
+  }
+ ],
+ "quests": {
+  "steps": [
+   "Patrol the Eastern Road",
+   "Walk the Kingsway",
+   "Scout the Moorland",
+   "Follow the Old Trade Route",
+   "Circle the City Walls",
+   "Cross the Windy Pass"
+  ],
+  "workout": [
+   "Drill in the Barracks",
+   "Train at the Forge Yard",
+   "Spar with the Guard",
+   "Lift the Castle Gate",
+   "Hold the Bridge",
+   "Temper Your Blade"
+  ],
+  "learn": [
+   "Study in the Athenaeum",
+   "Decode the Old Runes",
+   "Copy the Scrolls",
+   "Attend the Sage's Lecture",
+   "Chart the Stars",
+   "Learn the Ancient Tongue"
+  ],
+  "habit": [
+   "Keep the Oath",
+   "Tend the Hearth",
+   "Hold the Vigil",
+   "Walk the Monk's Path",
+   "Honor the Code",
+   "Keep the Lantern Lit"
+  ],
+  "task": [
+   "Run an Errand for the Steward",
+   "Answer the Town Crier",
+   "Mend the Village Fence",
+   "Deliver the Letter",
+   "Clear the Road",
+   "Help at the Market"
+  ],
+  "periodic": [
+   "Bounty",
+   "Contract",
+   "Commission"
+  ]
+ },
+ "tutorial": {
+  "id": "quest.tutorial.awakens",
+  "name": "A Hero Awakens",
+  "text": "Complete any quest today."
+ },
+ "looks": {
+  "skin": [
+   "#f6d7c3",
+   "#eab896",
+   "#d19a72",
+   "#a8704a",
+   "#7a4b2e",
+   "#4e2e1c"
+  ],
+  "hair": [
+   "#1f1a17",
+   "#4a2f1f",
+   "#8a5a2b",
+   "#d6a756",
+   "#b8462f",
+   "#c9cbd1",
+   "#6b4bd6",
+   "#2b7bb9"
+  ],
+  "hairStyle": [
+   {
+    "id": "short",
+    "name": "Short"
+   },
+   {
+    "id": "long",
+    "name": "Long"
+   },
+   {
+    "id": "bun",
+    "name": "Bun"
+   },
+   {
+    "id": "none",
+    "name": "None"
+   }
+  ],
+  "body": [
+   {
+    "id": "slim",
+    "name": "Slim"
+   },
+   {
+    "id": "broad",
+    "name": "Broad"
+   }
+  ]
+ },
+ "tavernStarters": [
+  {
+   "id": "tavern.starter.snack",
+   "name": "Favorite snack",
+   "icon": "🍫",
+   "price": 50,
+   "repeatable": true,
+   "cooldownDays": 0
+  },
+  {
+   "id": "tavern.starter.coffee",
+   "name": "Fancy coffee",
+   "icon": "☕",
+   "price": 50,
+   "repeatable": true,
+   "cooldownDays": 0
+  },
+  {
+   "id": "tavern.starter.episode",
+   "name": "An episode of a show",
+   "icon": "📺",
+   "price": 150,
+   "repeatable": true,
+   "cooldownDays": 0
+  },
+  {
+   "id": "tavern.starter.game",
+   "name": "An hour of gaming",
+   "icon": "🎮",
+   "price": 150,
+   "repeatable": true,
+   "cooldownDays": 0
+  },
+  {
+   "id": "tavern.starter.takeout",
+   "name": "Takeout dinner",
+   "icon": "🍕",
+   "price": 400,
+   "repeatable": true,
+   "cooldownDays": 7
+  },
+  {
+   "id": "tavern.starter.nightoff",
+   "name": "A night off",
+   "icon": "🌙",
+   "price": 400,
+   "repeatable": true,
+   "cooldownDays": 7
+  },
+  {
+   "id": "tavern.starter.book",
+   "name": "A new book",
+   "icon": "📚",
+   "price": 1200,
+   "repeatable": true,
+   "cooldownDays": 0
+  },
+  {
+   "id": "tavern.starter.big",
+   "name": "Something I've wanted for a while",
+   "icon": "🎁",
+   "price": 3000,
+   "repeatable": false,
+   "cooldownDays": 0
+  }
+ ],
+ "tavernIcons": [
+  "🍫",
+  "☕",
+  "🍕",
+  "🍦",
+  "📺",
+  "🎮",
+  "🎬",
+  "📚",
+  "🌙",
+  "🛁",
+  "🎧",
+  "👟",
+  "🎁",
+  "✈️",
+  "🍷",
+  "💆"
+ ]
+}

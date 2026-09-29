@@ -36,7 +36,7 @@ export function merge1(a, b) {
 export function createDocStore(sb, uid) {
   const store = new Map();
   const colL = new Map(), docL = new Map();
-  let loaded = false;
+  let loaded = false, freshAt = 0;
   const OUTBOX = "daybook:outbox:" + uid;
   let outbox = [];
   try { outbox = JSON.parse(localStorage.getItem(OUTBOX) || "[]"); } catch { outbox = []; }
@@ -128,7 +128,7 @@ export function createDocStore(sb, uid) {
       for (const id of new Set([...a.keys(), ...b.keys()])) if (JSON.stringify(a.get(id)) !== JSON.stringify(b.get(id))) notify(c, id);
     }
     outbox.forEach(op => { const m = colMap(op.col); if (op.t === "set") m.set(op.id, op.data); else if (op.t === "merge") m.set(op.id, merge1(m.get(op.id), op.data)); else m.delete(op.id); });
-    const first = !loaded; loaded = true;
+    const first = !loaded; loaded = true; freshAt = Date.now();
     if (first) { colL.forEach((_, c) => notify(c, "")); docL.forEach((_, p) => { const [c, id] = split(p); notify(c, id); }); }
   }
 
@@ -136,10 +136,13 @@ export function createDocStore(sb, uid) {
   const statusL = new Set();
   const setStatus = s => { if (s === status) return; status = s; statusL.forEach(fn => fn(s)); };
   let lastReload = 0;
+  let reloading = 0;
   async function reload() {
     if (Date.now() - lastReload < 3000) return; lastReload = Date.now();
+    reloading++;
     try { await flush(); if (outbox.length && navigator.onLine) await flush(); await loadAll(); setStatus(outbox.length ? "offline" : "synced"); }
     catch (e) { console.warn("load", e); setStatus(isNetErr(e) ? "offline" : "error"); }
+    finally { reloading--; }
   }
   const channel = sb.channel("docs:" + uid)
     .on("postgres_changes", { event: "*", schema: "public", table: "docs", filter: `user_id=eq.${uid}` }, p => applyRow(p.new))
@@ -167,6 +170,10 @@ export function createDocStore(sb, uid) {
     },
     onStatus(fn) { statusL.add(fn); fn(status); return () => statusL.delete(fn); },
     pending: () => outbox.length,
+    // True while a full reload is in flight, so callers can wait for fresh data before deriving writes from it.
+    busy: () => reloading > 0,
+    // When the last full load from the server finished (0 = never), since live updates can be down while loads work.
+    freshAt: () => freshAt,
     close() { clearInterval(timer); sb.removeChannel(channel); },
   };
 }

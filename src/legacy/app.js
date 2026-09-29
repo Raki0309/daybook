@@ -1,4 +1,8 @@
 import { cloudDb, cloudConfig, account, createHealthToken, healthTokenInfo, signOut } from "../cloud.js";
+import { ECONOMY as E } from "../game/economy.js";
+import CAT from "../game/catalog.json";
+import * as GE from "../game/engine.js";
+import { avatarSvg, itemArt, DEFAULT_LOOK } from "../game/art.js";
 
 "use strict";
 /* ---------- tiny helpers ---------- */
@@ -11,7 +15,8 @@ const dkey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${
 const parseD = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d || 1); };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const mkey = (d = new Date()) => dkey(d).slice(0, 7);
-const today = () => dkey();
+// The day a moment belongs to. With the game's "day ends at" setting, late nights count toward the day before.
+const today = () => { const g = S.settings && S.settings.game; return g && g.dayEnd && g.dayEnd !== "00:00" ? GE.gameDate(new Date(), g.dayEnd) : dkey(); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const clone = o => JSON.parse(JSON.stringify(o));
 const sum = a => a.reduce((s, v) => s + (+v || 0), 0);
@@ -61,6 +66,18 @@ const IC = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   dots: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+  hero: '<path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z"/><path d="M12 8v8M8.5 11.5h7"/>',
+  quests: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5L18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
+  town: '<path d="M22 20v-9H2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"/><path d="M18 11V4H6v7M15 22v-4a3 3 0 0 0-6 0v4M22 11V9M2 11V9M6 4V2M18 4V2M10 4V2M14 4V2"/>',
+  steps: '<path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0zM20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6C14.6 6 14 7.8 14 9.5c0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0zM16 17h4M4 13h4"/>',
+  book: '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+  task1: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  shield: '<path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
 };
 const icon = (n, s = 20, w = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ""}</svg>`;
 
@@ -70,19 +87,29 @@ const INC_CATS = ["Salary","Freelance","Gifts","Refunds","Other"];
 const MUSCLES = ["Chest","Back","Shoulders","Biceps","Triceps","Quads","Hamstrings","Glutes","Calves","Core","Forearms","Full body"];
 const COLORS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
 const DEF_SETTINGS = {name: "", currency: "EUR", unit: "kg", rest: 120, weeklyWorkouts: 4, budget: 0, stepGoal: 10000, budgets: {}, expenseCats: EXP_CATS, incomeCats: INC_CATS};
-const DOC_COLS = ["habits", "tasks", "exercises", "splits", "sessions", "foods"];
-const BUCKETS = {tx: "txm", body: "bodym", food: "foodw", water: "waterm", steps: "stepsm"};
+const DOC_COLS = ["habits", "tasks", "exercises", "splits", "sessions", "foods", "rewards", "inv"];
+const BUCKETS = {tx: "txm", body: "bodym", food: "foodw", water: "waterm", steps: "stepsm", learn: "learnm", ledger: "ledgerm", gdays: "daym"};
 const BKEY = {food: d => wkey(parseD(d))};
 const LS_KEY = "daybook:v1:" + (account.user ? account.user.id : "local");
 const cached = lsGet(LS_KEY, null);
-const S = Object.assign({settings: {...DEF_SETTINGS}, habits: {}, tasks: {}, exercises: {}, splits: {}, sessions: {}, tx: {}, body: {}, foods: {}, food: {}, water: {}, steps: {}, active: null}, cached || {});
+const S = Object.assign({settings: {...DEF_SETTINGS}, habits: {}, tasks: {}, exercises: {}, splits: {}, sessions: {}, tx: {}, body: {}, foods: {}, food: {}, water: {}, steps: {}, active: null, learn: {}, ledger: {}, gdays: {}, rewards: {}, inv: {}, hero: null}, cached || {});
 S.settings = {...DEF_SETTINGS, ...S.settings};
 const ui = Object.assign({foodMeal: "breakfast", tab: "today", taskTab: "todo", trainTab: "workout", month: mkey(), progEx: "", progMetric: "e1rm", showDone: false}, lsGet("daybook:ui", {}));
 ui.month = ui.month || mkey();
 ui.foodDate = today();
 const TABS = [["today","Today"],["habits","Habits"],["tasks","Tasks"],["food","Food"],["money","Money"],["train","Train"]];
+// Once the game has started, Habits and Tasks merge into Quests and the Town opens.
+const GAME_TABS = [["today","Hero"],["quests","Quests"],["food","Food"],["train","Train"],["money","Money"],["town","Town"]];
+const gameOn = () => { const g = S.settings.game; return !!(g && g.start && !g.off); };
+const tabList = () => gameOn() ? GAME_TABS : TABS;
+ui.questTab = ui.questTab || "board"; ui.townTab = ui.townTab || "armory";
+function fixTab() {
+  if (gameOn() && (ui.tab === "habits" || ui.tab === "tasks")) { ui.questTab = ui.tab; ui.tab = "quests"; }
+  if (!gameOn() && ui.tab === "quests") ui.tab = ui.questTab === "tasks" ? "tasks" : "habits";
+  if (!tabList().some(t => t[0] === ui.tab)) ui.tab = "today";
+}
 const tabFromHash = location.hash.replace("#", "");
-if (TABS.some(t => t[0] === tabFromHash)) ui.tab = tabFromHash;
+if ([...TABS, ...GAME_TABS].some(t => t[0] === tabFromHash)) ui.tab = tabFromHash;
 
 let db = null, dbState = "local", activeDirty = false;
 let saveT = 0;
@@ -116,6 +143,22 @@ function bucketWrite(path, id, val) {
       } else throw e;
     }
   });
+}
+// Several bucket items at once: one merge per month document instead of one per item.
+function putMany(col, objs, silent) {
+  if (!objs.length) return;
+  const m = {...S[col]}; objs.forEach(o => { m[o.id] = o; }); S[col] = m; saveLocal(); if (!silent) scheduleRender();
+  if (!db) return;
+  const byPath = {}; objs.forEach(o => { (byPath[bucketPath(col, o.date)] ||= {})[o.id] = clone(o); });
+  for (const [path, items] of Object.entries(byPath)) q(path, async () => {
+    const ref = db.doc(path);
+    try { await withRetry(() => ref.update({items})); }
+    catch (e) { if (e && (e.code === "invalid_argument" || e.code === "transform_error")) { const s2 = await ref.get(); if (s2.exists) throw e; await withRetry(() => ref.set({items})); } else throw e; }
+  });
+}
+function setHero(patch) {
+  S.hero = {...(S.hero || {}), ...patch}; saveLocal(); scheduleRender();
+  if (db) { const data = clone(S.hero); q("game/character", () => withRetry(() => db.doc("game/character").set(data))); }
 }
 function put(col, obj, silent) {
   const prev = S[col][obj.id];
@@ -160,7 +203,7 @@ function onDbErr(e) { console.warn("db", e); if (e && (e.code === "revoked" || e
 async function initDb() {
   db = cloudDb();
   if (!db) { dbState = "local"; renderChrome(); return; }
-  db.onStatus(st => { dbState = st; renderChrome(); });
+  db.onStatus(st => { dbState = st; renderChrome(); if (st === "synced") scheduleReconcile(); });
   DOC_COLS.forEach(col => db.collection(col).onSnapshot(snap => {
     const m = {}; snap.docs.forEach(d => { const v = d.data(); if (v) m[d.id] = v; }); applyCol(col, m, snap);
   }, onDbErr));
@@ -170,6 +213,9 @@ async function initDb() {
   }, onDbErr));
   db.doc("meta/settings").onSnapshot(s => {
     if (s.exists) { const v = {...DEF_SETTINGS, ...s.data()}; if (JSON.stringify(v) !== JSON.stringify(S.settings)) { S.settings = v; saveLocal(); scheduleRender(); } }
+  }, onDbErr);
+  db.doc("game/character").onSnapshot(s => {
+    if (s.exists) { const v = s.data(); if (JSON.stringify(v) !== JSON.stringify(S.hero)) { S.hero = v; saveLocal(); scheduleRender(); } }
   }, onDbErr);
   db.doc("meta/active").onSnapshot(s => {
     if (activeDirty) return;
@@ -193,6 +239,7 @@ const fmtDur = ms => { const m = Math.round(ms / 60000); return m >= 60 ? `${Mat
 const habitList = () => Object.values(S.habits).filter(h => !h.archived).sort((a, b) => (a.order ?? a.created) - (b.order ?? b.created));
 const hDone = (h, k) => !!(h.done && h.done[k]);
 function weekCount(h, d = new Date()) { const s = startOfWeek(d); let c = 0; for (let i = 0; i < 7; i++) if (hDone(h, dkey(addDays(s, i)))) c++; return c; }
+const scheduledOn = (x, k) => !x.days || x.days.includes(GE.weekdayOf(k));
 function habitStreak(h) {
   if (h.freq === "weekly") {
     let s = startOfWeek(new Date()), n = 0;
@@ -200,9 +247,10 @@ function habitStreak(h) {
     while (weekCount(h, s) >= (h.goal || 1)) { n++; s = addDays(s, -7); if (n > 520) break; }
     return n;
   }
+  // Days a habit isn't scheduled on neither add to nor break its streak.
   let d = new Date(), n = 0;
   if (!hDone(h, dkey(d))) d = addDays(d, -1);
-  while (hDone(h, dkey(d))) { n++; d = addDays(d, -1); if (n > 3650) break; }
+  for (let i = 0; i < 3660; i++, d = addDays(d, -1)) { const k = dkey(d); if (hDone(h, k)) n++; else if (scheduledOn(h, k)) break; }
   return n;
 }
 function habitBest(h) {
@@ -226,8 +274,8 @@ function habitRate(h) {
     return n ? met / n : 0;
   }
   const days = Math.max(1, Math.min(30, Math.floor((new Date() - new Date(created.getFullYear(), created.getMonth(), created.getDate())) / 864e5) + 1));
-  let c = 0; for (let i = 0; i < days; i++) if (hDone(h, dkey(addDays(new Date(), -i)))) c++;
-  return c / days;
+  let c = 0, n = 0; for (let i = 0; i < days; i++) { const k = dkey(addDays(new Date(), -i)); if (!scheduledOn(h, k)) continue; n++; if (hDone(h, k)) c++; }
+  return n ? c / n : 0;
 }
 function toggleHabit(id, k) {
   const h = S.habits[id]; if (!h) return;
@@ -236,17 +284,19 @@ function toggleHabit(id, k) {
 }
 
 /* ---------- tasks ---------- */
-const periodKey = (kind, d = new Date()) => kind === "daily" ? dkey(d) : kind === "weekly" ? wkey(d) : kind === "monthly" ? mkey(d) : "";
+const periodKey = (kind, d = parseD(today())) => kind === "daily" ? dkey(d) : kind === "weekly" ? wkey(d) : kind === "monthly" ? mkey(d) : "";
 const taskDone = t => t.kind === "todo" ? !!t.doneAt : !!(t.done && t.done[periodKey(t.kind)]);
-function toggleTask(id) {
+// A daily task can be checked off for a given day (yesterday, from the quest board); others use the current period.
+function toggleTask(id, day) {
   const t = S.tasks[id]; if (!t) return;
   if (t.kind === "todo") put("tasks", {...t, doneAt: t.doneAt ? null : Date.now()});
-  else { const done = {...(t.done || {})}; const k = periodKey(t.kind); if (done[k]) delete done[k]; else done[k] = 1; put("tasks", {...t, done}); }
+  else { const done = {...(t.done || {})}; const k = day && t.kind === "daily" ? day : periodKey(t.kind); if (done[k]) delete done[k]; else done[k] = 1; put("tasks", {...t, done}); }
 }
 function dueToday() {
   const t = today();
   return Object.values(S.tasks).filter(x => {
     if (x.kind === "todo") return !x.doneAt && x.due && x.due <= t;
+    if (x.kind === "daily" && !scheduledOn(x, t)) return false;
     return !taskDone(x);
   }).sort((a, b) => (b.priority || 0) - (a.priority || 0) || (a.due || "").localeCompare(b.due || ""));
 }
@@ -254,7 +304,7 @@ function periodStreak(t) {
   let d = new Date(), n = 0;
   const step = t.kind === "daily" ? (x => addDays(x, -1)) : t.kind === "weekly" ? (x => addDays(x, -7)) : (x => new Date(x.getFullYear(), x.getMonth() - 1, 1));
   if (!(t.done || {})[periodKey(t.kind, d)]) d = step(d);
-  while ((t.done || {})[periodKey(t.kind, d)]) { n++; d = step(d); if (n > 999) break; }
+  for (let i = 0; i < 3660; i++, d = step(d)) { const k = periodKey(t.kind, d); if ((t.done || {})[k]) n++; else if (t.kind !== "daily" || scheduledOn(t, k)) break; }
   return n;
 }
 
@@ -461,13 +511,15 @@ function ring(p, c, size = 46) {
 }
 
 /* ---------- chrome ---------- */
-const TABCOL = {today: "var(--accent)", habits: "var(--c-habit)", tasks: "var(--c-task)", food: "var(--c-food)", money: "var(--c-money)", train: "var(--c-train)"};
+const TABCOL = {today: "var(--accent)", habits: "var(--c-habit)", tasks: "var(--c-task)", food: "var(--c-food)", money: "var(--c-money)", train: "var(--c-train)", quests: "var(--c-quest)", town: "var(--c-town)"};
+const tabIcon = k => k === "today" && gameOn() ? "hero" : k;
 let popSel = "", popAt = 0;
 function renderChrome() {
   document.body.dataset.view = ui.tab;
-  const nav = TABS.map(([k, l]) => `<button class="navbtn" style="--m:${TABCOL[k]}" data-tab="${k}" aria-current="${ui.tab === k ? "page" : "false"}">${icon(k, 20)}${l}</button>`).join("");
+  const tabs = tabList();
+  const nav = tabs.map(([k, l]) => `<button class="navbtn" style="--m:${TABCOL[k]}" data-tab="${k}" aria-current="${ui.tab === k ? "page" : "false"}">${icon(tabIcon(k), 20)}${l}</button>`).join("");
   $("#sidenav").innerHTML = nav;
-  $("#tabbar").innerHTML = TABS.map(([k, l]) => `<button style="--m:${TABCOL[k]}" data-tab="${k}" aria-current="${ui.tab === k ? "page" : "false"}"><span class="ic">${icon(k, 22)}</span>${l}</button>`).join("");
+  $("#tabbar").innerHTML = tabs.map(([k, l]) => `<button style="--m:${TABCOL[k]}" data-tab="${k}" aria-current="${ui.tab === k ? "page" : "false"}"><span class="ic">${icon(tabIcon(k), 22)}</span>${l}</button>`).join("");
   $$("[data-icon]").forEach(e => e.innerHTML = icon(e.dataset.icon, 20));
   $("#syncSide").innerHTML = syncBadge();
   const sm = $("#syncMobile"); if (sm) sm.innerHTML = syncBadge();
@@ -483,14 +535,16 @@ function render() {
   const fid = ae && ae.id && main.contains(ae) ? ae.id : null;
   const sel = fid && typeof ae.selectionStart === "number" ? [ae.selectionStart, ae.selectionEnd] : null;
   for (const k in chartSpecs) delete chartSpecs[k];
+  fixTab();
   main.innerHTML = VIEWS[ui.tab]();
   renderChrome();
   if (fid) { const el = document.getElementById(fid); if (el) { el.focus({preventScroll: true}); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch {} } }
   const top = stack[stack.length - 1]; if (top && top.live) paintSheet();
   drawCharts(); tickTimers();
   if (popSel && Date.now() - popAt < 700) { try { $$(popSel).forEach(el => el.classList.add("pop")); } catch {} popSel = ""; }
+  gameFeedback(); scheduleReconcile();
 }
-function go(tab) { ui.tab = tab; saveUi(); hideTip(); enterAnim(); render(); window.scrollTo(0, 0); try { history.replaceState(null, "", "#" + tab); } catch {} }
+function go(tab) { ui.tab = tab; fixTab(); saveUi(); hideTip(); enterAnim(); render(); window.scrollTo(0, 0); try { history.replaceState(null, "", "#" + tab); } catch {} }
 let toastT = 0;
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); }
 
@@ -522,20 +576,11 @@ const fab = (act, label, attrs = "") => `<button class="fab" data-act="${act}" $
 // One rule for budget color everywhere: red over, amber from 85% or when ahead of the month's pace, green otherwise.
 const budgetTone = (p, elapsed = 1) => p > 1 ? "bad" : p >= .85 || p > elapsed + .1 ? "warn" : "good";
 
-function vToday() {
-  const t = today(), now = new Date();
-  const hs = habitList(); const hDoneN = hs.filter(h => hDone(h, t)).length;
-  const due = dueToday(); const mk = mkey();
-  const spent = sumTx(mk, "expense"); const budget = +S.settings.budget || 0;
+// Habits that count today: daily ones scheduled for today, and every times-per-week habit.
+const habitsToday = t => habitList().filter(h => h.freq === "weekly" || scheduledOn(h, t));
+function ringsCard(t) {
+  const hs = habitsToday(t); const hDoneN = hs.filter(h => hDone(h, t)).length;
   const wk = weekSessions().length, goal = +S.settings.weeklyWorkouts || 0;
-  const hr = now.getHours(); const greet = hr < 5 ? "Late night" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
-  const isEmpty = !hs.length && !Object.keys(S.tasks).length && !Object.keys(S.tx).length && !Object.keys(S.splits).length && !Object.keys(S.food).length;
-  const dateStr = now.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"});
-  let h = header(dateStr, `${greet}${S.settings.name ? ", " + esc(S.settings.name) : ""}`);
-  if (isEmpty) h += `<section class="card welcome stack" style="margin-bottom:14px"><div><h2 style="font-size:22px">Set up your Daybook</h2><p class="muted small" style="margin-top:4px">Three quick steps and your Today page fills itself in.</p></div>
-    <button class="step" data-act="add-habit"><span class="n">1</span><span class="grow"><b>Add a habit</b><br><span class="muted small">Water, reading, stretching, anything you want to keep up</span></span>${icon("right")}</button>
-    <button class="step" data-act="train-tab" data-v="splits"><span class="n">2</span><span class="grow"><b>Pick a workout split</b><br><span class="muted small">Start from Push / Pull / Legs or build your own</span></span>${icon("right")}</button>
-    <button class="step" data-act="add-tx" data-type="expense"><span class="n">3</span><span class="grow"><b>Log an expense</b><br><span class="muted small">Set a monthly budget later in Money</span></span>${icon("right")}</button></section>`;
   const FG = foodGoals(); const eaten = totals(dayEntries(t)).t.kcal; const ml = (S.water[t] || {}).ml || 0;
   const rings = [
     {k: "Habits", c: "var(--c-habit)", p: hs.length ? hDoneN / hs.length : 0, v: `${hDoneN}/${hs.length}`, s: "done today", tab: "habits"},
@@ -544,10 +589,30 @@ function vToday() {
     {k: "Steps", c: "var(--c-steps)", p: stepsOn(t) / stepGoal(), v: fmtInt(stepsOn(t)), s: `of ${fmtInt(stepGoal())}`, train: "steps"},
     {k: "Workouts", c: "var(--c-train)", p: goal ? wk / goal : 0, v: `${wk}${goal ? "/" + goal : ""}`, s: "this week", tab: "train"},
   ];
-  h += `<section class="card hero">${multiRing(rings, 172)}<div class="legend-rows">${rings.map(r => `<button class="lr" ${r.train ? `data-act="train-tab" data-v="${r.train}"` : `data-tab="${r.tab}"`}><i style="--c:${r.c}"></i><span><span class="ll">${r.k}</span><br><span class="ls">${r.s}</span></span><span class="lv">${r.v}</span></button>`).join("")}</div></section>`;
+  return `<section class="card hero">${multiRing(rings, 172)}<div class="legend-rows">${rings.map(r => `<button class="lr" ${r.train ? `data-act="train-tab" data-v="${r.train}"` : `data-tab="${r.tab}"`}><i style="--c:${r.c}"></i><span><span class="ll">${r.k}</span><br><span class="ls">${r.s}</span></span><span class="lv">${r.v}</span></button>`).join("")}</div></section>`;
+}
+function spentCard() {
+  const mk = mkey(); const spent = sumTx(mk, "expense"); const budget = +S.settings.budget || 0;
+  return `<button class="tile" style="--tc:var(--c-money)" data-tab="money"><span class="k"><i class="dot" style="--c:var(--c-money)"></i>Spent</span><span class="v">${money(spent, true)}</span><span class="s">${budget ? `of ${money(budget, true)} budget` : "this month"}</span>${budget ? `<div class="meter"><i style="width:${Math.min(100, spent / budget * 100)}%;--c:var(--${budgetTone(spent / budget, monthElapsed(mk))})"></i></div>` : ""}</button>`;
+}
+function vToday() {
+  if (gameOn()) return vHero();
+  const t = today(), now = new Date();
+  const hs = habitsToday(t);
+  const due = dueToday();
+  const hr = now.getHours(); const greet = hr < 5 ? "Late night" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const isEmpty = !habitList().length && !Object.keys(S.tasks).length && !Object.keys(S.tx).length && !Object.keys(S.splits).length && !Object.keys(S.food).length;
+  const dateStr = now.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"});
+  let h = header(dateStr, `${greet}${S.settings.name ? ", " + esc(S.settings.name) : ""}`);
+  if (isEmpty) h += `<section class="card welcome stack" style="margin-bottom:14px"><div><h2 style="font-size:22px">Set up your Daybook</h2><p class="muted small" style="margin-top:4px">Three quick steps and your Today page fills itself in.</p></div>
+    <button class="step" data-act="add-habit"><span class="n">1</span><span class="grow"><b>Add a habit</b><br><span class="muted small">Water, reading, stretching, anything you want to keep up</span></span>${icon("right")}</button>
+    <button class="step" data-act="train-tab" data-v="splits"><span class="n">2</span><span class="grow"><b>Pick a workout split</b><br><span class="muted small">Start from Push / Pull / Legs or build your own</span></span>${icon("right")}</button>
+    <button class="step" data-act="add-tx" data-type="expense"><span class="n">3</span><span class="grow"><b>Log an expense</b><br><span class="muted small">Set a monthly budget later in Money</span></span>${icon("right")}</button></section>`;
+  h += inviteCard();
+  h += ringsCard(t);
   h += `<div class="tiles" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px">
     <button class="tile" style="--tc:var(--c-task)" data-tab="tasks"><span class="k"><i class="dot" style="--c:var(--c-task)"></i>Tasks</span><span class="v">${due.length}</span><span class="s">open for today</span></button>
-    <button class="tile" style="--tc:var(--c-money)" data-tab="money"><span class="k"><i class="dot" style="--c:var(--c-money)"></i>Spent</span><span class="v">${money(spent, true)}</span><span class="s">${budget ? `of ${money(budget, true)} budget` : "this month"}</span>${budget ? `<div class="meter"><i style="width:${Math.min(100, spent / budget * 100)}%;--c:var(--${budgetTone(spent / budget, monthElapsed(mk))})"></i></div>` : ""}</button>
+    ${spentCard()}
   </div>`;
   h += `<div class="grid2">`;
   // habits card
@@ -555,7 +620,7 @@ function vToday() {
   h += hs.length ? `<div class="list">${hs.map(x => {
     const on = hDone(x, t); const sub = x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : habitStreak(x) ? `${habitStreak(x)}-day streak` : "Start a streak today";
     return `<div class="li ${on ? "done" : ""}"><button class="chk" style="--c:var(${x.color})" aria-pressed="${on}" data-act="toggle-habit" data-id="${x.id}" data-d="${t}" aria-label="Mark ${esc(x.name)} done">${icon("check", 16, 3)}</button><button class="li-main" data-act="habit-detail" data-id="${x.id}"><span class="t">${esc(x.name)}</span><span class="sub">${sub}</span></button></div>`;
-  }).join("")}</div>` : `<div class="empty"><span>No habits yet.</span><button class="btn sm" data-act="add-habit">${icon("plus", 16)}Add a habit</button></div>`;
+  }).join("")}</div>` : `<div class="empty"><span>${habitList().length ? "No habits scheduled today." : "No habits yet."}</span><button class="btn sm" data-act="add-habit">${icon("plus", 16)}Add a habit</button></div>`;
   h += `</section>`;
   // tasks card
   h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task">Add task</button></div>`;
@@ -600,7 +665,8 @@ const fmtClock = ms => { const s = Math.max(0, Math.floor(ms / 1000)); const h =
 function taskRow(t) {
   const on = taskDone(t); const tday = today();
   const bits = [];
-  if (t.kind !== "todo") bits.push(`<span class="pill">${cap(t.kind)}</span>`);
+  if (t.kind !== "todo") bits.push(`<span class="pill">${t.kind === "daily" && t.days ? esc(daysText(t.days)) : cap(t.kind)}</span>`);
+  if (t.kind === "daily" && !scheduledOn(t, tday)) bits.push(`<span class="faint">Not today</span>`);
   if (t.kind === "todo" && t.due) bits.push(`<span class="${!on && t.due < tday ? "pill bad" : "pill"}">${!on && t.due < tday ? "Overdue · " : ""}${relDay(t.due)}</span>`);
   if (t.priority === 2) bits.push(`<span class="pill warn">High</span>`);
   if (t.kind !== "todo") { const st = periodStreak(t); if (st > 1) bits.push(`<span>${st} ${t.kind === "daily" ? "days" : t.kind === "weekly" ? "weeks" : "months"} in a row</span>`); }
@@ -612,31 +678,33 @@ function txRow(t) {
   return `<button class="li" style="width:100%;text-align:left" data-act="edit-tx" data-id="${t.id}"><span class="li-main"><span class="t">${esc(t.note || t.cat)}</span><span class="sub">${t.note ? esc(t.cat) + " · " : ""}${relDay(t.date)}</span></span><span class="mono" style="font-weight:600;color:${inc ? "var(--good)" : "var(--ink)"}">${inc ? "+" : "−"}${money(t.amount)}</span></button>`;
 }
 
-function vHabits() {
+const vHabits = () => header("Habits", "Keep the chain going", hdrBtn("add-habit", "Add habit"), "Habits") + habitsBody() + fab("add-habit", "Add habit");
+function habitsBody() {
   const hs = habitList(); const t = today();
   const days = Array.from({length: 7}, (_, i) => addDays(new Date(), i - 6));
-  let h = header("Habits", "Keep the chain going", hdrBtn("add-habit", "Add habit"), "Habits");
+  let h = "";
   if (!hs.length) return h + `<section class="card"><div class="empty"><b>No habits yet</b><span>Add something small you want to do every day, or a few times a week.</span><button class="btn pri" data-act="add-habit">${icon("plus", 16)}Add your first habit</button></div></section>`;
   const allRate = hs.length ? sum(hs.map(habitRate)) / hs.length : 0;
   // Weekly streaks count weeks, so compare streaks by the days they span.
   const top = hs.map(x => ({x, n: habitStreak(x)})).filter(o => o.n).sort((a, b) => b.n * (b.x.freq === "weekly" ? 7 : 1) - a.n * (a.x.freq === "weekly" ? 7 : 1))[0];
-  h += `<div class="tiles t3" style="margin-bottom:14px">${statTile("Today", `${hs.filter(x => hDone(x, t)).length}/${hs.length}`)}${statTile("30-day rate", Math.round(allRate * 100) + "%")}${top ? statTile("Top streak", streakText(top.x, top.n), esc(top.x.name)) : statTile("Top streak", "–", "none yet")}</div>`;
+  const hsT = habitsToday(t);
+  h += `<div class="tiles t3" style="margin-bottom:14px">${statTile("Today", `${hsT.filter(x => hDone(x, t)).length}/${hsT.length}`)}${statTile("30-day rate", Math.round(allRate * 100) + "%")}${top ? statTile("Top streak", streakText(top.x, top.n), esc(top.x.name)) : statTile("Top streak", "–", "none yet")}</div>`;
   h += `<section class="card"><div class="list">`;
   h += hs.map(x => {
     const st = habitStreak(x);
-    return `<div class="habit"><div class="stack" style="gap:4px;min-width:0"><button class="name" data-act="habit-detail" data-id="${x.id}"><i class="dot" style="--c:var(${x.color})"></i><span>${esc(x.name)}</span></button><span class="streak">${st ? `${st}-${x.freq === "weekly" ? "week" : "day"} streak` : "No streak yet"} · ${x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : Math.round(habitRate(x) * 100) + "% last 30 days"}</span></div>
+    return `<div class="habit"><div class="stack" style="gap:4px;min-width:0"><button class="name" data-act="habit-detail" data-id="${x.id}"><i class="dot" style="--c:var(${x.color})"></i><span>${esc(x.name)}</span></button><span class="streak">${st ? `${st}-${x.freq === "weekly" ? "week" : "day"} streak` : "No streak yet"} · ${x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : Math.round(habitRate(x) * 100) + "% last 30 days"}${x.freq !== "weekly" && x.days ? ` · ${esc(daysText(x.days))}` : ""}</span></div>
     <div class="week" style="--c:var(${x.color})">${days.map(d => `<span class="dh">${d.toLocaleDateString(undefined, {weekday: "narrow"})}</span>`).join("")}${days.map(d => { const k = dkey(d); const on = hDone(x, k); return `<button class="day ${k === t ? "today" : ""}" aria-pressed="${on}" data-act="toggle-habit" data-id="${x.id}" data-d="${k}" aria-label="${esc(x.name)} on ${fmtDate(k, {weekday: "long", day: "numeric", month: "short"})}">${icon("check", 14, 3)}</button>`; }).join("")}</div></div>`;
   }).join("");
   h += `</div></section>`;
-  return h + fab("add-habit", "Add habit");
+  return h;
 }
 const streakText = (x, n) => `${n} ${x.freq === "weekly" ? (n === 1 ? "week" : "weeks") : (n === 1 ? "day" : "days")}`;
 
 const vTasks = () => tasksView() + fab("add-task", "Add task");
-function tasksView() {
+function tasksView(embedded) {
   const kinds = [["todo", "To-do"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]];
   const k = ui.taskTab; const all = Object.values(S.tasks);
-  let h = header("Tasks", "What needs doing", hdrBtn("add-task", "Add task"), "Tasks");
+  let h = embedded ? "" : header("Tasks", "What needs doing", hdrBtn("add-task", "Add task"), "Tasks");
   h += `<div class="seg" role="group" aria-label="Task type" style="margin-bottom:14px">${kinds.map(([v, l]) => { const n = all.filter(t => t.kind === v && !taskDone(t)).length; return `<button data-act="task-tab" data-v="${v}" aria-pressed="${k === v}">${l}${n ? ` <span class="faint mono">${n}</span>` : ""}</button>`; }).join("")}</div>`;
   h += `<form class="inline-add" data-form="quick-task" style="margin-bottom:14px"><input id="qtask" name="title" placeholder="${k === "todo" ? "Add a to-do" : `Add a ${k} task`}" autocomplete="off" aria-label="New task"><button class="btn ghost" aria-label="Add">${icon("plus", 18)}</button></form>`;
   const list = all.filter(t => t.kind === k);
@@ -653,8 +721,10 @@ function tasksView() {
   } else {
     const label = {daily: "today", weekly: "this week", monthly: "this month"}[k];
     const doneN = list.filter(taskDone).length;
+    const sched = k === "daily" ? list.filter(x => scheduledOn(x, today())) : list;
     if (!list.length) return h + `<section class="card"><div class="empty"><b>No ${k} tasks yet</b><span>${k === "daily" ? "Things you do every day, like making your bed or checking email." : k === "weekly" ? "Things you do once a week, like laundry or a weekly review." : "Things you do once a month, like paying rent or a deep clean."} They reset ${k === "daily" ? "every morning" : k === "weekly" ? "every Monday" : "on the 1st"}.</span></div></section>`;
-    h += `<section class="card"><div class="card-h"><h2>${doneN} of ${list.length} done ${label}</h2>${ring(list.length ? doneN / list.length : 0, "var(--c-task)", 34)}</div><div class="list">${list.sort((a, b) => taskDone(a) - taskDone(b) || (b.priority || 0) - (a.priority || 0) || a.created - b.created).map(taskRow).join("")}</div></section>`;
+    const sDone = sched.filter(taskDone).length;
+    h += `<section class="card"><div class="card-h"><h2>${sDone} of ${sched.length} done ${label}</h2>${ring(sched.length ? sDone / sched.length : 0, "var(--c-task)", 34)}</div><div class="list">${list.sort((a, b) => taskDone(a) - taskDone(b) || (b.priority || 0) - (a.priority || 0) || a.created - b.created).map(taskRow).join("")}</div></section>`;
   }
   return h;
 }
@@ -1375,7 +1445,513 @@ const STEP_FORMS = {
   },
 };
 
-const VIEWS = {today: vToday, habits: vHabits, tasks: vTasks, food: vFood, money: vMoney, train: vTrain};
+/* ---------- game: Hero, Quests and Town ---------- */
+const ITEM = Object.fromEntries(CAT.items.map(i => [i.id, i]));
+const SLOT_NAME = Object.fromEntries(CAT.slots.map(s => [s.id, s.name]));
+const SET_OF = Object.fromEntries(CAT.sets.map(s => [s.id, s]));
+const ALL_WD = [0, 1, 2, 3, 4, 5, 6];
+const wdName = (i, style = "short") => new Date(2024, 0, 1 + i).toLocaleDateString(undefined, {weekday: style});
+const daysText = d => !d || d.length === 7 ? "Every day" : d.length === 5 && d.every(i => i < 5) ? "Weekdays" : d.length === 2 && d.every(i => i > 4) ? "Weekends" : d.map(i => wdName(i)).join(", ");
+const parseDays = v => [...new Set(String(v || "").split(",").filter(Boolean).map(Number).filter(n => n >= 0 && n < 7))].sort((a, b) => a - b);
+const fv = (f, n) => { const el = f.elements.namedItem(n); return el ? el.value : ""; };
+const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; return `<div class="multi wdays" role="group" aria-label="${label}"><input type="hidden" name="${name}" value="${on.join(",")}">${ALL_WD.map(i => `<button type="button" class="chip" data-act="multi" data-v="${i}" aria-pressed="${on.includes(i)}" aria-label="${wdName(i, "long")}">${wdName(i)}</button>`).join("")}</div>`; };
+const coin = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="var(--gold)"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="var(--gold-ink)" stroke-opacity=".4" stroke-width="1.4"/></svg>`;
+const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Gold</span></span>`;
+const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Gold</span></span></span>`;
+const heroDoc = () => ({name: "", look: {}, equip: {}, ...(S.hero || {})});
+function heroEquip(equipIds) {
+  const out = {};
+  for (const [slot, id] of Object.entries(equipIds || heroDoc().equip || {})) { const it = ITEM[id]; if (it) out[slot] = {color: E.rarities[it.rarity].color, rarity: it.rarity}; }
+  return out;
+}
+const heroAvatar = (size, label = "") => avatarSvg({look: heroDoc().look, equip: heroEquip(), size, label});
+const setGame = patch => setSettings({game: {...(S.settings.game || {}), ...patch}});
+
+// Today's game state, derived from the trackers and the stored ledger. Memoized on the
+// state objects it reads, which put() replaces rather than mutates.
+function gameData() { return {habits: Object.values(S.habits), tasks: Object.values(S.tasks), steps: S.steps, sessions: Object.values(S.sessions), learn: Object.values(S.learn), stepGoal: stepGoal()}; }
+let gMemo = null;
+function gameState() {
+  if (!gameOn()) return null;
+  const key = [S.habits, S.tasks, S.steps, S.sessions, S.learn, S.ledger, S.gdays, S.settings, today()];
+  if (gMemo && gMemo.key.every((v, i) => v === key[i])) return gMemo.r;
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT});
+  gMemo = {key, r}; return r;
+}
+// The day-end job: pay what's earned and freeze finished days. It only writes once this
+// device has the latest data, so a stale copy can never freeze or pay the wrong thing.
+let recT = 0, recN = 0, recAt = 0;
+function scheduleReconcile() { clearTimeout(recT); if (gameOn()) recT = setTimeout(reconcile, 900); }
+// Fresh enough: synced, or a full load finished in the last few minutes (live updates can be blocked while loads work).
+const dataFresh = () => !db || (!(db.busy && db.busy()) && (dbState === "synced" || (db.freshAt && db.freshAt() && Date.now() - db.freshAt() < 5 * 60e3)));
+function reconcile() {
+  if (!gameOn()) return;
+  if (!dataFresh()) { if (db && db.busy && db.busy()) scheduleReconcile(); return; }
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT});
+  if (!r.active || (!r.ledgerWrites.length && !r.dayWrites.length)) return;
+  // A guard against a write loop: the job is idempotent, so a burst of rewrites means a bug.
+  if (Date.now() - recAt > 10000) { recN = 0; recAt = Date.now(); }
+  if (++recN > 6) { console.warn("game: too many rewrites, stopping", r.ledgerWrites); return; }
+  if (r.ledgerWrites.length) putMany("ledger", r.ledgerWrites, true);
+  if (r.dayWrites.length) putMany("gdays", r.dayWrites, true);
+  scheduleRender();
+}
+// A small reward toast right after you complete something.
+let gPrev = null, gWatch = 0;
+function gameFeedback() {
+  const s = gameState(); if (!s) { gPrev = null; return; }
+  const p = gPrev; gPrev = {xp: s.xp, gold: s.gold, level: s.level, tut: s.tutorial.done};
+  if (!p || Date.now() - gWatch > 2500) return;
+  if (s.level > p.level) { gWatch = 0; toast(`Level ${s.level}! +${fmtInt(E.levelUp.gold * (s.level - p.level))} Gold and full HP`); return; }
+  if (s.tutorial.done && !p.tut) { gWatch = 0; toast(`${CAT.tutorial.name} complete: +${E.earn.tutorial.xp} XP, +${E.earn.tutorial.gold} Gold`); return; }
+  if (s.xp > p.xp) { gWatch = 0; toast(`+${s.xp - p.xp} XP, +${fmtInt(s.gold - p.gold)} Gold`); }
+}
+const reservedGold = except => sum(Object.values(S.rewards).filter(r => r.id !== except).map(r => +r.reserved || 0));
+const spendable = (s, except) => Math.max(0, s.gold - reservedGold(except));
+function canSpend() {
+  if (db && (dbState === "connecting" || (db.busy && db.busy()))) { toast("Still syncing. Try again in a moment."); return false; }
+  return true;
+}
+
+/* ---- quest rows ---- */
+const QCAT = {steps: ["steps", "var(--c-steps)"], workout: ["train", "var(--c-train)"], learn: ["book", "var(--c-learn)"], habit: ["habits", "var(--c-habit)"], task: ["task1", "var(--c-task)"]};
+const QGO = {steps: 'data-act="train-tab" data-v="steps"', workout: 'data-act="train-tab" data-v="workout"', learn: 'data-act="quest-tab" data-v="learning"'};
+function questName(q) {
+  if (q.cat === "steps") return `Walk ${fmtInt(q.progress.goal)} steps`;
+  if (q.cat === "learn") return `Learn for ${q.progress.goal} min`;
+  if (q.cat === "workout") { const nd = q.done ? null : nextDay(activeSplit()); return nd ? `Work out: ${esc(nd.name)}` : "Work out"; }
+  return esc(q.name);
+}
+function questSub(q, k) {
+  if (q.cat === "steps") return `${fmtInt(q.progress.v)} ${q.done ? "steps" : "so far"}`;
+  if (q.cat === "learn") return `${q.progress.v} of ${q.progress.goal} min`;
+  if (q.cat === "workout") { const ss = Object.values(S.sessions).filter(s => s.date === k); return ss.length ? ss.map(s => esc(s.name)).join(", ") : "Start it from Train"; }
+  if (q.cat === "habit") { const h = S.habits[q.ref]; const n = h ? habitStreak(h) : 0; return n > 1 ? `${n}-day streak` : ""; }
+  return "";
+}
+function questLead(q, k) {
+  if (q.cat === "habit") { const h = S.habits[q.ref] || {}; return `<button class="chk" style="--c:var(${h.color || "--c-habit"})" aria-pressed="${q.done}" data-act="toggle-habit" data-id="${q.ref}" data-d="${k}" aria-label="Mark ${esc(q.name)} done">${icon("check", 16, 3)}</button>`; }
+  if (q.cat === "task") return `<button class="chk sq" style="--c:var(--c-task)" aria-pressed="${q.done}" data-act="toggle-task" data-id="${q.ref}" data-d="${k}" aria-label="Complete ${esc(q.name)}">${icon("check", 16, 3)}</button>`;
+  const [ic, c] = QCAT[q.cat]; const p = q.progress && q.progress.goal ? Math.min(1, q.progress.v / q.progress.goal) : 0;
+  return `<span class="qic ${q.done ? "done" : ""}" style="--c:${c};--p:${p}" aria-hidden="true">${icon(q.done ? "check" : ic, 15, q.done ? 3 : 2)}</span>`;
+}
+function questRow(q, k, o = {}) {
+  const flav = GE.flavor(CAT, q.cat, q.key + ":" + k);
+  const go = q.cat === "habit" ? `data-act="habit-detail" data-id="${q.ref}"` : q.cat === "task" ? `data-act="edit-task" data-id="${q.ref}"` : QGO[q.cat];
+  const sub = questSub(q, k);
+  const lead = o.reorder ? `<span class="mv"><button class="ibtn sm" data-act="q-move" data-key="${esc(q.key)}" data-d="-1" aria-label="Move ${esc(q.name || q.cat)} up" ${o.i ? "" : "disabled"}>${icon("up", 15)}</button><button class="ibtn sm" data-act="q-move" data-key="${esc(q.key)}" data-d="1" aria-label="Move ${esc(q.name || q.cat)} down" ${o.i < o.n - 1 ? "" : "disabled"}>${icon("down", 15)}</button></span>` : questLead(q, k);
+  const right = q.rewarded === false ? `<span class="rew none">No reward</span>` : rewardChip(q.reward, q.done);
+  return `<div class="li qrow ${q.done ? "done" : ""}">${lead}<button class="li-main" ${go}><span class="t">${questName(q)}</span><span class="sub"><i class="qflav">${esc(flav)}</i>${sub ? `<span>${sub}</span>` : ""}${q.verified ? `<span class="vbadge">${icon("shield", 13)}Verified</span>` : ""}</span></button>${right}</div>`;
+}
+function boardCard(s, o = {}) {
+  const r = s.board.today, k = s.today, qs = r.dailies;
+  let h = `<section class="card board"><div class="card-h"><h2>Today's quests</h2>${qs.length ? `<span class="pill ${r.allClear ? "good" : ""}">${r.done} of ${r.sched}</span>` : ""}</div>`;
+  if (!qs.length) h += `<div class="empty"><span>No quests today. Rest up, or add a habit to make one.</span><button class="btn sm" data-act="add-habit">${icon("plus", 16)}Add a habit</button></div>`;
+  else {
+    h += `<div class="list">`;
+    qs.forEach((q, i) => { if (i === s.slots) h += `<div class="slotline"><span>Past ${s.slots}: streak and HP only</span></div>`; h += questRow(q, k, {reorder: o.reorder, i, n: qs.length}); });
+    h += `</div><div class="allclear ${r.allClear ? "on" : ""}"><span class="qic ${r.allClear ? "done" : ""}" style="--c:var(--gold-ink);--p:${r.done / r.sched}" aria-hidden="true">${icon(r.allClear ? "check" : "star", 15, r.allClear ? 3 : 2)}</span><span class="grow"><b>All clear</b><br><span class="small muted">${r.allClear ? "Every quest done today" : `Finish all ${r.sched} for a bonus`}</span></span>${rewardChip(r.allClearReward, r.allClear)}</div>`;
+  }
+  if (o.manage) h += `<div class="row between board-foot">${qs.length > 1 ? `<button class="btn sm ${o.reorder ? "pri" : "ghost"}" data-act="reorder">${o.reorder ? "Done" : "Reorder"}</button>` : "<span></span>"}<button class="linkbtn" data-act="game-settings">Quest settings</button></div>`;
+  return h + `</section>`;
+}
+function yesterdayCard(s) {
+  const r = s.board.yesterday; if (!r || !r.sched) return "";
+  const open = r.dailies.filter(q => !q.done); if (!open.length) return "";
+  return `<section class="card"><div class="card-h"><h2>Yesterday</h2><span class="pill warn">${open.length} open</span></div><p class="small muted" style="margin-bottom:4px">Did any of these? Check them off before today ends and they still count.</p><div class="list">${open.map(q => questRow(q, s.yesterday)).join("")}</div></section>`;
+}
+function bountyCard(s) {
+  const ps = s.board.periodic; if (!ps.length) return "";
+  const rows = ps.map(p => {
+    const kind = p.kind === "monthly" ? "Monthly" : "Weekly"; const flav = GE.flavor(CAT, "periodic", p.key + ":" + p.period);
+    const lead = p.cat === "task" ? `<button class="chk sq" style="--c:var(--c-task)" aria-pressed="${p.done}" data-act="toggle-task" data-id="${p.ref}" aria-label="Complete ${esc(p.name)}">${icon("check", 16, 3)}</button>`
+      : `<span class="qic ${p.done ? "done" : ""}" style="--c:var(--c-habit);--p:${Math.min(1, p.progress.v / p.progress.goal)}" aria-hidden="true">${icon(p.done ? "check" : "habits", 15, p.done ? 3 : 2)}</span>`;
+    const go = p.cat === "task" ? `data-act="edit-task" data-id="${p.ref}"` : `data-act="habit-detail" data-id="${p.ref}"`;
+    return `<div class="li qrow ${p.done ? "done" : ""}">${lead}<button class="li-main" ${go}><span class="t">${esc(p.name)}</span><span class="sub"><i class="qflav">${kind} ${esc(flav.toLowerCase())}</i>${p.progress ? `<span>${p.progress.v} of ${p.progress.goal} this week</span>` : ""}</span></button>${rewardChip(p.reward, p.done)}</div>`;
+  }).join("");
+  return `<section class="card"><div class="card-h"><h2>Bounties</h2><span class="pill">${ps.filter(p => p.done).length} of ${ps.length}</span></div><div class="list">${rows}</div></section>`;
+}
+function tutorialCard(s) {
+  if (s.tutorial.done) return "";
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("star", 15)}</span><div class="grow"><div class="label">Your first quest</div><b class="tut-t">${esc(CAT.tutorial.name)}</b><div class="small muted">${esc(CAT.tutorial.text)}</div></div>${rewardChip(s.tutorial.reward, false)}</div></section>`;
+}
+function heroCard(s) {
+  const hd = heroDoc(); const hpP = s.maxHp ? s.hp / s.maxHp : 0; const tone = hpP > .5 ? "good" : hpP > .25 ? "warn" : "bad";
+  return `<section class="card herocard">
+    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(104)}</button>
+    <div class="hc-main">
+      <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
+      <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
+      <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
+      <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}</div>
+    </div></section>`;
+}
+function downedCard(s) {
+  if (!s.downedRisk) return "";
+  return `<section class="card alert"><b>You're out of HP.</b> <span class="small">Check off anything you did yesterday. If yesterday stays as it is, you'll be Downed when today ends and lose ${Math.round(E.downed.goldLossPct * 100)}% of your Gold. Levels and gear are never lost.</span></section>`;
+}
+
+/* ---- Hero (Today when the game is on) ---- */
+function vHero() {
+  const s = gameState(); const now = new Date(); const t = s.today;
+  const dateStr = now.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"});
+  const hr = now.getHours(); const greet = hr < 5 ? "Late night" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  let h = header(dateStr, `${greet}${S.settings.name ? ", " + esc(S.settings.name) : ""}`);
+  h += heroCard(s) + downedCard(s) + tutorialCard(s);
+  const plate = dueToday().filter(x => x.kind === "todo");
+  h += `<div class="grid2">${boardCard(s)}<div class="stack">${yesterdayCard(s)}${bountyCard(s)}`;
+  h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task" data-kind="todo">Add to-do</button></div>${plate.length ? `<div class="list">${plate.slice(0, 6).map(taskRow).join("")}</div>${plate.length > 6 ? `<button class="linkbtn" data-act="quest-tab" data-v="tasks" style="margin-top:8px">See all ${plate.length}</button>` : ""}` : `<p class="faint small">No to-dos due today.</p>`}</section>`;
+  h += `</div></div>`;
+  h += `<div style="margin-top:14px">${ringsCard(t)}</div>`;
+  h += `<div class="grid2" style="align-items:start">${workoutTeaser()}${spentCard()}</div>`;
+  return h + fab("quick", "Quick add");
+}
+
+/* ---- Quests ---- */
+function vQuests() {
+  const tabs = [["board", "Board"], ["habits", "Habits"], ["tasks", "Tasks"], ["learning", "Learning"]];
+  const qt = tabs.some(x => x[0] === ui.questTab) ? ui.questTab : "board";
+  const add = qt === "habits" ? hdrBtn("add-habit", "Add habit") : qt === "tasks" ? hdrBtn("add-task", "Add task") : qt === "board" ? hdrBtn("add-habit", "Add quest") : "";
+  let h = header("Quests", qt === "learning" ? "Keep learning" : "Your quest board", add, "Quests");
+  h += `<div class="seg" role="group" aria-label="Quest section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="quest-tab" data-v="${v}" aria-pressed="${qt === v}">${l}</button>`).join("")}</div>`;
+  if (qt === "habits") return h + habitsBody() + fab("add-habit", "Add habit");
+  if (qt === "tasks") return h + tasksView(true) + fab("add-task", "Add task");
+  if (qt === "learning") return h + learnView();
+  const s = gameState();
+  h += tutorialCard(s) + downedCard(s);
+  h += `<div class="grid2">${boardCard(s, {manage: true, reorder: ui.reorder})}<div class="stack">${yesterdayCard(s)}${bountyCard(s)}`;
+  h += `<section class="card"><div class="card-h"><h2>How quests work</h2></div><ul class="small muted rules">
+    <li>Habits, daily tasks, your step goal, workout days and learning are your daily quests.</li>
+    <li>The first ${s.slots} in board order earn XP and Gold. Reorder to choose which.</li>
+    <li>Finish them all for the all-clear bonus and to grow your streak. Each streak day adds ${Math.round(E.streakBonus.perDay * 100)}% to rewards, up to ${Math.round(E.streakBonus.cap * 100)}%.</li>
+    <li>Each missed quest costs ${E.hp.missDamage} HP (${E.hp.dailyDamageCap} at most per day). Steps from Health and workouts logged live count as verified and earn ${Math.round((E.earn.verifiedMult - 1) * 100)}% more.</li>
+    <li>Weekly and monthly tasks, and times-per-week habits, are bounties.</li></ul></section>`;
+  return h + `</div></div>` + fab("add-habit", "Add quest");
+}
+
+/* ---- Learning ---- */
+const FOCUS_KEY = "daybook:focus";
+let focus = lsGet(FOCUS_KEY, null);
+function learnView() {
+  const g = S.settings.game || {}; const L = g.learn || {}; const goal = +L.goalMin || E.learning.defaultGoalMin; const t = today();
+  const all = Object.values(S.learn).sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0));
+  const minOn = k => sum(all.filter(e => e.date === k).map(e => e.min));
+  const tMin = minOn(t); const wk = sum([...Array(7)].map((_, i) => minOn(GE.addKey(t, -i))));
+  const on = !!L.on, schedToday = on && (!L.days || L.days.includes(GE.weekdayOf(t)));
+  let h = `<div class="grid2">`;
+  h += `<section class="card focus-card"><div class="card-h"><h2>Focus timer</h2>${focus ? `<span class="pill acc">Running</span>` : ""}</div>`;
+  if (focus) h += `<div class="focus" data-focus>${fmtClock(Date.now() - focus.start)}</div>${focus.topic ? `<p class="muted small" style="margin-top:6px">${esc(focus.topic)}</p>` : ""}<div class="row" style="margin-top:14px"><button class="btn ghost" data-act="focus-cancel" data-confirm="Tap again to discard">Discard</button><button class="btn pri grow" data-act="focus-stop">${icon("check", 16)}Stop and log</button></div>`;
+  else h += `<p class="small muted" style="margin-bottom:12px">Timed sessions count as verified learning. The timer keeps going if you switch apps.</p><div class="inline-add"><input id="fc-topic" placeholder="What are you studying?" maxlength="60" autocomplete="off" aria-label="Topic"><button class="btn pri" data-act="focus-start">${icon("play", 16)}Start</button></div>`;
+  h += `</section>`;
+  h += `<section class="card"><div class="card-h"><h2>Today</h2>${on ? `<span class="pill ${tMin >= goal ? "good" : ""}">${schedToday ? `goal ${goal} min` : "rest day"}</span>` : ""}</div><div class="row" style="gap:16px">${on && schedToday ? ring(tMin / goal, "var(--c-learn)", 56) : ""}<div><div class="snum">${tMin} <span class="faint">min</span></div><div class="small muted">${wk} min in the last 7 days</div></div></div>
+    <form class="stack" data-form="learn" style="gap:10px;margin-top:14px"><div class="fgrid"><label class="field"><span>Minutes</span><input id="ln-min" name="min" inputmode="numeric" placeholder="e.g. 25" autocomplete="off"></label><label class="field"><span>Day</span><input name="date" type="date" value="${t}" max="${t}"></label><label class="field full"><span>Topic</span><input name="topic" maxlength="60" placeholder="Optional" autocomplete="off"></label></div><button class="btn">Log time by hand</button></form></section>`;
+  h += `<section class="card"><div class="card-h"><h2>Learning quest</h2></div><form data-form="learn-goal" class="stack" style="gap:12px">
+    <div class="seg" role="group" aria-label="Learning quest"><button type="button" data-act="radio" data-name="on" data-v="0" aria-pressed="${!on}">Off</button><button type="button" data-act="radio" data-name="on" data-v="1" aria-pressed="${on}">On</button></div><input type="hidden" name="on" value="${on ? 1 : 0}">
+    <div class="stack" data-show="on=1" style="gap:12px" ${on ? "" : "hidden"}><div class="field"><span>Minutes a day</span><div class="chips">${[10, 15, 20, 30, 45, 60].map(m => `<button type="button" class="chip" data-act="radio" data-name="goalMin" data-v="${m}" aria-pressed="${m === goal}">${m} min</button>`).join("")}</div><input type="hidden" name="goalMin" value="${goal}"></div>
+    <div class="field"><span>On these days</span>${multiDays("days", L.days, "Learning days")}</div></div>
+    <button class="btn pri">Save</button></form></section>`;
+  h += `<section class="card"><div class="card-h"><h2>Recent sessions</h2></div>${all.length ? `<div class="list">${all.slice(0, 12).map(e => `<div class="li" style="padding:9px 0"><span class="grow"><span class="t">${esc(e.topic || "Learning")}</span><br><span class="sub faint small">${relDay(e.date)}${e.timer ? " · timed" : ""}</span></span><span class="mono" style="font-weight:600">${e.min} min</span><button class="ibtn" data-act="del-learn" data-id="${e.id}" data-confirm="" aria-label="Delete this session">${icon("trash", 18)}</button></div>`).join("")}</div>` : `<p class="faint small">Sessions you time or log show up here.</p>`}</section>`;
+  return h + `</div>`;
+}
+
+/* ---- Town ---- */
+function vTown() {
+  const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["tavern", "Tavern"]];
+  const tt = tabs.some(x => x[0] === ui.townTab) ? ui.townTab : "armory";
+  let h = header("Town", "Hearthhold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button>`, "Town");
+  h += `<div class="seg g3" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
+  return h + ({armory: armoryView, wardrobe: wardrobeView, tavern: tavernView}[tt])(s);
+}
+function armoryView(s) {
+  const items = GE.armoryItems(CAT, E); const gold = spendable(s); const eq = heroDoc().equip || {};
+  const res = reservedGold();
+  let h = res ? `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Gold is set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>` : "";
+  h += `<div class="stack">`;
+  for (const rar of E.rarityOrder) {
+    const group = items.filter(i => i.rarity === rar); if (!group.length) continue;
+    const R = E.rarities[rar]; const set = SET_OF["set." + rar];
+    h += `<section class="card" style="--r:${R.color}"><div class="card-h"><h2><span class="rdot"></span> ${esc(CAT.rarityNames[rar])}${set ? ` · ${esc(set.name)} set` : ""}</h2>${R.level > s.level ? `<span class="pill">${icon("lock", 12, 2.4)}Unlocks at level ${R.level}</span>` : ""}</div><div class="items">`;
+    h += group.map(it => {
+      const p = GE.itemPrice(it, E); const owned = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned}, E);
+      const btn = owned ? `<span class="pill ${eq[it.slot] === it.id ? "good" : ""}">${eq[it.slot] === it.id ? "Equipped" : "Owned"}</span>`
+        : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
+        : c.reason === "level" ? `<span class="price-short" title="Unlocks at level ${c.need}">${icon("lock", 13, 2.4)}${fmtInt(p.gold)}</span>`
+        : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
+      return `<div class="item"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(SLOT_NAME[it.slot])}</div>${btn}</div>`;
+    }).join("");
+    h += `</div></section>`;
+  }
+  h += `<p class="tiny faint">Gold is earned only by completing quests. It can't be bought.</p>`;
+  return h + `</div>`;
+}
+function wardrobeView(s) {
+  const hd = heroDoc(); const eq = hd.equip || {}; const owned = Object.keys(S.inv).map(id => ITEM[id]).filter(Boolean);
+  let h = `<div class="grid2"><section class="card ward"><div class="ward-av">${heroAvatar(150, "Your hero")}</div><div class="stack" style="gap:6px;min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level} · ${owned.length} ${owned.length === 1 ? "item" : "items"}</div><button class="btn sm ghost" style="align-self:flex-start;margin-top:6px" data-act="edit-look">${icon("edit", 15)}Change look</button></div></section>`;
+  h += `<section class="card"><div class="card-h"><h2>Gear</h2></div>`;
+  if (!owned.length) h += `<div class="empty"><span>You don't own any gear yet. The Armory sells it for Gold from quests.</span><button class="btn sm" data-act="town-tab" data-v="armory">Visit the Armory</button></div>`;
+  else h += CAT.slots.filter(sl => owned.some(i => i.slot === sl.id)).map(sl => {
+    const mine = owned.filter(i => i.slot === sl.id).sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
+    return `<div class="slotrow"><div class="row between"><b>${esc(sl.name)}</b><span class="small muted">${eq[sl.id] && ITEM[eq[sl.id]] ? esc(ITEM[eq[sl.id]].name) : "Nothing on"}</span></div><div class="wopts">
+      <button class="wopt" data-act="equip" data-slot="${sl.id}" data-id="" aria-pressed="${!eq[sl.id]}"><span class="wnone">${icon("x", 18)}</span>None</button>
+      ${mine.map(it => { const col = E.rarities[it.rarity].color; return `<button class="wopt" style="--r:${col}" data-act="equip" data-slot="${sl.id}" data-id="${it.id}" aria-pressed="${eq[sl.id] === it.id}" aria-label="Wear ${esc(it.name)}">${itemArt(it, col, 34)}<span>${esc(CAT.rarityNames[it.rarity])}</span></button>`; }).join("")}</div></div>`;
+  }).join("");
+  return h + `</section></div>`;
+}
+function tavernView(s) {
+  const rs = Object.values(S.rewards).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a.price - b.price || (a.created || 0) - (b.created || 0));
+  const avg = GE.avgDailyGold(s.ledger, s.today, s.start, E); const res = reservedGold(); const free = spendable(s);
+  const daysFor = n => avg > 0 ? Math.max(1, Math.ceil(n / avg)) : null;
+  let h = `<div class="tiles t3" style="margin-bottom:14px">${statTile("Gold", fmtInt(s.gold))}${statTile("Set aside", fmtInt(Math.min(res, s.gold)))}${statTile("Per day", avg ? `≈ ${fmtInt(avg)}` : "–", avg ? `last ${E.tavern.avgDays} days` : "no quests yet")}</div>`;
+  h += `<div class="grid2">`;
+  const goal = rs.find(r => r.pinned);
+  if (goal) {
+    const have = Math.min(goal.price, spendable(s, goal.id)); const left = goal.price - have; const d = daysFor(left);
+    h += `<section class="card goal span2"><div class="card-h"><h2>Saving for</h2><button class="linkbtn" data-act="edit-reward" data-id="${goal.id}">Edit</button></div>
+      <div class="row"><span class="ticon lg" aria-hidden="true">${esc(goal.icon || "🎁")}</span><div class="grow"><b>${esc(goal.name)}</b><div class="small muted">${goldAmt(have, 13)} of ${goldAmt(goal.price, 13)}${left > 0 ? d ? ` · about ${d} more ${d === 1 ? "day" : "days"} of quests` : "" : " · ready to redeem"}</div></div></div>
+      <div class="meter" role="progressbar" aria-label="Saved toward ${esc(goal.name)}" aria-valuenow="${have}" aria-valuemax="${goal.price}"><i style="width:${have / goal.price * 100}%;--c:var(--gold)"></i></div>
+      <form class="inline-add" data-form="reserve" data-id="${goal.id}"><input id="rs-amt" name="amt" inputmode="numeric" placeholder="Gold to set aside" aria-label="Gold to set aside" autocomplete="off"><button class="btn">Set aside</button></form>
+      <p class="tiny faint" style="margin-top:8px">${goal.reserved ? `${fmtInt(goal.reserved)} Gold is set aside, so the Armory and other rewards can't spend it. <button class="linkbtn" data-act="release" data-id="${goal.id}">Release it</button>` : "Gold you set aside can only go to this reward."}</p></section>`;
+  }
+  h += `<section class="card span2"><div class="card-h"><h2>Rewards</h2><button class="btn sm pri" data-act="new-reward">${icon("plus", 14)}New reward</button></div>`;
+  if (!rs.length) h += `<p class="small muted" style="margin-bottom:6px">Name real-life treats and give each a Gold price. When you've earned enough, redeem it and enjoy it.</p>`;
+  else h += `<div class="list">${rs.map(r => {
+    const c = GE.canRedeem(r, {gold: spendable(s, r.id), today: s.today}); const d = daysFor(r.price);
+    const meta = [goldAmt(r.price, 13), d ? `≈ ${d} ${d === 1 ? "day" : "days"} of quests` : "", !r.repeatable ? "One time" : r.cooldownDays ? ({1: "Once a day", 7: "Once a week", 30: "Once a month"}[r.cooldownDays] || `Once every ${r.cooldownDays} days`) : ""].filter(Boolean).map(x => `<span>${x}</span>`).join("");
+    const act = c.ok ? `<button class="btn sm pri" data-act="redeem" data-id="${r.id}" data-confirm="Redeem?">Redeem</button>`
+      : c.reason === "used" ? `<span class="pill good">Redeemed</span>` : c.reason === "cooldown" ? `<span class="pill">Again ${fmtDate(c.until)}</span>` : `<span class="pill togo">${coin(12)}${fmtInt(c.short)} to go</span>`;
+    return `<div class="li"><span class="ticon" aria-hidden="true">${esc(r.icon || "🎁")}</span><button class="li-main" data-act="edit-reward" data-id="${r.id}"><span class="t">${esc(r.name)}${r.pinned ? ` <span class="pill acc">Goal</span>` : ""}</span><span class="sub">${meta}</span></button>${act}</div>`;
+  }).join("")}</div>`;
+  const names = new Set(rs.map(r => r.name.toLowerCase()));
+  const ideas = CAT.tavernStarters.filter(x => !names.has(x.name.toLowerCase()));
+  if (ideas.length && rs.length < 6) h += `<div class="label" style="margin:14px 0 6px">Ideas</div><div class="list">${ideas.map(x => `<div class="li" style="padding:8px 0"><span class="ticon" aria-hidden="true">${x.icon}</span><span class="grow"><span class="t">${esc(x.name)}</span><br><span class="sub">${goldAmt(x.price, 13)}</span></span><button class="btn sm ghost" data-act="add-starter" data-id="${x.id}">${icon("plus", 14)}Add</button></div>`).join("")}</div>`;
+  h += `</section>`;
+  const rec = Object.values(s.ledger).filter(e => e.src === "tavern" && +e.amt).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 15);
+  h += `<section class="card span2"><div class="card-h"><h2>Receipts</h2></div>${rec.length ? `<div class="list">${rec.map(e => `<div class="li" style="padding:9px 0"><span class="ticon" aria-hidden="true">${esc(e.icon || "🧾")}</span><span class="grow"><span class="t">${esc(e.name || "Reward")}</span><br><span class="sub faint small">${relDay(e.date)}${e.at ? ", " + new Date(e.at).toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit"}) : ""}</span></span><span class="mono" style="font-weight:600">−${fmtInt(-e.amt)}</span></div>`).join("")}</div>` : `<p class="faint small">Rewards you redeem are listed here.</p>`}</section>`;
+  return h + `</div>`;
+}
+
+/* ---- game sheets ---- */
+function ledgerLabel(e) {
+  const k = String(e.srcId || "");
+  if (e.src === "quest") { if (k.startsWith("habit:")) return (S.habits[k.slice(6)] || {}).name || "Habit quest"; if (k.startsWith("task:")) return (S.tasks[k.slice(5)] || {}).title || "Task quest"; return {steps: "Steps quest", workout: "Workout quest", learn: "Learning quest"}[k] || "Quest"; }
+  if (e.src === "periodic") { const id = k.split(":")[1]; return "Bounty: " + ((k.startsWith("habit:") ? (S.habits[id] || {}).name : (S.tasks[id] || {}).title) || "done"); }
+  return {allclear: "All-clear bonus", tutorial: CAT.tutorial.name, levelup: `Reached level ${k}`, downed: "Downed", armory: `Bought ${(ITEM[k] || {}).name || "gear"}`, tavern: `Redeemed ${e.name || "a reward"}`}[e.src] || e.src;
+}
+function sLedger() {
+  return () => {
+    const s = gameState(); if (!s) return sheetHead("Gold") + `<p class="faint">The game is off.</p>`;
+    const es = Object.values(s.ledger).filter(e => e.cur === "gold" && +e.amt).sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0) || b.id.localeCompare(a.id)).slice(0, 100);
+    let h = sheetHead("Gold") + `<div class="row between" style="margin-bottom:10px"><span class="snum">${goldAmt(s.gold, 22)}</span><span class="small muted">${reservedGold() ? `${fmtInt(spendable(s))} free to spend` : ""}</span></div><p class="small muted" style="margin-bottom:12px">Every change to your Gold is listed here.</p>`;
+    let last = ""; h += `<div class="list">`;
+    es.forEach(e => { if (e.date !== last) { h += `<div class="label" style="padding:14px 0 4px">${relDay(e.date)}</div>`; last = e.date; } h += `<div class="li" style="padding:9px 0"><span class="grow t">${esc(ledgerLabel(e))}</span><span class="mono" style="font-weight:600;color:${e.amt > 0 ? "var(--good-ink)" : "var(--ink)"}">${e.amt > 0 ? "+" : "−"}${fmtInt(Math.abs(e.amt))}</span></div>`; });
+    return h + (es.length ? "" : `<p class="faint small">Nothing yet. Complete a quest to earn your first Gold.</p>`) + `</div>`;
+  };
+}
+const lookFields = L => `<div class="field"><span>Skin</span><div class="swatches">${CAT.looks.skin.map(c => `<button type="button" class="sw" style="--c:${c}" data-act="look-pick" data-name="skin" data-v="${c}" aria-pressed="${c === L.skin}" aria-label="Skin tone"></button>`).join("")}</div><input type="hidden" name="skin" value="${L.skin}"></div>
+  <div class="field"><span>Hair color</span><div class="swatches">${CAT.looks.hair.map(c => `<button type="button" class="sw" style="--c:${c}" data-act="look-pick" data-name="hair" data-v="${c}" aria-pressed="${c === L.hair}" aria-label="Hair color"></button>`).join("")}</div><input type="hidden" name="hair" value="${L.hair}"></div>
+  <div class="field"><span>Hair style</span><div class="seg" role="group">${CAT.looks.hairStyle.map(o => `<button type="button" data-act="look-pick" data-name="hairStyle" data-v="${o.id}" aria-pressed="${o.id === L.hairStyle}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="hairStyle" value="${L.hairStyle}"></div>
+  <div class="field"><span>Build</span><div class="seg" role="group">${CAT.looks.body.map(o => `<button type="button" data-act="look-pick" data-name="body" data-v="${o.id}" aria-pressed="${o.id === L.body}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="body" value="${L.body}"></div>`;
+const formLook = f => ({skin: fv(f, "skin"), hair: fv(f, "hair"), hairStyle: fv(f, "hairStyle"), body: fv(f, "body")});
+function sLook() {
+  const hd = heroDoc(); const L = {...DEFAULT_LOOK, ...hd.look};
+  return () => sheetHead("Your hero") + `<form data-form="look" class="stack"><div class="lookprev" data-equip="1">${heroAvatar(132)}</div>
+    <label class="field"><span>Name</span><input name="heroName" maxlength="24" value="${esc(hd.name)}" autocomplete="off"></label>${lookFields(L)}
+    <div class="sh-foot"><button class="btn pri">Save</button></div></form>`;
+}
+function suggestWorkoutDays() {
+  const n = Math.max(0, Math.min(7, Math.round(+S.settings.weeklyWorkouts || 3)));
+  const cnt = [0, 0, 0, 0, 0, 0, 0]; const from = dkey(addDays(new Date(), -56));
+  Object.values(S.sessions).forEach(s => { if (s.date >= from) cnt[GE.weekdayOf(s.date)]++; });
+  if (sum(cnt) >= 4) return cnt.map((c, i) => [c, i]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, n).map(x => x[1]).sort((a, b) => a - b);
+  return {0: [], 1: [2], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5], 7: ALL_WD}[n];
+}
+function sOnboard() {
+  const t = today(); const base = GE.stepBaseline(S.steps, t, E); const cur = stepGoal();
+  const goals = [...new Set([base, cur, 6000, 8000, 10000, 12000].filter(Boolean))].sort((a, b) => a - b);
+  const sel = base || cur; const L = {...DEFAULT_LOOK};
+  const pre = new Set(["tavern.starter.coffee", "tavern.starter.episode", "tavern.starter.nightoff"]);
+  const nh = habitList().filter(h => h.freq !== "weekly").length, nt = Object.values(S.tasks).filter(x => x.kind === "daily").length;
+  return () => sheetHead("Create your hero") + `<form data-form="onboard" class="stack ob">
+    <div class="ob-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+    <fieldset data-step="1" class="stack">
+      <div class="lookprev">${avatarSvg({look: L, size: 132})}</div>
+      <label class="field"><span>Hero name</span><input name="heroName" maxlength="24" value="${esc(S.settings.name || "")}" placeholder="What should the town call you?" autocomplete="off"></label>
+      ${lookFields(L)}
+      <div class="sh-foot"><button type="button" class="btn pri" data-act="ob-step" data-d="1">Next</button></div>
+    </fieldset>
+    <fieldset data-step="2" class="stack" hidden>
+      <p class="small muted">${nh + nt ? `Your ${nh ? `${nh} daily ${nh === 1 ? "habit" : "habits"}` : ""}${nh && nt ? " and " : ""}${nt ? `${nt} daily ${nt === 1 ? "task" : "tasks"}` : ""} are already quests.` : "Habits and daily tasks you add become quests."} Pick the rest.</p>
+      <div class="field"><span>Daily steps quest</span><div class="chips">${goals.map(v => `<button type="button" class="chip" data-act="radio" data-name="stepGoal" data-v="${v}" aria-pressed="${v === sel}">${fmtInt(v)}${v === base ? " (suggested)" : ""}</button>`).join("")}<button type="button" class="chip" data-act="radio" data-name="stepGoal" data-v="0" aria-pressed="false">No steps quest</button></div><input type="hidden" name="stepGoal" value="${sel}"></div>
+      ${base ? `<p class="tiny faint" style="margin-top:-6px">Suggested from your last ${E.steps.baselineDays} days plus ${Math.round(E.steps.baselineBump * 100)}%.</p>` : ""}
+      <div class="field"><span>Workout days</span>${multiDays("workoutDays", suggestWorkoutDays(), "Workout days")}</div>
+      <div class="field"><span>Learning quest</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="learnOn" data-v="0" aria-pressed="true">Not now</button><button type="button" data-act="radio" data-name="learnOn" data-v="1" aria-pressed="false">Every day</button></div><input type="hidden" name="learnOn" value="0"></div>
+      <div class="field" data-show="learnOn=1" hidden><span>Minutes a day</span><div class="chips">${[10, 15, 20, 30, 45].map(m => `<button type="button" class="chip" data-act="radio" data-name="learnMin" data-v="${m}" aria-pressed="${m === E.learning.defaultGoalMin}">${m} min</button>`).join("")}</div><input type="hidden" name="learnMin" value="${E.learning.defaultGoalMin}"></div>
+      <p class="tiny faint">Steps from the iPhone Shortcut or a Health export, workouts you log live and timed learning count as verified and earn ${Math.round((E.earn.verifiedMult - 1) * 100)}% more.</p>
+      <div class="sh-foot"><button type="button" class="btn ghost" data-act="ob-step" data-d="-1">Back</button><button type="button" class="btn pri" data-act="ob-step" data-d="1">Next</button></div>
+    </fieldset>
+    <fieldset data-step="3" class="stack" hidden>
+      <p class="small muted">Gold from quests buys real-life treats you choose, in the Tavern. Pick a few to start. You can change prices and add your own later.</p>
+      <div class="multi stack" style="gap:8px" role="group" aria-label="Starter rewards"><input type="hidden" name="starters" value="${[...pre].join(",")}">
+        ${CAT.tavernStarters.map(x => `<button type="button" class="pickt" data-act="multi" data-v="${x.id}" aria-pressed="${pre.has(x.id)}"><span class="ticon" aria-hidden="true">${x.icon}</span><span class="grow"><b>${esc(x.name)}</b><br>${goldAmt(x.price, 13)}</span><span class="tick">${icon("check", 16, 3)}</span></button>`).join("")}</div>
+      <div class="sh-foot"><button type="button" class="btn ghost" data-act="ob-step" data-d="-1">Back</button><button class="btn pri">Begin the adventure</button></div>
+    </fieldset></form>`;
+}
+function sGameSettings() {
+  const g = S.settings.game || {}; const L = g.learn || {}; const goal = +L.goalMin || E.learning.defaultGoalMin;
+  const dayEndLabel = v => v === "00:00" ? "Midnight" : new Date(2024, 0, 1, +v.slice(0, 2)).toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
+  return () => sheetHead("Quest settings") + `<form data-form="game-settings" class="stack">
+    <label class="field"><span>A day ends at</span><select name="dayEnd">${E.dayEnd.choices.map(v => `<option value="${v}" ${v === (g.dayEnd || "00:00") ? "selected" : ""}>${dayEndLabel(v)}</option>`).join("")}</select></label>
+    <p class="tiny faint" style="margin-top:-8px">Anything you do before this time counts toward the day before, for night owls.</p>
+    <div class="field"><span>Steps quest (${fmtInt(stepGoal())} steps, change the goal in Train › Steps)</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="stepsOn" data-v="1" aria-pressed="${g.steps !== false}">On</button><button type="button" data-act="radio" data-name="stepsOn" data-v="0" aria-pressed="${g.steps === false}">Off</button></div><input type="hidden" name="stepsOn" value="${g.steps === false ? 0 : 1}"></div>
+    <div class="field"><span>Workout quest days</span>${multiDays("workoutDays", g.workoutDays || [], "Workout days")}</div>
+    <div class="field"><span>Learning quest</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="learnOn" data-v="1" aria-pressed="${!!L.on}">On</button><button type="button" data-act="radio" data-name="learnOn" data-v="0" aria-pressed="${!L.on}">Off</button></div><input type="hidden" name="learnOn" value="${L.on ? 1 : 0}"></div>
+    <div class="stack" data-show="learnOn=1" style="gap:12px" ${L.on ? "" : "hidden"}><div class="field"><span>Minutes a day</span><div class="chips">${[10, 15, 20, 30, 45, 60].map(m => `<button type="button" class="chip" data-act="radio" data-name="learnMin" data-v="${m}" aria-pressed="${m === goal}">${m} min</button>`).join("")}</div><input type="hidden" name="learnMin" value="${goal}"></div>
+    <div class="field"><span>Learning days</span>${multiDays("learnDays", L.days, "Learning days")}</div></div>
+    <p class="tiny faint">Habits and daily tasks pick their own days in their edit screens.</p>
+    <div class="sh-foot"><button class="btn pri">Save</button></div></form>
+    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Switch the game off</h2></div><p class="small muted" style="margin-bottom:12px">Your trackers keep working as before. Your hero, Gold and gear wait for you, and the days while it's off count as rest days.</p><button class="btn danger" data-act="game-off" data-confirm="Tap again to switch off">Switch off</button></section>`;
+}
+function sReward(id, starter) {
+  const x = id ? S.rewards[id] : null; const d = x || starter || {};
+  const icon0 = d.icon || "🎁", rep = x ? x.repeatable !== false : starter ? starter.repeatable : true, cd = +(d.cooldownDays || 0);
+  return () => sheetHead(x ? "Edit reward" : "New reward") + `<form data-form="reward" data-id="${id || ""}" class="stack">
+    <label class="field"><span>Reward</span><input name="name" required maxlength="60" value="${esc(d.name || "")}" placeholder="e.g. Cinema night" autocomplete="off" autofocus></label>
+    <div class="field"><span>Icon</span><div class="chips emoji">${CAT.tavernIcons.map(c => `<button type="button" class="chip" data-act="radio" data-name="icon" data-v="${c}" aria-pressed="${c === icon0}">${c}</button>`).join("")}</div><input type="hidden" name="icon" value="${icon0}"></div>
+    <label class="field"><span>Price in Gold</span><input id="rw-price" name="price" inputmode="numeric" required value="${d.price || ""}" placeholder="e.g. 150" autocomplete="off"></label>
+    <div class="chips">${E.tavern.tiers.map(([l, v]) => `<button type="button" class="chip" data-act="fill" data-target="rw-price" data-v="${v}">${l} · ${fmtInt(v)}</button>`).join("")}</div>
+    <div class="field"><span>How often</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="repeatable" data-v="1" aria-pressed="${rep}">Again and again</button><button type="button" data-act="radio" data-name="repeatable" data-v="0" aria-pressed="${!rep}">One time</button></div><input type="hidden" name="repeatable" value="${rep ? 1 : 0}"></div>
+    <label class="field" data-show="repeatable=1" ${rep ? "" : "hidden"}><span>Wait between redeems</span><select name="cooldown">${[[0, "No wait"], [1, "A day"], [7, "A week"], [30, "A month"]].map(([v, l]) => `<option value="${v}" ${v === cd ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <div class="field"><span>Savings goal</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="pinned" data-v="0" aria-pressed="${!(x && x.pinned)}">No</button><button type="button" data-act="radio" data-name="pinned" data-v="1" aria-pressed="${!!(x && x.pinned)}">Pin as my goal</button></div><input type="hidden" name="pinned" value="${x && x.pinned ? 1 : 0}"></div>
+    <div class="sh-foot">${x ? `<button type="button" class="btn danger" data-act="del-reward" data-id="${x.id}" data-confirm="Tap again to delete">Delete</button>` : ""}<button class="btn pri">${x ? "Save" : "Add reward"}</button></div></form>`;
+}
+function inviteCard() {
+  const g = S.settings.game; if (g && g.start) return "";
+  return `<section class="card invite"><div class="inv-av" aria-hidden="true">${avatarSvg({size: 86})}</div><div class="stack" style="gap:8px;min-width:0"><div class="label">New</div><h2>Turn your days into an adventure</h2><p class="small">Create a hero. Your habits, tasks, steps and workouts become quests that earn XP and Gold, and Gold buys gear and real-life treats you pick.</p><button class="btn" data-act="start-game">Create your hero</button></div></section>`;
+}
+
+const GAME_ACTIONS = {
+  "start-game": () => { closeAll(); openSheet(sOnboard()); },
+  "ob-step": el => {
+    const f = el.closest("form"); const cur = f.querySelector("fieldset:not([hidden])"); const n = +cur.dataset.step + +el.dataset.d;
+    const nx = f.querySelector(`fieldset[data-step="${n}"]`); if (!nx) return;
+    cur.hidden = true; nx.hidden = false; f.querySelectorAll(".ob-dots i").forEach((d, i) => d.classList.toggle("on", i === n - 1)); $("#sheet").scrollTop = 0;
+  },
+  "look-pick": el => {
+    setRadio(el); const f = el.closest("form"); const p = f && f.querySelector(".lookprev");
+    if (p) p.innerHTML = avatarSvg({look: formLook(f), equip: p.dataset.equip ? heroEquip() : {}, size: 132});
+  },
+  multi: el => {
+    el.setAttribute("aria-pressed", el.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    const box = el.closest(".multi"); box.querySelector("input[type=hidden]").value = [...box.querySelectorAll('[data-act="multi"][aria-pressed="true"]')].map(b => b.dataset.v).join(",");
+  },
+  "game-settings": () => openSheet(sGameSettings()),
+  "game-off": () => { setGame({off: today()}); closeAll(); go("today"); toast("The game is off. Your trackers work as before."); },
+  "game-on": () => {
+    const g = S.settings.game || {}; const pauses = [...(g.pauses || [])];
+    if (g.off) { const from = GE.addKey(g.off, 1), to = GE.addKey(today(), -1); if (from <= to) pauses.push({from, to}); }
+    setGame({off: null, pauses}); closeAll(); go("today"); toast("Welcome back. The days away counted as rest days.");
+  },
+  "quest-tab": el => { ui.questTab = el.dataset.v; ui.reorder = false; saveUi(); if (ui.tab !== "quests") { closeAll(); go("quests"); } else render(); },
+  "town-tab": el => { ui.townTab = el.dataset.v; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else { render(); window.scrollTo(0, 0); } },
+  reorder: () => { ui.reorder = !ui.reorder; render(); },
+  "q-move": el => {
+    const s = gameState(); if (!s) return; const keys = s.board.today.dailies.map(q => q.key);
+    const i = keys.indexOf(el.dataset.key), j = i + +el.dataset.d; if (i < 0 || j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    setGame({order: [...keys, ...(S.settings.game.order || []).filter(k => !keys.includes(k))]});
+  },
+  ledger: () => openSheet(sLedger(), true),
+  "edit-look": () => openSheet(sLook()),
+  equip: el => {
+    const eq = {...(heroDoc().equip || {})}; if (el.dataset.id) eq[el.dataset.slot] = el.dataset.id; else delete eq[el.dataset.slot];
+    setHero({equip: eq});
+  },
+  buy: el => {
+    const it = ITEM[el.dataset.id]; const s = gameState(); if (!it || !s || !canSpend()) return;
+    const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: !!S.inv[it.id]}, E);
+    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "level" ? `Unlocks at level ${c.need}` : "You already own this"); return; }
+    const at = Date.now(), date = today(); const eq = heroDoc().equip || {}; const wear = !eq[it.slot];
+    putMany("ledger", [{id: "buy:" + it.id, date, cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}], true);
+    put("inv", {id: it.id, date, at});
+    if (wear) setHero({equip: {...eq, [it.slot]: it.id}});
+    toast(wear ? `${it.name} is yours, and you're wearing it` : `${it.name} is yours. Wear it from the Wardrobe`);
+  },
+  "new-reward": () => openSheet(sReward()),
+  "edit-reward": el => openSheet(sReward(el.dataset.id)),
+  "add-starter": el => { const x = CAT.tavernStarters.find(t => t.id === el.dataset.id); if (!x) return; put("rewards", {id: uid(), name: x.name, icon: x.icon, price: x.price, repeatable: x.repeatable, cooldownDays: x.cooldownDays, created: Date.now(), count: 0, from: x.id}); toast(`Added ${x.name}`); },
+  "del-reward": el => { del("rewards", el.dataset.id); closeAll(); toast("Reward deleted"); },
+  redeem: el => {
+    const r = S.rewards[el.dataset.id]; const s = gameState(); if (!r || !s || !canSpend()) return;
+    const c = GE.canRedeem(r, {gold: spendable(s, r.id), today: s.today});
+    if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "cooldown" ? `You can redeem this again ${fmtDate(c.until)}` : "Already redeemed"); return; }
+    const at = Date.now();
+    putMany("ledger", [{id: `tav:${r.id}:${at.toString(36)}`, date: s.today, cur: "gold", amt: -r.price, src: "tavern", srcId: r.id, bal: s.gold - r.price, at, name: r.name, icon: r.icon || "🎁"}], true);
+    put("rewards", {...r, lastDate: s.today, count: (r.count || 0) + 1, redeemedAt: at, reserved: 0, pinned: r.repeatable ? !!r.pinned : false});
+    toast(`Enjoy it: ${r.name}`);
+  },
+  release: el => { const r = S.rewards[el.dataset.id]; if (r) { put("rewards", {...r, reserved: 0}); toast("Released. That Gold is free to spend."); } },
+  "focus-start": () => { const i = $("#fc-topic"); focus = {start: Date.now(), topic: i ? i.value.trim() : ""}; lsSet(FOCUS_KEY, focus); render(); },
+  "focus-stop": () => {
+    if (!focus) return; const f = focus; focus = null; lsSet(FOCUS_KEY, null);
+    const min = Math.min(E.learning.maxSessionMin, Math.round((Date.now() - f.start) / 60000));
+    if (min < 1) { toast("Under a minute, so nothing was logged"); render(); return; }
+    const g = S.settings.game; const date = g && g.dayEnd ? GE.gameDate(new Date(f.start), g.dayEnd) : dkey(new Date(f.start));
+    gWatch = Date.now(); put("learn", {id: uid(), date, min, timer: true, topic: f.topic, at: Date.now()}); toast(`Logged ${min} min of focus`);
+  },
+  "focus-cancel": () => { focus = null; lsSet(FOCUS_KEY, null); render(); },
+  "del-learn": el => { del("learn", el.dataset.id); toast("Removed"); },
+};
+const GAME_FORMS = {
+  onboard: (fd, f) => {
+    const cur = f.querySelector("fieldset:not([hidden])");
+    if (cur && cur.dataset.step !== "3") { GAME_ACTIONS["ob-step"](cur.querySelector('[data-act="ob-step"][data-d="1"]')); return; }
+    const start = today(); const sg = +fd.get("stepGoal") || 0;
+    const game = {start, dayEnd: "00:00", workoutDays: parseDays(fd.get("workoutDays")), steps: sg > 0, learn: {on: fd.get("learnOn") === "1", goalMin: +fd.get("learnMin") || E.learning.defaultGoalMin, days: null}, order: [], pauses: []};
+    game.seed = GE.seedStreak({...gameData(), stepGoal: sg || stepGoal()}, game, start, E);
+    setSettings({game, ...(sg ? {stepGoal: sg} : {})});
+    setHero({name: String(fd.get("heroName") || "").trim().slice(0, 24) || "Hero", look: formLook(f), equip: {}, created: Date.now()});
+    const picked = new Set(String(fd.get("starters") || "").split(",").filter(Boolean));
+    CAT.tavernStarters.filter(x => picked.has(x.id)).forEach((x, i) => put("rewards", {id: uid() + i, name: x.name, icon: x.icon, price: x.price, repeatable: x.repeatable, cooldownDays: x.cooldownDays, created: Date.now() + i, count: 0, from: x.id}, true));
+    closeAll(); go("today"); toast(`Your adventure begins. ${CAT.tutorial.text}`);
+  },
+  look: (fd, f) => { setHero({name: String(fd.get("heroName") || "").trim().slice(0, 24) || "Hero", look: formLook(f)}); closeAll(); toast("Looking good"); },
+  "game-settings": fd => {
+    const learnOn = fd.get("learnOn") === "1"; const ld = parseDays(fd.get("learnDays"));
+    if (learnOn && !ld.length) { toast("Pick at least one day for learning"); return; }
+    const g = S.settings.game || {};
+    setGame({dayEnd: fd.get("dayEnd") || "00:00", steps: fd.get("stepsOn") === "1", workoutDays: parseDays(fd.get("workoutDays")), learn: {...(g.learn || {}), on: learnOn, goalMin: +fd.get("learnMin") || E.learning.defaultGoalMin, days: ld.length === 7 ? null : ld}});
+    closeAll(); toast("Quest settings saved");
+  },
+  "learn-goal": fd => {
+    const on = fd.get("on") === "1"; const d = parseDays(fd.get("days"));
+    if (on && !d.length) { toast("Pick at least one day"); return; }
+    const g = S.settings.game || {};
+    setGame({learn: {...(g.learn || {}), on, goalMin: +fd.get("goalMin") || E.learning.defaultGoalMin, days: d.length === 7 ? null : d}}); toast(on ? "Learning quest saved" : "Learning quest off");
+  },
+  learn: (fd, f) => {
+    const min = Math.round(num(fd.get("min"))); const d = fd.get("date") || today();
+    if (!(min > 0 && min <= E.learning.maxSessionMin)) { toast(`Enter minutes between 1 and ${E.learning.maxSessionMin}`); $("#ln-min").focus(); return; }
+    if (d > today()) { toast("That day hasn't happened yet"); return; }
+    gWatch = Date.now(); put("learn", {id: uid(), date: d, min, timer: false, topic: String(fd.get("topic") || "").trim(), at: Date.now()}); f.reset(); toast(`Logged ${min} min`);
+  },
+  reward: (fd, f) => {
+    const id = f.dataset.id; const x = id ? S.rewards[id] : null; const name = String(fd.get("name") || "").trim(); if (!name) return;
+    const price = Math.round(num(fd.get("price"))); if (!(price > 0 && price <= E.tavern.maxPrice)) { toast("Enter a price in Gold"); $("#rw-price").focus(); return; }
+    const repeatable = fd.get("repeatable") === "1", pinned = fd.get("pinned") === "1";
+    if (pinned) Object.values(S.rewards).forEach(r => { if (r.pinned && r.id !== id) put("rewards", {...r, pinned: false, reserved: 0}, true); });
+    put("rewards", {...(x || {id: uid(), created: Date.now(), count: 0}), name, icon: fd.get("icon") || "🎁", price, repeatable, cooldownDays: repeatable ? +fd.get("cooldown") || 0 : 0, pinned, reserved: pinned ? Math.min(+(x && x.reserved) || 0, price) : 0});
+    closeAll(); toast(x ? "Saved" : "Reward added");
+  },
+  reserve: (fd, f) => {
+    const r = S.rewards[f.dataset.id]; const s = gameState(); if (!r || !s) return;
+    const n = Math.floor(num(fd.get("amt"))); if (!(n > 0)) { toast("Enter how much Gold to set aside"); return; }
+    const add = Math.min(n, spendable(s), r.price - (+r.reserved || 0));
+    if (add <= 0) { toast(spendable(s) <= 0 ? "No free Gold to set aside" : "This reward is already covered"); return; }
+    put("rewards", {...r, reserved: (+r.reserved || 0) + add}); toast(`Set aside ${fmtInt(add)} Gold`);
+  },
+};
+
+const VIEWS = {today: vToday, habits: vHabits, tasks: vTasks, food: vFood, money: vMoney, train: vTrain, quests: vQuests, town: vTown};
 
 /* ---------- sheet contents ---------- */
 function sHabit(id) {
@@ -1386,6 +1962,7 @@ function sHabit(id) {
     ${x ? "" : `<div class="chips">${ideas.map(i => `<button type="button" class="chip" data-act="fill" data-target="h-name" data-v="${esc(i)}">${esc(i)}</button>`).join("")}</div>`}
     <div class="field"><span>How often</span><div class="seg" role="group"><button type="button" data-act="radio" data-name="freq" data-v="daily" aria-pressed="${freq === "daily"}">Every day</button><button type="button" data-act="radio" data-name="freq" data-v="weekly" aria-pressed="${freq === "weekly"}">Times per week</button></div><input type="hidden" name="freq" value="${freq}"></div>
     <label class="field" data-show="freq=weekly" ${freq === "weekly" ? "" : "hidden"}><span>Times per week</span><input name="goal" type="number" min="1" max="7" value="${x && x.goal ? x.goal : 3}"></label>
+    <div class="field" data-show="freq=daily" ${freq === "daily" ? "" : "hidden"}><span>On these days</span>${multiDays("days", x && x.days, "Habit days")}</div>
     <div class="field"><span>Color</span><div class="swatches">${COLORS.map(c => `<button type="button" class="sw" style="--c:var(${c})" data-act="radio" data-name="color" data-v="${c}" aria-pressed="${c === color}" aria-label="Color ${c.slice(3)}"></button>`).join("")}</div><input type="hidden" name="color" value="${color}"></div>
     <div class="sh-foot">${x ? `<button type="button" class="btn danger" data-act="del-habit" data-id="${x.id}" data-confirm="Tap again to delete">Delete</button>` : ""}<button class="btn pri">${x ? "Save" : "Add habit"}</button></div></form>`;
 }
@@ -1407,6 +1984,7 @@ function sTask(id, kind) {
     <label class="field"><span>Task</span><input id="t-title" name="title" required maxlength="120" value="${esc(x ? x.title : "")}" placeholder="What needs doing?" autocomplete="off" autofocus></label>
     <div class="field"><span>Repeats</span><div class="seg" role="group">${[["todo", "Once"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]].map(([v, l]) => `<button type="button" data-act="radio" data-name="kind" data-v="${v}" aria-pressed="${k === v}">${l}</button>`).join("")}</div><input type="hidden" name="kind" value="${k}"></div>
     <label class="field" data-show="kind=todo" ${k === "todo" ? "" : "hidden"}><span>Due date</span><input name="due" type="date" value="${x && x.due ? x.due : ""}"></label>
+    <div class="field" data-show="kind=daily" ${k === "daily" ? "" : "hidden"}><span>On these days</span>${multiDays("days", x && x.days, "Task days")}</div>
     <div class="field"><span>Priority</span><div class="seg" role="group">${[[0, "Normal"], [1, "Medium"], [2, "High"]].map(([v, l]) => `<button type="button" data-act="radio" data-name="priority" data-v="${v}" aria-pressed="${pr === v}">${l}</button>`).join("")}</div><input type="hidden" name="priority" value="${pr}"></div>
     <label class="field"><span>Notes</span><textarea name="notes" maxlength="500" placeholder="Optional">${esc(x ? x.notes || "" : "")}</textarea></label>
     <div class="sh-foot">${x ? `<button type="button" class="btn danger" data-act="del-task" data-id="${x.id}" data-confirm="Tap again to delete">Delete</button>` : ""}<button class="btn pri">${x ? "Save" : "Add task"}</button></div></form>`;
@@ -1442,7 +2020,8 @@ function sSettings() {
     <label class="field"><span>Expense categories, one per line</span><textarea name="expenseCats" rows="5">${esc(s.expenseCats.join("\n"))}</textarea></label>
     <label class="field"><span>Income categories, one per line</span><textarea name="incomeCats" rows="3">${esc(s.incomeCats.join("\n"))}</textarea></label>
     <div class="sh-foot" style="margin-top:4px"><button class="btn pri">Save settings</button></div></form>
-    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button><button class="btn ghost" data-act="import">Restore from backup</button></div></section>
+    <section class="card" style="margin-top:18px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Gold." : s.game && s.game.start ? "Your hero, Gold and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
+    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button><button class="btn ghost" data-act="import">Restore from backup</button></div></section>
     ${db ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Apple Health</h2><span class="pill" id="hl-state">${healthInfo === undefined ? "Checking…" : healthInfo ? "Connected" : "Not set up"}</span></div><p class="small muted" style="margin-bottom:12px">${healthInfo && healthInfo.last_used ? `Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "An iPhone Shortcut sends your steps from Apple Health every evening."}</p><button class="btn" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up iPhone sync"}</button></section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin-bottom:12px">Signed in as ${esc((account.user && account.user.email) || "")}.</p><button class="btn ghost" data-act="sign-out" data-confirm="Tap again to sign out">Sign out</button></section>` : ""}`;
 }
@@ -1572,7 +2151,7 @@ function finishWorkout() {
     if (nw > bestW) prs.push(`${exName(e.ex)}: heaviest set, ${fmtW(nw)}`);
     else if (nb > best + 0.01) prs.push(`${exName(e.ex)}: est. 1RM ${fmtW(n1(nb))}`);
   });
-  const s = {id: a.id, name: a.name, splitId: a.splitId, dayId: a.dayId, start: a.start, end: Date.now(), date: dkey(new Date(a.start)), entries, prs};
+  const s = {id: a.id, name: a.name, splitId: a.splitId, dayId: a.dayId, start: a.start, end: Date.now(), date: S.settings.game && S.settings.game.dayEnd ? GE.gameDate(new Date(a.start), S.settings.game.dayEnd) : dkey(new Date(a.start)), entries, prs};
   put("sessions", s); stopRest(); setActive(null, true);
   try { wakeLock && wakeLock.release(); } catch {}
   openSheet(sSummary(s));
@@ -1587,7 +2166,10 @@ function paintRest() {
   bar.hidden = false;
   bar.innerHTML = `<div class="grow"><div class="rl">Rest</div><div class="rt">${fmtClock(left + 999)}</div></div><button data-act="rest-add" data-v="-15">−15</button><button data-act="rest-add" data-v="15">+15</button><button data-act="rest-skip">Skip</button><span class="prog" style="width:${(1 - left / (rest.total * 1000)) * 100}%"></span>`;
 }
-function tickTimers() { const a = S.active; $$("[data-elapsed]").forEach(el => { if (a) el.textContent = fmtClock(Date.now() - a.start); }); }
+function tickTimers() {
+  const a = S.active; $$("[data-elapsed]").forEach(el => { if (a) el.textContent = fmtClock(Date.now() - a.start); });
+  if (focus) $$("[data-focus]").forEach(el => { el.textContent = fmtClock(Date.now() - focus.start); });
+}
 setInterval(tickTimers, 1000);
 
 /* ---------- actions ---------- */
@@ -1620,9 +2202,9 @@ const A = {
   "habit-detail": el => openSheet(sHabitDetail(el.dataset.id), true),
   "toggle-habit": el => toggleHabit(el.dataset.id, el.dataset.d),
   "del-habit": el => { del("habits", el.dataset.id); closeAll(); toast("Habit deleted"); },
-  "add-task": () => { closeAll(); openSheet(sTask(null, ui.tab === "tasks" ? ui.taskTab : "todo")); },
+  "add-task": el => { closeAll(); openSheet(sTask(null, el.dataset.kind || (ui.tab === "tasks" || (ui.tab === "quests" && ui.questTab === "tasks") ? ui.taskTab : "todo"))); },
   "edit-task": el => openSheet(sTask(el.dataset.id)),
-  "toggle-task": el => toggleTask(el.dataset.id),
+  "toggle-task": el => toggleTask(el.dataset.id, el.dataset.d),
   "del-task": el => { del("tasks", el.dataset.id); closeAll(); toast("Task deleted"); },
   "task-tab": el => { ui.taskTab = el.dataset.v; saveUi(); render(); },
   "toggle-done": () => { ui.showDone = !ui.showDone; saveUi(); render(); },
@@ -1682,7 +2264,7 @@ const A = {
   "del-session": el => { del("sessions", el.dataset.id); closeAll(); toast("Workout deleted"); },
   "prog-metric": el => { ui.progMetric = el.dataset.v; saveUi(); render(); },
   export: async () => {
-    const data = {app: "daybook", version: 1, exported: new Date().toISOString(), settings: S.settings, habits: S.habits, tasks: S.tasks, tx: S.tx, body: S.body, foods: S.foods, food: S.food, water: S.water, steps: S.steps, exercises: S.exercises, splits: S.splits, sessions: S.sessions};
+    const data = {app: "daybook", version: 2, exported: new Date().toISOString(), settings: S.settings, habits: S.habits, tasks: S.tasks, tx: S.tx, body: S.body, foods: S.foods, food: S.food, water: S.water, steps: S.steps, exercises: S.exercises, splits: S.splits, sessions: S.sessions, learn: S.learn, ledger: S.ledger, gdays: S.gdays, rewards: S.rewards, inv: S.inv, hero: S.hero};
     const json = JSON.stringify(data, null, 1);
     let dl = null; try { dl = window.claude && await window.claude.use("downloads"); } catch {}
     if (dl) { try { await dl.save({filename: `daybook-backup-${today()}.json`, data: json}); toast("Backup saved"); return; } catch (e) { if (e && e.code === "declined") return; } }
@@ -1699,6 +2281,7 @@ const A = {
     if (!data || typeof data !== "object" || !("habits" in data || "tx" in data || "sessions" in data)) { toast("That file doesn't look like a Daybook backup"); return; }
     let n = 0;
     if (data.settings) setSettings({...data.settings});
+    if (data.hero && typeof data.hero === "object") setHero(data.hero);
     for (const col of [...DOC_COLS]) for (const v of Object.values(data[col] || {})) { if (v && v.id) { put(col, v, true); n++; } }
     for (const col of Object.keys(BUCKETS)) {
       const items = Object.values(data[col] || {}).filter(v => v && v.id && v.date);
@@ -1714,13 +2297,15 @@ const num = v => { const x = parseFloat(String(v).replace(",", ".")); return isF
 const F = {
   habit: (fd, f) => {
     const id = f.dataset.id; const x = id ? S.habits[id] : null; const name = fd.get("name").trim(); if (!name) return;
-    put("habits", {...(x || {id: uid(), created: Date.now(), done: {}, order: Date.now()}), name, freq: fd.get("freq"), goal: Math.min(7, Math.max(1, +fd.get("goal") || 3)), color: fd.get("color")});
+    const days = parseDays(fd.get("days")); if (fd.get("freq") === "daily" && !days.length) { toast("Pick at least one day"); return; }
+    put("habits", {...(x || {id: uid(), created: Date.now(), done: {}, order: Date.now()}), name, freq: fd.get("freq"), goal: Math.min(7, Math.max(1, +fd.get("goal") || 3)), color: fd.get("color"), days: fd.get("freq") === "daily" && days.length < 7 ? days : null});
     closeAll(); if (!x) toast("Habit added");
   },
   task: (fd, f) => {
     const id = f.dataset.id; const x = id ? S.tasks[id] : null; const title = fd.get("title").trim(); if (!title) return;
-    const kind = fd.get("kind");
-    put("tasks", {...(x || {id: uid(), created: Date.now(), done: {}, doneAt: null}), title, kind, due: kind === "todo" ? fd.get("due") || null : null, priority: +fd.get("priority") || 0, notes: fd.get("notes").trim()});
+    const kind = fd.get("kind"); const days = parseDays(fd.get("days"));
+    if (kind === "daily" && !days.length) { toast("Pick at least one day"); return; }
+    put("tasks", {...(x || {id: uid(), created: Date.now(), done: {}, doneAt: null}), title, kind, due: kind === "todo" ? fd.get("due") || null : null, priority: +fd.get("priority") || 0, notes: fd.get("notes").trim(), days: kind === "daily" && days.length < 7 ? days : null});
     closeAll(); if (!x) toast("Task added");
   },
   "quick-task": (fd, f) => {
@@ -1758,7 +2343,7 @@ const F = {
   },
 };
 
-Object.assign(A, FOOD_ACTIONS, STEP_ACTIONS); Object.assign(F, FOOD_FORMS, STEP_FORMS);
+Object.assign(A, FOOD_ACTIONS, STEP_ACTIONS, GAME_ACTIONS); Object.assign(F, FOOD_FORMS, STEP_FORMS, GAME_FORMS);
 
 /* ---------- events ---------- */
 document.addEventListener("click", e => {
@@ -1769,6 +2354,7 @@ document.addEventListener("click", e => {
     setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.innerHTML = old; t.style.color = ""; } }, 3000); return;
   }
   if (/^toggle-(habit|task)$|^set-done$/.test(t.dataset.act)) { const q = (k, v) => v != null ? `[data-${k}="${CSS.escape(v)}"]` : ""; popSel = `[data-act="${t.dataset.act}"]${q("id", t.dataset.id)}${q("d", t.dataset.d)}${q("ei", t.dataset.ei)}${q("si", t.dataset.si)}`; popAt = Date.now(); }
+  gWatch = Date.now();
   const fn = A[t.dataset.act]; if (fn) fn(t, e);
 });
 document.addEventListener("submit", e => { const f = e.target; if (f.dataset.form && F[f.dataset.form]) { e.preventDefault(); F[f.dataset.form](new FormData(f), f); } });
