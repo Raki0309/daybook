@@ -108,6 +108,16 @@ export function periodicOn(ix, k) {
   return out;
 }
 
+// The four quest streaks besides the overall one. Habits and daily tasks share "discipline".
+export const STREAK_TYPES = ["steps", "workouts", "learning", "discipline"];
+const TYPE_OF = { steps: "steps", workout: "workouts", learn: "learning", habit: "discipline", task: "discipline" };
+// For each streak type scheduled that day: 1 if every quest of that type was done, else 0.
+export function typeOutcome(dailies) {
+  const o = {};
+  for (const q of dailies) { const t = TYPE_OF[q.cat]; if (t) o[t] = (o[t] ?? 1) && (q.done ? 1 : 0); }
+  return o;
+}
+
 export function outcome(dailies) {
   const sched = dailies.length, done = dailies.filter(q => q.done).length;
   return { sched, done, missed: sched - done, allClear: sched > 0 && done === sched };
@@ -173,6 +183,50 @@ export function canRedeem(r, { gold, today }) {
   return { ok: true };
 }
 
+/* ---------- the stable: Spirit Ashes, NPC companions, Torrent ---------- */
+export function shopItems(C, type, E = ECONOMY) {
+  return (C.items || []).filter(i => i.type === type && i.purchasable && itemPrice(i, E));
+}
+// st: { awakening: {id, from}, awakened: {id: date}, summoned: id, periods: {id: [[from, toExclusive|null]]} }
+// Awakening counts quests completed from the day it started; Bond counts quests (and all-clears)
+// on the days an ash was summoned. Both are derived from the day records, so nothing drifts.
+export function stableState(st, recs, today, C = {}, E = ECONOMY) {
+  st = st || {};
+  const item = id => (C.items || []).find(i => i.id === id);
+  const days = (from, to, f) => { let n = 0; for (let k = from; k <= to; k = addKey(k, 1)) if (recs[k]) n += f(recs[k]); return n; };
+  let awakening = null;
+  if (st.awakening && item(st.awakening.id)) {
+    const it = item(st.awakening.id); const goal = E.stable.awakenQuests[it.rarity] || 0;
+    const progress = days(st.awakening.from, today, r => r.done || 0);
+    awakening = { id: it.id, progress: Math.min(goal, progress), goal, ready: progress >= goal };
+  }
+  const bond = {};
+  for (const [id, list] of Object.entries(st.periods || {})) {
+    let pts = 0;
+    for (const [from, to] of list || []) pts += days(from, to ? addKey(to, -1) : today, r => (r.done || 0) * E.stable.bond.perQuest + (r.allClear ? E.stable.bond.allClear : 0));
+    const lv = E.stable.bond.levels; const level = lv.filter(n => pts >= n).length;
+    bond[id] = { points: pts, level, next: level < lv.length ? lv[level] : null };
+  }
+  return { awakening, bond };
+}
+// Which NPC companions your best type streaks have unlocked, with progress toward the rest.
+export function npcStatus(streaks, E = ECONOMY) {
+  return Object.fromEntries(Object.entries(E.stable.npcs).map(([id, n]) => {
+    const s = (streaks && streaks[n.streak]) || { cur: 0, best: 0 };
+    return [id, { streak: n.streak, days: n.days, cur: s.cur, best: s.best, unlocked: s.best >= n.days }];
+  }));
+}
+// Closing the current summon and opening a new one, as a new stable doc. id null dismisses.
+export function summon(st, id, today) {
+  st = st || {}; const periods = Object.fromEntries(Object.entries(st.periods || {}).map(([k, v]) => [k, (v || []).map(p => [...p])]));
+  if (st.summoned && periods[st.summoned]) {
+    const list = periods[st.summoned]; const last = list[list.length - 1];
+    if (last && last[1] == null) { if (last[0] >= today) list.pop(); else last[1] = today; }
+  }
+  if (id) (periods[id] ||= []).push([today, null]);
+  return { ...st, periods, summoned: id || null };
+}
+
 /* ---------- onboarding ---------- */
 export function stepBaseline(steps, today, E = ECONOMY) {
   const vals = [];
@@ -196,7 +250,7 @@ export function seedStreak(data, G, start, E = ECONOMY) {
 }
 
 /* ---------- the day-end job and today's state ----------
- * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C, perks }
+ * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C, perks, stable }
  * perks are the equipped talismans' totals; they apply to the days that are still open.
  * Days before yesterday are frozen: their record is stored once and never recomputed, so later
  * edits to habits or schedules can't rewrite history. Yesterday stays open until today ends, so a
@@ -219,14 +273,18 @@ export function simulate(input) {
   // 1. Outcomes and the overall streak, day by day from the first game day.
   const recs = {}; let run = (G.seed && G.seed.streak) || 0, best = Math.max(run, (G.seed && G.seed.best) || 0);
   const streakBefore = {};
+  // Type streaks: a scheduled day either extends or breaks each type; today can only extend.
+  // Days frozen before type streaks existed carry no types and are skipped.
+  const trun = Object.fromEntries(STREAK_TYPES.map(t => [t, 0])), tbest = { ...trun };
+  const addTypes = (types, k) => { for (const [t, met] of Object.entries(types || {})) { if (met) trun[t]++; else if (k !== today) trun[t] = 0; tbest[t] = Math.max(tbest[t], trun[t]); } };
   for (let k = start; k <= today; k = addKey(k, 1)) {
     streakBefore[k] = run;
-    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = frozen[k].streak ?? run; best = Math.max(best, run); continue; }
+    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = frozen[k].streak ?? run; best = Math.max(best, run); addTypes(frozen[k].types, k); continue; }
     // Days while the game was switched off count as rest days: no quests, no damage, streak kept.
     const off = paused(k); const dailies = off ? [] : dailiesOn(ix, G, k, E); const o = outcome(dailies);
-    recs[k] = { ...o, date: k, dailies, paused: off };
+    recs[k] = { ...o, date: k, dailies, paused: off, types: typeOutcome(dailies) };
     if (o.sched) { if (o.allClear) run++; else if (k !== today) run = 0; }
-    recs[k].streak = run; best = Math.max(best, run);
+    recs[k].streak = run; best = Math.max(best, run); addTypes(recs[k].types, k);
   }
 
   // 2. Quest and all-clear rewards for days that aren't frozen yet.
@@ -318,7 +376,7 @@ export function simulate(input) {
       } else { downedRisk = true; hp = 0; }
     }
     r.hp = hp;
-    if (k < yesterday) dayWrites.push({ id: k, date: k, sched: r.sched, done: r.done, missed: r.missed, allClear: r.allClear, heal: r.heal, dmg: r.dmg, hp: r.hp, downed: r.downed, streak: r.streak, v: 1 });
+    if (k < yesterday) dayWrites.push({ id: k, date: k, sched: r.sched, done: r.done, missed: r.missed, allClear: r.allClear, heal: r.heal, dmg: r.dmg, hp: r.hp, downed: r.downed, streak: r.streak, types: r.types, v: 2 });
   }
 
   // 7. What to write: only entries that differ from what's stored, each with the balance it leaves.
@@ -340,6 +398,8 @@ export function simulate(input) {
     xp: xpTotal, ...info, gold: ledgerSum(all, "gold"),
     hp: Math.max(0, hp), maxHp: maxHp(info.level, E, P), downedRisk, perks: P,
     streak, best: Math.max(best, streak), bonus: streakBonus(streakBefore[today], E, P),
+    streaks: Object.fromEntries(STREAK_TYPES.map(t => [t, { cur: trun[t], best: tbest[t] }])),
+    stable: stableState(input.stable, recs, today, C, E),
     slots, board: { today: recs[today], yesterday: recs[yesterday] && !recs[yesterday].frozen && yesterday >= start ? recs[yesterday] : null, periodic },
     tutorial: { done: tutDone, reward: E.earn.tutorial },
     ledger: merged,

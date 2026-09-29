@@ -331,3 +331,59 @@ test("full daily completion reaches the pacing targets in the right ballpark", (
   const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).xp + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).xp;
   assert.ok(need / perDay > 320 && need / perDay < 400, `level 50 in about ${Math.round(need / perDay)} days`);
 });
+
+test("each quest type keeps its own streak; frozen days remember them", () => {
+  const w = world("2026-09-01", 2); w.game.workoutDays = [0, 2, 4]; // Mon, Wed, Fri
+  const sess = []; w.data.sessions = sess;
+  for (let k = "2026-09-01"; k <= "2026-09-20"; k = G.addKey(k, 1)) {
+    doAll(w, k);
+    if ([0, 2, 4].includes(G.weekdayOf(k)) && k !== "2026-09-09") sess.push({ id: "s" + k, date: k, start: 1, end: 2 });
+    open(w, at(k, 21));
+  }
+  const r = open(w, at("2026-09-21", 9));
+  assert.equal(r.streaks.discipline.cur, 20, "habits done every day");
+  assert.equal(r.streaks.discipline.best, 20);
+  // Workouts: Wed 9/9 missed, then Fri 11, Mon 14, Wed 16, Fri 18 done; today (Mon 21) isn't done yet.
+  assert.equal(r.streaks.workouts.cur, 4, "the missed Wednesday reset it, and today can't break it yet");
+  assert.equal(r.streaks.workouts.best, 4);
+  assert.equal(r.streaks.steps.cur, 0, "no step quest, no step streak");
+  assert.ok(w.days["2026-09-09"].types && w.days["2026-09-09"].types.workouts === 0, "frozen days store type outcomes");
+  // Replaying from the frozen records gives the same answer.
+  const again = G.simulate({ ...w, now: at("2026-09-21", 9), canWrite: false, E, C });
+  assert.deepEqual(again.streaks, r.streaks);
+});
+
+test("Spirit Ashes awaken from quests done, and Bond grows only while summoned", () => {
+  const w = world("2026-09-01", 2);
+  for (let k = "2026-09-01"; k <= "2026-09-10"; k = G.addKey(k, 1)) doAll(w, k);
+  let st = { awakening: { id: "ash.jellyfish", from: "2026-09-03" } };
+  let r = G.simulate({ ...w, now: at("2026-09-10", 21), canWrite: false, E, C, stable: st });
+  assert.deepEqual(r.stable.awakening, { id: "ash.jellyfish", progress: 16, goal: E.stable.awakenQuests.uncommon, ready: false }, "8 days × 2 quests");
+  st = { awakening: { id: "ash.lone-wolf", from: "2026-09-03" } };
+  assert.equal(G.simulate({ ...w, now: at("2026-09-10", 21), canWrite: false, E, C, stable: st }).stable.awakening.ready, true);
+  // Summon the wolf on the 5th, switch to the jellyfish on the 8th: the wolf gets the 5th to the 7th.
+  st = G.summon({}, "ash.lone-wolf", "2026-09-05");
+  st = G.summon(st, "ash.jellyfish", "2026-09-08");
+  assert.deepEqual(st.periods, { "ash.lone-wolf": [["2026-09-05", "2026-09-08"]], "ash.jellyfish": [["2026-09-08", null]] });
+  r = G.simulate({ ...w, now: at("2026-09-10", 21), canWrite: false, E, C, stable: st });
+  const perDay = 2 * E.stable.bond.perQuest + E.stable.bond.allClear;
+  assert.equal(r.stable.bond["ash.lone-wolf"].points, 3 * perDay);
+  assert.equal(r.stable.bond["ash.jellyfish"].points, 3 * perDay);
+  assert.equal(r.stable.bond["ash.lone-wolf"].level, E.stable.bond.levels.filter(n => 3 * perDay >= n).length);
+  // Switching twice in one day leaves no empty period behind.
+  const same = G.summon(G.summon({}, "ash.lone-wolf", "2026-09-05"), "ash.jellyfish", "2026-09-05");
+  assert.deepEqual(same.periods, { "ash.lone-wolf": [], "ash.jellyfish": [["2026-09-05", null]] });
+  assert.equal(G.summon(same, null, "2026-09-06").summoned, null, "dismiss");
+});
+
+test("NPC companions unlock from a long streak of one quest type; ashes are sold by rarity", () => {
+  const s = G.npcStatus({ workouts: { cur: 12, best: E.stable.npcs["npc.blaidd"].days }, steps: { cur: 3, best: 5 } }, E);
+  assert.equal(s["npc.blaidd"].unlocked, true);
+  assert.equal(s["npc.alexander"].unlocked, false);
+  assert.equal(s["npc.sellen"].best, 0);
+  assert.equal(C.items.find(i => i.id === "npc.blaidd").rarity, "mythic");
+  const ashes = G.shopItems(C, "ash", E);
+  assert.equal(ashes.length, 5);
+  assert.equal(G.itemPrice(ashes.find(a => a.id === "ash.lone-wolf"), E).gold, E.rarities.common.gold);
+  assert.equal(G.shopItems(C, "npc", E).length, 0, "companions can't be bought");
+});

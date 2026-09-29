@@ -63,6 +63,9 @@ const SLOT_ART = {
   arms: c => `<path d="M10 14h12v16l6 4v8H10z" fill="${c}"/><path d="M26 14h12v28H26v-8l6-4z" fill="${c}"/><path d="M10 20h12M26 20h12" stroke="${SHADE}" stroke-width="3"/>`,
   legs: c => `<path d="M12 6h10v22l2 12H10l2-12zM26 6h10v22l2 12H24l2-12z" fill="${c}"/><path d="M10 36h14M24 36h14" stroke="${SHADE}" stroke-width="4"/>`,
   talisman: c => `<circle cx="24" cy="26" r="13" fill="${c}"/><circle cx="24" cy="26" r="7" fill="${SHADE}"/><circle cx="24" cy="26" r="3.5" fill="${c}"/><path d="M18 8h12l-3 6h-6z" fill="${c}"/>`,
+  ash: c => `<path d="M24 6c6 8 12 12 12 22a12 12 0 0 1-24 0c0-6 3-9 6-12 0 4 2 6 4 6-2-6 0-11 2-16z" fill="${c}" opacity=".85"/><circle cx="20" cy="30" r="2" fill="#fff" opacity=".8"/><circle cx="28" cy="30" r="2" fill="#fff" opacity=".8"/>`,
+  npc: c => `<path d="M10 44c0-10 6-16 14-16s14 6 14 16z" fill="${c}"/><path d="M12 22c0-9 5-16 12-16s12 7 12 16c0 6-5 10-12 10s-12-4-12-10z" fill="${c}"/><path d="M16 22c0-5 4-9 8-9s8 4 8 9c0 3-4 5-8 5s-8-2-8-5z" fill="${SHADE}"/><circle cx="21" cy="21" r="1.6" fill="#fff"/><circle cx="27" cy="21" r="1.6" fill="#fff"/>`,
+  mount: c => `<path d="M14 42l2-14c-4-2-6-6-4-10l6-8 4 4 10-6c6 0 10 6 8 12l-6 4-2 18h-6l1-14-6 2-1 12z" fill="${c}"/><circle cx="33" cy="15" r="1.6" fill="#1c1f2a"/><path d="M18 10l-4-6M22 12l2-6" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
   pouch: c => `<path d="M14 16h20l4 22a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4z" fill="${c}"/><path d="M12 12h24v6H12z" fill="${c}"/><path d="M12 18h24" stroke="${SHADE}" stroke-width="3"/><circle cx="24" cy="29" r="4" fill="${SHADE}"/>`,
 };
 const WEAPON_ICON = {
@@ -79,6 +82,6 @@ const WEAPON_ICON = {
   seal: c => `<rect x="14" y="20" width="20" height="22" rx="6" fill="${c}"/><path d="M18 20V8M24 20V5M30 20V9" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`,
 };
 export function itemArt(item, color, size = 48) {
-  const f = item.slot === "weapon" ? WEAPON_ICON[item.kind] || WEAPON_ICON.sword : SLOT_ART[item.type === "pouch" ? "pouch" : item.slot] || SLOT_ART.talisman;
+  const f = item.slot === "weapon" ? WEAPON_ICON[item.kind] || WEAPON_ICON.sword : SLOT_ART[item.type] || SLOT_ART[item.slot] || SLOT_ART.talisman;
   return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true">${f(color)}</svg>`;
 }

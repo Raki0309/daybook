@@ -1482,6 +1482,11 @@ function grantOrigin(o) {
   setHero({origin: o.id, equip: {...(heroDoc().equip || {}), ...kitEquip(kit)}});
 }
 // Where a boss-only or boss-also item comes from, e.g. "Malenia, Blade of Miquella (level 70)".
+const stableDoc = () => ({awakening: null, awakened: {}, summoned: null, periods: {}, ...(heroDoc().stable || {})});
+const setStable = st => setHero({stable: st});
+const STREAK_NAME = {steps: "Steps", workouts: "Workouts", learning: "Learning", discipline: "Discipline"};
+const npcGoal = (n) => ({steps: `${n.days} days in a row at your step goal`, workouts: `${n.days} workout days in a row`, learning: `${n.days} learning days in a row`, discipline: `${n.days} days in a row with every habit and daily task done`})[n.streak];
+const companion = () => { const it = ITEM[stableDoc().summoned]; return it && (it.type === "ash" ? stableDoc().awakened[it.id] : true) ? it : null; };
 const bossSource = it => (it.source || []).filter(x => BOSS[x]).map(x => `${BOSS[x].name} (level ${E.bosses[x].level})`).join(", ");
 const heroAvatar = (size, label = "") => avatarSvg({look: heroDoc().look, equip: heroEquip(), size, label});
 const setGame = patch => setSettings({game: {...(S.settings.game || {}), ...patch}});
@@ -1494,7 +1499,7 @@ function gameState() {
   if (!gameOn()) return null;
   const key = [S.habits, S.tasks, S.steps, S.sessions, S.learn, S.ledger, S.gdays, S.settings, S.hero, S.inv, today()];
   if (gMemo && gMemo.key.every((v, i) => v === key[i])) return gMemo.r;
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT, perks: heroPerks()});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT, perks: heroPerks(), stable: stableDoc()});
   gMemo = {key, r}; return r;
 }
 // The day-end job: pay what's earned and freeze finished days. It only writes once this
@@ -1506,7 +1511,7 @@ const dataFresh = () => !db || (!(db.busy && db.busy()) && (dbState === "synced"
 function reconcile() {
   if (!gameOn()) return;
   if (!dataFresh()) { if (db && db.busy && db.busy()) scheduleReconcile(); return; }
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT, perks: heroPerks()});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT, perks: heroPerks(), stable: stableDoc()});
   if (!r.active || (!r.ledgerWrites.length && !r.dayWrites.length)) return;
   // A guard against a write loop: the job is idempotent, so a burst of rewrites means a bug.
   if (Date.now() - recAt > 10000) { recN = 0; recAt = Date.now(); }
@@ -1519,8 +1524,13 @@ function reconcile() {
 let gPrev = null, gWatch = 0;
 function gameFeedback() {
   const s = gameState(); if (!s) { gPrev = null; return; }
-  const p = gPrev; gPrev = {xp: s.xp, gold: s.gold, level: s.level, tut: s.tutorial.done};
-  if (!p || Date.now() - gWatch > 2500) return;
+  const npcs = Object.entries(GE.npcStatus(s.streaks, E)).filter(([, n]) => n.unlocked).map(([id]) => id);
+  const p = gPrev; gPrev = {xp: s.xp, gold: s.gold, level: s.level, tut: s.tutorial.done, ready: !!(s.stable.awakening && s.stable.awakening.ready), npcs};
+  if (!p) return;
+  const fresh = npcs.find(id => !p.npcs.includes(id));
+  if (fresh) { toast(`${ITEM[fresh].name} wants to join you. Summon them from Spirits in the Town`); return; }
+  if (gPrev.ready && !p.ready) { toast(`${ITEM[s.stable.awakening.id].name} is ready to awaken. Open Spirits in the Town`); return; }
+  if (Date.now() - gWatch > 2500) return;
   if (s.level > p.level) { gWatch = 0; toast(`Level ${s.level}! +${fmtInt(E.levelUp.gold * (s.level - p.level))} Gold and full HP`); return; }
   if (s.tutorial.done && !p.tut) { gWatch = 0; toast(`${CAT.tutorial.name} complete: +${E.earn.tutorial.xp} XP, +${E.earn.tutorial.gold} Gold`); return; }
   if (s.xp > p.xp) { gWatch = 0; toast(`+${s.xp - p.xp} XP, +${fmtInt(s.gold - p.gold)} Gold`); }
@@ -1597,12 +1607,12 @@ function tutorialCard(s) {
 function heroCard(s) {
   const hd = heroDoc(); const hpP = s.maxHp ? s.hp / s.maxHp : 0; const tone = hpP > .5 ? "good" : hpP > .25 ? "warn" : "bad";
   return `<section class="card herocard">
-    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(104)}</button>
+    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(104)}${companion() ? `<span class="hc-pet">${itemArt(companion(), E.rarities[companion().rarity].color, 34)}</span>` : ""}${heroDoc().mount && ITEM[heroDoc().mount] ? `<span class="hc-mount">${itemArt(ITEM[heroDoc().mount], E.rarities[ITEM[heroDoc().mount].rarity].color, 30)}</span>` : ""}</button>
     <div class="hc-main">
       <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}${ORIGIN[hd.origin] ? ` ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
       <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
-      <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}</div>
+      <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
     </div></section>`;
 }
 function originCard() {
@@ -1679,11 +1689,11 @@ function learnView() {
 
 /* ---- Town ---- */
 function vTown() {
-  const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["tavern", "Tavern"]];
+  const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["spirits", "Spirits"], ["tavern", "Tavern"]];
   const tt = tabs.some(x => x[0] === ui.townTab) ? ui.townTab : "armory";
   let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button>`, "Town");
-  h += `<div class="seg g3" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
-  return h + ({armory: armoryView, wardrobe: wardrobeView, tavern: tavernView}[tt])(s);
+  h += `<div class="seg g4" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
+  return h + ({armory: armoryView, wardrobe: wardrobeView, spirits: spiritsView, tavern: tavernView}[tt])(s);
 }
 function armoryView(s) {
   const items = GE.armoryItems(CAT, E); const gold = spendable(s); const eq = heroDoc().equip || {}; const worn = new Set(heroTalismans());
@@ -1742,6 +1752,55 @@ function wardrobeView(s) {
   if (!tals.length) h += `<div class="empty"><span>Talismans give small perks, like more Gold or less day-end damage.</span><button class="btn sm" data-act="armory-tab" data-v="talismans">See talismans</button></div>`;
   else h += `<div class="wopts">${tals.map(it => { const col = E.rarities[it.rarity].color; const on = worn.includes(it.id); return `<button class="wopt" style="--r:${col}" data-act="talisman" data-id="${it.id}" aria-pressed="${on}" aria-label="${on ? "Take off" : "Wear"} ${esc(it.name)}: ${esc(perkText(it.perk))}">${itemArt(it, col, 30)}<span>${esc(it.name)}</span></button>`; }).join("")}</div>`;
   return h + `</section></div>`;
+}
+const bar = (v, max, c) => `<div class="meter" role="progressbar" aria-valuenow="${v}" aria-valuemax="${max}"><i style="width:${max ? Math.min(100, v / max * 100) : 0}%;--c:${c}"></i></div>`;
+function spiritsView(s) {
+  const st = stableDoc(); const S2 = s.stable; const gold = spendable(s); const t = s.today;
+  const owned = Object.keys(S.inv).map(id => ITEM[id]).filter(i => i && i.type === "ash").sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
+  const npc = GE.npcStatus(s.streaks, E); const comp = companion(); const col = it => E.rarities[it.rarity].color;
+  let h = `<div class="grid2" style="align-items:start"><div class="stack">`;
+  // Companion
+  h += `<section class="card"><div class="card-h"><h2>Companion</h2>${comp ? `<button class="btn sm ghost" data-act="summon" data-id="">Dismiss</button>` : ""}</div>`;
+  if (comp) {
+    const b = S2.bond[comp.id];
+    h += `<div class="row" style="gap:14px;align-items:center"><span class="pet-art" style="--r:${col(comp)}">${itemArt(comp, col(comp), 56)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(comp.name)}${comp.type === "ash" && b ? ` +${b.level}` : ""}</b>`
+      + (comp.type === "ash" && b ? (b.next ? `<div class="small muted">Bond ${b.points} of ${b.next} for +${b.level + 1}</div>${bar(b.points, b.next, "var(--c-quest)")}` : `<div class="small muted">Fully bonded</div>`) : `<div class="small muted">${esc(CAT.rarityNames[comp.rarity])} companion</div>`) + `</div></div>`;
+  } else h += `<p class="small muted">No companion yet. Awaken a Spirit Ash, then summon it to walk beside you. It grows Bond from every quest you finish.</p>`;
+  h += `</section>`;
+  // Awakening
+  const aw = S2.awakening;
+  if (aw) {
+    const it = ITEM[aw.id];
+    h += `<section class="card" style="--r:${col(it)}"><div class="card-h"><h2>Awakening</h2><span class="small muted">${aw.progress} of ${aw.goal} quests</span></div><div class="row" style="gap:14px;align-items:center"><span class="pet-art dim">${itemArt(it, col(it), 48)}</span><div class="grow stack" style="gap:6px;min-width:0"><b>${esc(it.name)}</b>${bar(aw.progress, aw.goal, col(it))}<div class="small muted">${aw.ready ? "Ready. Awaken it to summon it." : "Every quest you finish brings it closer."}</div></div>${aw.ready ? `<button class="btn sm pri" data-act="awaken">Awaken</button>` : ""}</div></section>`;
+  }
+  // Your ashes
+  if (owned.length) {
+    h += `<section class="card"><div class="card-h"><h2>Your Spirit Ashes</h2></div><div class="list">` + owned.map(it => {
+      const woke = !!st.awakened[it.id]; const on = st.summoned === it.id; const b = S2.bond[it.id];
+      const act = on ? `<span class="pill good">Summoned</span>` : woke ? `<button class="btn sm" data-act="summon" data-id="${it.id}">Summon</button>`
+        : aw && aw.id === it.id ? `<span class="pill">Awakening</span>` : `<button class="btn sm ghost" data-act="awaken-start" data-id="${it.id}"${aw ? ` data-confirm="Switch? ${esc(ITEM[aw.id].name)} loses its progress"` : ""}>Start awakening</button>`;
+      return `<div class="li" style="padding:8px 0;gap:12px"><span class="pet-art sm${woke ? "" : " dim"}">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}${woke && b ? ` +${b.level}` : ""}<br><span class="tiny faint">${esc(CAT.rarityNames[it.rarity])}${woke ? "" : " · dormant"}</span></span>${act}</div>`;
+    }).join("") + `</div></section>`;
+  }
+  h += `</div><div class="stack">`;
+  // Legends: NPC companions
+  h += `<section class="card"><div class="card-h"><h2>Legends</h2></div><p class="small muted" style="margin-bottom:6px">They join you after a long streak of one kind of quest.</p><div class="list">` + Object.entries(npc).map(([id, n]) => {
+    const it = ITEM[id]; const on = st.summoned === id;
+    const act = !n.unlocked ? `<span class="pill">${icon("lock", 12, 2.4)}${n.best} / ${n.days}</span>` : on ? `<span class="pill good">Summoned</span>` : `<button class="btn sm" data-act="summon" data-id="${id}">Summon</button>`;
+    return `<div class="li" style="padding:8px 0;gap:12px;align-items:flex-start"><span class="pet-art sm${n.unlocked ? "" : " dim"}" style="--r:${col(it)}">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}<br><span class="tiny faint">${esc(npcGoal(n))}. ${n.cur ? `Now ${n.cur}, best ${n.best}.` : n.best ? `Best ${n.best}.` : ""}</span></span>${act}</div>`;
+  }).join("") + `</div></section>`;
+  // Torrent
+  const tor = ITEM["mount.torrent"]; const torOk = s.level >= E.stable.torrent.level; const riding = heroDoc().mount === tor.id;
+  h += `<section class="card"><div class="row" style="gap:12px;align-items:center"><span class="pet-art sm${torOk ? "" : " dim"}" style="--r:${col(tor)}">${itemArt(tor, col(tor), 30)}</span><span class="grow t"><b>${esc(tor.name)}</b><br><span class="tiny faint">${torOk ? "Your spectral steed" : `Joins you at level ${E.stable.torrent.level}`}</span></span>${torOk ? `<button class="btn sm${riding ? "" : " pri"}" data-act="ride">${riding ? "Dismount" : "Ride"}</button>` : `<span class="pill">${icon("lock", 12, 2.4)}Level ${E.stable.torrent.level}</span>`}</div></section>`;
+  // Twin Maiden Husks: ashes for sale
+  const sale = GE.shopItems(CAT, "ash", E);
+  h += `<section class="card"><div class="card-h"><h2>Twin Maiden Husks</h2></div><div class="items">` + sale.map(it => {
+    const p = GE.itemPrice(it, E); const own = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned: own}, E);
+    const btn = own ? `<span class="pill">Owned</span>` : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
+      : c.reason === "level" ? `<span class="price-short">${icon("lock", 13, 2.4)}Level ${c.need}</span>` : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
+    return `<div class="item" style="--r:${col(it)}"><div class="art">${itemArt(it, col(it), 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(CAT.rarityNames[it.rarity])} · ${E.stable.awakenQuests[it.rarity]} quests to awaken</div>${btn}</div>`;
+  }).join("") + `</div></section>`;
+  return h + `</div></div>`;
 }
 function tavernView(s) {
   const rs = Object.values(S.rewards).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || a.price - b.price || (a.created || 0) - (b.created || 0));
@@ -1912,6 +1971,19 @@ const GAME_ACTIONS = {
   },
   "quest-tab": el => { ui.questTab = el.dataset.v; ui.reorder = false; saveUi(); if (ui.tab !== "quests") { closeAll(); go("quests"); } else render(); },
   "town-tab": el => { ui.townTab = el.dataset.v; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else { render(); window.scrollTo(0, 0); } },
+  "awaken-start": el => { const id = el.dataset.id; if (!ITEM[id] || !S.inv[id]) return; setStable({...stableDoc(), awakening: {id, from: today()}}); toast(`${ITEM[id].name} is awakening. Finish ${E.stable.awakenQuests[ITEM[id].rarity]} quests`); },
+  awaken: () => {
+    const s = gameState(); const aw = s && s.stable.awakening; if (!aw || !aw.ready) return; const st = stableDoc(); const t = today();
+    const next = {...st, awakening: null, awakened: {...st.awakened, [aw.id]: t}};
+    setStable(companion() ? next : GE.summon(next, aw.id, t)); toast(`${ITEM[aw.id].name} has awakened${companion() ? "" : " and walks beside you"}`);
+  },
+  summon: el => {
+    const id = el.dataset.id || null; const st = stableDoc(); const s = gameState();
+    if (id && ITEM[id].type === "ash" && !st.awakened[id]) return;
+    if (id && ITEM[id].type === "npc" && !(GE.npcStatus(s.streaks, E)[id] || {}).unlocked) return;
+    setStable(GE.summon(st, id, today())); toast(id ? `${ITEM[id].name} walks beside you` : "Companion dismissed");
+  },
+  ride: () => { const on = heroDoc().mount === "mount.torrent"; setHero({mount: on ? null : "mount.torrent"}); toast(on ? "You dismount" : "Torrent carries you onward"); },
   "armory-tab": el => { ui.armoryTab = el.dataset.v; ui.townTab = "armory"; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else render(); },
   talisman: el => {
     const id = el.dataset.id; if (!ITEM[id] || !S.inv[id]) return; const worn = heroTalismans();
@@ -1941,6 +2013,11 @@ const GAME_ACTIONS = {
     putMany("ledger", [{id: "buy:" + it.id, date, cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}], true);
     put("inv", {id: it.id, date, at, src: "armory"});
     if (it.type === "pouch") { toast(`${it.name} is yours. You now have ${talismanSlots()} talisman slots`); return; }
+    if (it.type === "ash") {
+      const st = stableDoc(); if (!st.awakening) { setStable({...st, awakening: {id: it.id, from: date}}); toast(`${it.name} is yours. Finish ${E.stable.awakenQuests[it.rarity]} quests to awaken it`); }
+      else toast(`${it.name} is yours. Start awakening it once ${ITEM[st.awakening.id].name} wakes`);
+      return;
+    }
     if (it.type === "talisman") {
       const worn = heroTalismans(); const wear = worn.length < talismanSlots();
       if (wear) setHero({talismans: [...worn, it.id]});

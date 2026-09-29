@@ -193,6 +193,18 @@ function seed(be) {
   check(/\+10 max HP/.test(await p.textContent("#view")), "Wardrobe shows the active perk");
   await p.click('[data-tab="today"]:visible'); await p.waitForTimeout(300);
   check(await hpMax() === mx0 + 10, `max HP ${mx0} → ${await hpMax()}`);
+
+  // Spirits: buy an ash, which starts awakening; legends and Torrent show what unlocks them.
+  await p.click('[data-tab="town"]:visible'); await p.click('[data-act="town-tab"][data-v="spirits"]'); await p.waitForTimeout(200);
+  await shot("18-spirits");
+  const ab = '[data-act="buy"][data-id="ash.lone-wolf"]'; await p.click(ab); await p.click(ab); await p.waitForTimeout(800);
+  check(!!be.table.get("inv/ash.lone-wolf"), "bought Lone Wolf Ashes");
+  const stb = (be.table.get("game/character").data.stable || {});
+  check(stb.awakening && stb.awakening.id === "ash.lone-wolf", "a new ash starts awakening");
+  const txt = await p.textContent("#view");
+  check(/Awakening/.test(txt) && /Blaidd the Half-Wolf/.test(txt) && /Joins you at level 10/.test(txt), "Spirits shows awakening, legends and Torrent");
+  await shot("19-spirits-after");
+  check(!(await overflow()), "spirits has no sideways scroll");
   console.log("errors:", errs);
   await b.close();
   if (errs.length) process.exit(1);

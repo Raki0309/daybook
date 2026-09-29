@@ -53,6 +53,22 @@ export const ECONOMY = {
     pouch: { gold: 5000, level: 20 }, // the one pouch the Armory sells; the rest drop from bosses
   },
 
+  // Spirit Ashes (bought, then awakened by completing quests), NPC companions (unlocked by a
+  // long streak of one quest type) and Torrent. Ashes cost their rarity's Gold price.
+  stable: {
+    awakenQuests: { common: 10, uncommon: 20, rare: 35, epic: 50, legendary: 75 },
+    // Bond: points per completed daily while summoned, plus a bonus on all-clear days.
+    // levels[i] is the total needed for +(i+1); +10 takes about two months of full days.
+    bond: { perQuest: 1, allClear: 3, levels: [10, 25, 45, 70, 100, 140, 190, 250, 320, 400] },
+    npcs: {
+      "npc.alexander": { streak: "steps", days: 100 },
+      "npc.sellen": { streak: "learning", days: 60 },
+      "npc.millicent": { streak: "discipline", days: 100 },
+      "npc.blaidd": { streak: "workouts", days: 60 },
+    },
+    torrent: { level: 10 },
+  },
+
   // Boss fights come in a later phase; their level gates live here now so the Armory can say
   // where each drop comes from.
   bosses: {
