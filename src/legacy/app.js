@@ -26,6 +26,9 @@ const startOfWeek = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.g
 const fmtDate = (k, o = {day: "numeric", month: "short"}) => parseD(k).toLocaleDateString(undefined, o);
 const relDay = k => { const t = today(); if (k === t) return "Today"; if (k === dkey(addDays(new Date(), -1))) return "Yesterday"; if (k === dkey(addDays(new Date(), 1))) return "Tomorrow"; return fmtDate(k, {weekday: "short", day: "numeric", month: "short"}); };
 const monthName = mk => parseD(mk + "-01").toLocaleDateString(undefined, {month: "long", year: "numeric"});
+const monthShort = mk => parseD(mk + "-01").toLocaleDateString(undefined, {month: "short", year: "numeric"});
+const monthDays = mk => { const d = parseD(mk + "-01"); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
+const monthElapsed = mk => mk === mkey() ? new Date().getDate() / monthDays(mk) : mk < mkey() ? 1 : 0;
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const round = (w, inc) => +(Math.round(w / inc) * inc).toFixed(2);
@@ -373,9 +376,10 @@ function svgLine(spec, W) {
   const pts = spec.points; if (!pts.length) return "";
   const ys = pts.map(p => p.y); let lo = Math.min(...ys), hi = Math.max(...ys);
   if (spec.zero) lo = Math.min(0, lo);
+  if (spec.pace) hi = Math.max(hi, spec.pace.y1);
   const pad0 = (hi - lo) * 0.12 || 1; if (!spec.zero) lo -= pad0; hi += pad0;
   const ticks = spec.spark ? [lo, hi] : niceTicks(lo, hi, 4); const y0 = ticks[0], y1 = ticks[ticks.length - 1];
-  const xs = pts.map(p => p.x); const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const xs = pts.map(p => p.x); const x0 = spec.x0 ?? Math.min(...xs), x1 = spec.x1 ?? Math.max(...xs);
   const X = x => P.l + (x1 === x0 ? (W - P.l - P.r) / 2 : (x - x0) / (x1 - x0) * (W - P.l - P.r));
   const Y = y => P.t + (1 - (y - y0) / (y1 - y0 || 1)) * (H - P.t - P.b);
   const c = spec.color || "var(--s1)";
@@ -385,6 +389,7 @@ function svgLine(spec, W) {
     const idx = pts.length > 2 ? [0, Math.floor((pts.length - 1) / 2), pts.length - 1] : pts.map((_, i) => i);
     [...new Set(idx)].forEach((i, k, a) => { const anchor = a.length > 1 && k === 0 ? "start" : k === a.length - 1 && a.length > 1 ? "end" : "middle"; g += `<text x="${X(pts[i].x)}" y="${H - 6}" text-anchor="${anchor}">${esc(pts[i].xl)}</text>`; });
   }
+  if (spec.pace) g += `<line x1="${X(x0)}" x2="${X(x1)}" y1="${Y(spec.pace.y0)}" y2="${Y(spec.pace.y1)}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
   const d = pts.map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join("");
   const area = `${d}L${X(pts[pts.length - 1].x).toFixed(1)},${H - P.b}L${X(pts[0].x).toFixed(1)},${H - P.b}Z`;
   const gid = "g" + Math.random().toString(36).slice(2, 7);
@@ -407,7 +412,7 @@ function svgBars(spec, W) {
     if (b.v > 0) { const r = Math.min(4, w / 2, h); g += `<path d="M${x},${H - P.b}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${H - P.b}Z" fill="${b.c || spec.color || "var(--s1)"}" ${b.dim ? 'opacity=".45"' : ""}/>`; }
     if (i % every === 0 || i === bars.length - 1 && (bars.length - 1) % every > every / 2) g += `<text x="${x + w / 2}" y="${H - 7}" text-anchor="middle">${esc(b.l)}</text>`;
   });
-  if (spec.ref) g += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(spec.ref)}" y2="${Y(spec.ref)}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${W - P.r}" y="${Y(spec.ref) - 5}" text-anchor="end" style="fill:var(--ink-2);font-weight:600">Goal</text>`;
+  if (spec.ref) g += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(spec.ref)}" y2="${Y(spec.ref)}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${P.l + 4}" y="${Y(spec.ref) - 5}" text-anchor="start" style="fill:var(--ink-2);font-weight:600;paint-order:stroke;stroke:var(--surface);stroke-width:3px">Goal</text>`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}<rect class="hl" x="0" y="${P.t}" width="${bw}" height="${H - P.t - P.b}" fill="var(--ink)" opacity=".06" visibility="hidden"/></svg>`;
 }
 function svgGroup(spec, W) {
@@ -510,7 +515,12 @@ function closeAll() { stack.length = 0; paintSheet(); }
 const sheetHead = (title, extra = "") => `<div class="sh-h"><h2>${esc(title)}</h2><div class="row">${extra}<button class="ibtn" data-act="close" aria-label="Close">${icon("x")}</button></div></div>`;
 
 /* ---------- views ---------- */
-const header = (eyebrow, title, actions = "") => `<header class="vh"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1></div><div class="actions">${actions}<button class="ibtn m-only" data-act="settings" aria-label="Settings">${icon("gear")}</button></div></header>`;
+// On phones a view can swap its slogan for the plain section name (short), which also hides the eyebrow.
+const header = (eyebrow, title, actions = "", short = "") => `<header class="vh${short ? " vh-short" : ""}"><div><div class="eyebrow">${eyebrow}</div><h1>${short ? `<span class="h-full">${title}</span><span class="h-short">${short}</span>` : title}</h1></div><div class="actions">${actions}<button class="ibtn m-only" data-act="settings" aria-label="Settings">${icon("gear")}</button></div></header>`;
+const hdrBtn = (act, label, attrs = "") => `<button class="btn pri hdr-pri" data-act="${act}" ${attrs}>${icon("plus", 18)}<span>${label}</span></button>`;
+const fab = (act, label, attrs = "") => `<button class="fab" data-act="${act}" ${attrs} aria-label="${label}">${icon("plus", 26, 2.4)}</button>`;
+// One rule for budget color everywhere: red over, amber from 85% or when ahead of the month's pace, green otherwise.
+const budgetTone = (p, elapsed = 1) => p > 1 ? "bad" : p >= .85 || p > elapsed + .1 ? "warn" : "good";
 
 function vToday() {
   const t = today(), now = new Date();
@@ -529,7 +539,7 @@ function vToday() {
   const FG = foodGoals(); const eaten = totals(dayEntries(t)).t.kcal; const ml = (S.water[t] || {}).ml || 0;
   const rings = [
     {k: "Habits", c: "var(--c-habit)", p: hs.length ? hDoneN / hs.length : 0, v: `${hDoneN}/${hs.length}`, s: "done today", tab: "habits"},
-    {k: "Food", c: "var(--c-food)", p: eaten / FG.g.kcal, v: `${Math.round(eaten)}`, s: `of ${FG.g.kcal} kcal`, tab: "food"},
+    {k: "Food", c: "var(--c-food)", p: eaten / FG.g.kcal, v: fmtInt(eaten), s: `of ${fmtInt(FG.g.kcal)} kcal`, tab: "food"},
     {k: "Water", c: "var(--s1)", p: ml / FG.water, v: `${n1(ml / 1000)} L`, s: `of ${n1(FG.water / 1000)} L`, tab: "food"},
     {k: "Steps", c: "var(--c-steps)", p: stepsOn(t) / stepGoal(), v: fmtInt(stepsOn(t)), s: `of ${fmtInt(stepGoal())}`, train: "steps"},
     {k: "Workouts", c: "var(--c-train)", p: goal ? wk / goal : 0, v: `${wk}${goal ? "/" + goal : ""}`, s: "this week", tab: "train"},
@@ -537,30 +547,24 @@ function vToday() {
   h += `<section class="card hero">${multiRing(rings, 172)}<div class="legend-rows">${rings.map(r => `<button class="lr" ${r.train ? `data-act="train-tab" data-v="${r.train}"` : `data-tab="${r.tab}"`}><i style="--c:${r.c}"></i><span><span class="ll">${r.k}</span><br><span class="ls">${r.s}</span></span><span class="lv">${r.v}</span></button>`).join("")}</div></section>`;
   h += `<div class="tiles" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px">
     <button class="tile" style="--tc:var(--c-task)" data-tab="tasks"><span class="k"><i class="dot" style="--c:var(--c-task)"></i>Tasks</span><span class="v">${due.length}</span><span class="s">open for today</span></button>
-    <button class="tile" style="--tc:var(--c-money)" data-tab="money"><span class="k"><i class="dot" style="--c:var(--c-money)"></i>Spent</span><span class="v">${money(spent, true)}</span><span class="s">${budget ? `of ${money(budget, true)} budget` : "this month"}</span>${budget ? `<div class="meter"><i style="width:${Math.min(100, spent / budget * 100)}%;--c:${spent > budget ? "var(--bad)" : spent > budget * .85 ? "var(--warn)" : "var(--good)"}"></i></div>` : ""}</button>
+    <button class="tile" style="--tc:var(--c-money)" data-tab="money"><span class="k"><i class="dot" style="--c:var(--c-money)"></i>Spent</span><span class="v">${money(spent, true)}</span><span class="s">${budget ? `of ${money(budget, true)} budget` : "this month"}</span>${budget ? `<div class="meter"><i style="width:${Math.min(100, spent / budget * 100)}%;--c:var(--${budgetTone(spent / budget, monthElapsed(mk))})"></i></div>` : ""}</button>
   </div>`;
   h += `<div class="grid2">`;
   // habits card
-  h += `<section class="card"><div class="card-h"><h2>Today's habits</h2><button class="linkbtn" data-act="add-habit">Add</button></div>`;
+  h += `<section class="card"><div class="card-h"><h2>Today's habits</h2><button class="linkbtn" data-act="add-habit">Add habit</button></div>`;
   h += hs.length ? `<div class="list">${hs.map(x => {
     const on = hDone(x, t); const sub = x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : habitStreak(x) ? `${habitStreak(x)}-day streak` : "Start a streak today";
     return `<div class="li ${on ? "done" : ""}"><button class="chk" style="--c:var(${x.color})" aria-pressed="${on}" data-act="toggle-habit" data-id="${x.id}" data-d="${t}" aria-label="Mark ${esc(x.name)} done">${icon("check", 16, 3)}</button><button class="li-main" data-act="habit-detail" data-id="${x.id}"><span class="t">${esc(x.name)}</span><span class="sub">${sub}</span></button></div>`;
   }).join("")}</div>` : `<div class="empty"><span>No habits yet.</span><button class="btn sm" data-act="add-habit">${icon("plus", 16)}Add a habit</button></div>`;
   h += `</section>`;
   // tasks card
-  h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task">Add</button></div>`;
+  h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task">Add task</button></div>`;
   h += due.length ? `<div class="list">${due.slice(0, 8).map(taskRow).join("")}</div>${due.length > 8 ? `<button class="linkbtn" data-tab="tasks" style="margin-top:8px">See all ${due.length}</button>` : ""}` : `<div class="empty"><span>Nothing due today.</span><button class="btn sm" data-act="add-task">${icon("plus", 16)}Add a task</button></div>`;
   h += `</section>`;
   // workout card
   h += workoutTeaser();
-  // body weight + money
-  h += bodyCard(true);
-  const recent = Object.values(S.tx).sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created).slice(0, 4);
-  h += `<section class="card span2"><div class="card-h"><h2>Money this month</h2><div class="row"><button class="btn sm ghost" data-act="add-tx" data-type="income">Income</button><button class="btn sm pri" data-act="add-tx" data-type="expense">${icon("plus", 16)}Expense</button></div></div>
-    <div class="tiles t3" style="margin-bottom:10px">${statTile("In", money(sumTx(mk, "income"), true))}${statTile("Out", money(spent, true))}${statTile("Net", money(sumTx(mk, "income") - spent, true))}</div>
-    ${recent.length ? `<div class="list">${recent.map(txRow).join("")}</div>` : `<p class="faint small">No transactions yet.</p>`}</section>`;
   h += `</div>`;
-  h += `<button class="fab" data-act="quick" aria-label="Quick add">${icon("plus", 26, 2.4)}</button>`;
+  h += fab("quick", "Quick add");
   return h;
 }
 const statTile = (k, v, s = "") => `<div class="tile" style="padding:10px 12px"><span class="k">${k}</span><span class="v">${v}</span>${s ? `<span class="s">${s}</span>` : ""}</div>`;
@@ -611,27 +615,30 @@ function txRow(t) {
 function vHabits() {
   const hs = habitList(); const t = today();
   const days = Array.from({length: 7}, (_, i) => addDays(new Date(), i - 6));
-  let h = header("Habits", "Keep the chain going", `<button class="btn pri" data-act="add-habit">${icon("plus", 18)}<span>New habit</span></button>`);
+  let h = header("Habits", "Keep the chain going", hdrBtn("add-habit", "Add habit"), "Habits");
   if (!hs.length) return h + `<section class="card"><div class="empty"><b>No habits yet</b><span>Add something small you want to do every day, or a few times a week.</span><button class="btn pri" data-act="add-habit">${icon("plus", 16)}Add your first habit</button></div></section>`;
   const allRate = hs.length ? sum(hs.map(habitRate)) / hs.length : 0;
-  const bestNow = hs.reduce((b, x) => Math.max(b, habitStreak(x)), 0);
-  h += `<div class="tiles t3" style="margin-bottom:14px">${statTile("Today", `${hs.filter(x => hDone(x, t)).length}/${hs.length}`)}${statTile("30-day rate", Math.round(allRate * 100) + "%")}${statTile("Top streak", bestNow)}</div>`;
+  // Weekly streaks count weeks, so compare streaks by the days they span.
+  const top = hs.map(x => ({x, n: habitStreak(x)})).filter(o => o.n).sort((a, b) => b.n * (b.x.freq === "weekly" ? 7 : 1) - a.n * (a.x.freq === "weekly" ? 7 : 1))[0];
+  h += `<div class="tiles t3" style="margin-bottom:14px">${statTile("Today", `${hs.filter(x => hDone(x, t)).length}/${hs.length}`)}${statTile("30-day rate", Math.round(allRate * 100) + "%")}${top ? statTile("Top streak", streakText(top.x, top.n), esc(top.x.name)) : statTile("Top streak", "–", "none yet")}</div>`;
   h += `<section class="card"><div class="list">`;
   h += hs.map(x => {
-    const st = habitStreak(x); const unit = x.freq === "weekly" ? (st === 1 ? "week" : "weeks") : (st === 1 ? "day" : "days");
-    return `<div class="habit"><div class="stack" style="gap:4px;min-width:0"><button class="name" data-act="habit-detail" data-id="${x.id}"><i class="dot" style="--c:var(${x.color})"></i><span>${esc(x.name)}</span></button><span class="streak">${st} ${unit} streak · ${x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : Math.round(habitRate(x) * 100) + "% last 30 days"}</span></div>
+    const st = habitStreak(x);
+    return `<div class="habit"><div class="stack" style="gap:4px;min-width:0"><button class="name" data-act="habit-detail" data-id="${x.id}"><i class="dot" style="--c:var(${x.color})"></i><span>${esc(x.name)}</span></button><span class="streak">${st ? `${st}-${x.freq === "weekly" ? "week" : "day"} streak` : "No streak yet"} · ${x.freq === "weekly" ? `${weekCount(x)}/${x.goal} this week` : Math.round(habitRate(x) * 100) + "% last 30 days"}</span></div>
     <div class="week" style="--c:var(${x.color})">${days.map(d => `<span class="dh">${d.toLocaleDateString(undefined, {weekday: "narrow"})}</span>`).join("")}${days.map(d => { const k = dkey(d); const on = hDone(x, k); return `<button class="day ${k === t ? "today" : ""}" aria-pressed="${on}" data-act="toggle-habit" data-id="${x.id}" data-d="${k}" aria-label="${esc(x.name)} on ${fmtDate(k, {weekday: "long", day: "numeric", month: "short"})}">${icon("check", 14, 3)}</button>`; }).join("")}</div></div>`;
   }).join("");
   h += `</div></section>`;
-  return h;
+  return h + fab("add-habit", "Add habit");
 }
+const streakText = (x, n) => `${n} ${x.freq === "weekly" ? (n === 1 ? "week" : "weeks") : (n === 1 ? "day" : "days")}`;
 
-function vTasks() {
+const vTasks = () => tasksView() + fab("add-task", "Add task");
+function tasksView() {
   const kinds = [["todo", "To-do"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]];
   const k = ui.taskTab; const all = Object.values(S.tasks);
-  let h = header("Tasks", "What needs doing", `<button class="btn pri" data-act="add-task">${icon("plus", 18)}<span>New task</span></button>`);
+  let h = header("Tasks", "What needs doing", hdrBtn("add-task", "Add task"), "Tasks");
   h += `<div class="seg" role="group" aria-label="Task type" style="margin-bottom:14px">${kinds.map(([v, l]) => { const n = all.filter(t => t.kind === v && !taskDone(t)).length; return `<button data-act="task-tab" data-v="${v}" aria-pressed="${k === v}">${l}${n ? ` <span class="faint mono">${n}</span>` : ""}</button>`; }).join("")}</div>`;
-  h += `<form class="inline-add" data-form="quick-task" style="margin-bottom:14px"><input id="qtask" name="title" placeholder="${k === "todo" ? "Add a to-do" : `Add a ${k} task`}" autocomplete="off" aria-label="New task"><button class="btn pri" aria-label="Add">${icon("plus", 18)}</button></form>`;
+  h += `<form class="inline-add" data-form="quick-task" style="margin-bottom:14px"><input id="qtask" name="title" placeholder="${k === "todo" ? "Add a to-do" : `Add a ${k} task`}" autocomplete="off" aria-label="New task"><button class="btn ghost" aria-label="Add">${icon("plus", 18)}</button></form>`;
   const list = all.filter(t => t.kind === k);
   if (k === "todo") {
     const open = list.filter(t => !t.doneAt), done = list.filter(t => t.doneAt).sort((a, b) => b.doneAt - a.doneAt);
@@ -655,26 +662,28 @@ function vTasks() {
 function vMoney() {
   const mk = ui.month; const inc = sumTx(mk, "income"), exp = sumTx(mk, "expense"), net = inc - exp;
   const cats = catTotals(mk); const budget = +S.settings.budget || 0; const B = S.settings.budgets || {};
-  let h = header("Money", `<span style="display:inline-flex;align-items:center;gap:4px"><button class="ibtn sm" data-act="month" data-d="-1" aria-label="Previous month">${icon("left", 18)}</button>${monthName(mk)}<button class="ibtn sm" data-act="month" data-d="1" aria-label="Next month" ${mk >= mkey() ? "disabled style='opacity:.3'" : ""}>${icon("right", 18)}</button></span>`, `<button class="btn pri" data-act="add-tx" data-type="expense">${icon("plus", 18)}<span>Add</span></button>`);
+  let h = header("Money", `<span style="display:inline-flex;align-items:center;gap:4px"><button class="ibtn sm" data-act="month" data-d="-1" aria-label="Previous month">${icon("left", 18)}</button><span class="m-long">${monthName(mk)}</span><span class="m-short">${monthShort(mk)}</span><button class="ibtn sm" data-act="month" data-d="1" aria-label="Next month" ${mk >= mkey() ? "disabled style='opacity:.3'" : ""}>${icon("right", 18)}</button></span>`, hdrBtn("add-tx", "Add expense", 'data-type="expense"'));
   h += `<div class="tiles t3" style="margin-bottom:14px">${statTile("Income", money(inc, true))}${statTile("Expenses", money(exp, true))}${statTile("Net", `<span style="color:${net >= 0 ? "var(--good)" : "var(--bad)"}">${net >= 0 ? "+" : "−"}${money(Math.abs(net), true)}</span>`, inc ? `${Math.round(Math.max(0, net) / inc * 100)}% saved` : "")}</div>`;
   h += `<div class="grid2">`;
   // budget
   const budgetCats = Object.keys(B).filter(c => +B[c] > 0);
-  const md = parseD(mk + "-01"); const dim = new Date(md.getFullYear(), md.getMonth() + 1, 0).getDate();
-  const elapsed = mk === mkey() ? new Date().getDate() / dim : mk < mkey() ? 1 : 0;
+  const dim = monthDays(mk); const elapsed = monthElapsed(mk);
   h += `<section class="card"><div class="card-h"><h2>Budget</h2><button class="linkbtn" data-act="budgets">Edit</button></div>`;
   if (!budget && !budgetCats.length) h += `<div class="empty"><span>Set a monthly limit to see how your spending tracks against it.</span><button class="btn sm" data-act="budgets">Set a budget</button></div>`;
   else {
-    if (budget) { const p = exp / budget; const tone = p > 1 ? "bad" : p > elapsed + .1 ? "warn" : "good"; h += `<div class="stack" style="gap:8px;margin-bottom:14px"><div class="row between"><span class="mono" style="font-size:20px;font-weight:600">${money(exp, true)} <span class="faint" style="font-size:14px">/ ${money(budget, true)}</span></span><span class="pill ${tone}">${p > 1 ? `Over by ${money(exp - budget, true)}` : `${money(budget - exp, true)} left`}</span></div><div class="meter" style="height:10px;position:relative"><i style="width:${Math.min(100, p * 100)}%;--c:var(--${tone})"></i></div>${elapsed > 0 && elapsed < 1 ? `<span class="tiny faint">${Math.round(elapsed * 100)}% of the month gone, ${Math.round(p * 100)}% of budget used</span>` : ""}</div>`; }
-    h += budgetCats.map(c => { const v = cats[c] || 0, b = +B[c]; const p = v / b; const tone = p > 1 ? "bad" : p > .85 ? "warn" : "good"; return `<div class="stack" style="gap:5px;padding:7px 0"><div class="row between small"><span>${esc(c)}</span><span class="mono">${money(v, true)} <span class="faint">/ ${money(b, true)}</span></span></div><div class="meter"><i style="width:${Math.min(100, p * 100)}%;--c:var(--${tone})"></i></div></div>`; }).join("");
+    if (budget) { const p = exp / budget; const tone = budgetTone(p, elapsed); h += `<div class="stack" style="gap:8px;margin-bottom:14px"><div class="row between"><span class="mono" style="font-size:20px;font-weight:600">${money(exp, true)} <span class="faint" style="font-size:14px">/ ${money(budget, true)}</span></span><span class="pill ${tone}">${p > 1 ? `Over by ${money(exp - budget, true)}` : `${money(budget - exp, true)} left`}</span></div><div class="meter" style="height:10px;position:relative"><i style="width:${Math.min(100, p * 100)}%;--c:var(--${tone})"></i></div>${elapsed > 0 && elapsed < 1 ? `<span class="tiny faint">${Math.round(elapsed * 100)}% of the month gone, ${Math.round(p * 100)}% of budget used</span>` : ""}</div>`; }
+    h += budgetCats.map(c => { const v = cats[c] || 0, b = +B[c]; const p = v / b; const tone = budgetTone(p, elapsed); return `<div class="stack" style="gap:5px;padding:7px 0"><div class="row between small"><span>${esc(c)}</span><span class="mono">${money(v, true)} <span class="faint">/ ${money(b, true)}</span></span></div><div class="meter"><i style="width:${Math.min(100, p * 100)}%;--c:var(--${tone})"></i></div></div>`; }).join("");
   }
   h += `</section>`;
   // categories
   const catArr = Object.entries(cats).sort((a, b) => b[1] - a[1]); const maxC = catArr.length ? catArr[0][1] : 1;
   h += `<section class="card"><div class="card-h"><h2>Where it went</h2></div>${catArr.length ? catArr.map(([c, v]) => `<div class="hbar"><span class="nm">${esc(c)}</span><span class="bar"><i style="width:${v / maxC * 100}%;--c:var(--s2)"></i></span><span class="val">${money(v, true)}</span></div>`).join("") + `<p class="tiny faint" style="margin-top:6px">${catArr.length} ${catArr.length === 1 ? "category" : "categories"}, largest is ${esc(catArr[0][0])} at ${Math.round(catArr[0][1] / exp * 100)}% of spending</p>` : `<p class="faint small">No expenses this month.</p>`}</section>`;
-  // daily spending
-  const daily = Array.from({length: dim}, (_, i) => { const k = `${mk}-${pad(i + 1)}`; const v = sum(txIn(mk).filter(t => t.type === "expense" && t.date === k).map(t => t.amount)); return {l: String(i + 1), v, tip: `${fmtDate(k, {weekday: "short", day: "numeric", month: "short"})}<br><b>${money(v)}</b>`, dim: k > today()}; });
-  h += `<section class="card span2"><div class="card-h"><h2>Daily spending</h2><span class="small faint">avg ${money(exp / Math.max(1, mk === mkey() ? new Date().getDate() : dim), true)} per day</span></div>${exp ? chart({type: "bars", h: 170, color: "var(--s2)", bars: daily, label: "Spending per day"}) : `<p class="faint small">Nothing spent this month yet.</p>`}</section>`;
+  // spending so far this month, against a straight line from zero to the budget
+  const lastDay = mk === mkey() ? new Date().getDate() : mk < mkey() ? dim : 0;
+  let run = 0; const cum = [];
+  for (let i = 1; i <= lastDay; i++) { const k = `${mk}-${pad(i)}`; const v = sum(txIn(mk).filter(t => t.type === "expense" && t.date === k).map(t => t.amount)); run += v; cum.push({x: i, y: run, xl: fmtDate(k), tip: `${fmtDate(k, {weekday: "short", day: "numeric", month: "short"})}<br>Spent <b>${money(v)}</b><br>Month so far <b>${money(run, true)}</b>${budget ? `<br>Pace <b>${money(budget * i / dim, true)}</b>` : ""}`}); }
+  const paceNote = budget && lastDay ? (() => { const d = run - budget * lastDay / dim; return Math.abs(d) < budget * .02 ? "on pace with your budget" : `${money(Math.abs(d), true)} ${d > 0 ? "ahead of" : "under"} budget pace`; })() : `avg ${money(exp / Math.max(1, lastDay || dim), true)} per day`;
+  h += `<section class="card span2"><div class="card-h"><h2>Spending this month</h2><span class="small faint">${paceNote}</span></div>${exp && cum.length ? chart({type: "line", h: 180, color: "var(--s2)", zero: true, x0: 1, x1: dim, pace: budget ? {y0: 0, y1: budget, label: "Budget"} : null, points: cum, label: "Spending so far this month"}) + (budget ? `<div class="legend" style="margin-top:8px"><span><i style="--c:var(--s2)"></i>Spent so far</span><span><i style="--c:var(--ink-2);height:2px;border-radius:0"></i>Budget pace</span></div>` : "") : `<p class="faint small">Nothing spent this month yet.</p>`}</section>`;
   // six month trend
   const months = Array.from({length: 6}, (_, i) => shiftMonth(mk, i - 5));
   const groups = months.map(m => ({l: parseD(m + "-01").toLocaleDateString(undefined, {month: "short"}), a: sumTx(m, "income"), b: sumTx(m, "expense"), tip: `${monthName(m)}<br>Income <b>${money(sumTx(m, "income"), true)}</b><br>Expenses <b>${money(sumTx(m, "expense"), true)}</b>`}));
@@ -684,21 +693,26 @@ function vMoney() {
   h += `<section class="card span2"><div class="card-h"><h2>Transactions</h2><span class="faint mono small">${list.length}</span></div>`;
   if (!list.length) h += `<div class="empty"><span>No transactions in ${monthName(mk)}.</span><button class="btn sm" data-act="add-tx" data-type="expense">${icon("plus", 16)}Add one</button></div>`;
   else { let last = ""; h += `<div class="list">`; list.forEach(t => { if (t.date !== last) { h += `<div class="label" style="padding:14px 0 4px">${relDay(t.date)}</div>`; last = t.date; } h += txRow(t); }); h += `</div>`; }
-  h += `</section></div><button class="fab" data-act="add-tx" data-type="expense" aria-label="Add expense">${icon("plus", 26, 2.4)}</button>`;
+  h += `</section></div>` + fab("add-tx", "Add expense", 'data-type="expense"');
   return h;
 }
 
 function vTrain() {
   const tabs = [["workout", "Workout"], ["steps", "Steps"], ["progress", "Progress"], ["splits", "Splits"], ["history", "History"], ["tools", "Tools"]];
-  let h = header("Training", S.active && ui.trainTab === "workout" ? esc(S.active.name) : ui.trainTab === "steps" ? "Keep moving" : "Get stronger");
-  h += `<div class="seg" role="group" aria-label="Training section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="train-tab" data-v="${v}" aria-pressed="${ui.trainTab === v}">${l}</button>`).join("")}</div>`;
+  const live = S.active && ui.trainTab === "workout";
+  let h = live ? header("Training", esc(S.active.name)) : header("Training", ui.trainTab === "steps" ? "Keep moving" : "Get stronger", "", "Training");
+  h += `<div class="seg g3" role="group" aria-label="Training section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="train-tab" data-v="${v}" aria-pressed="${ui.trainTab === v}">${l}</button>`).join("")}</div>`;
   return h + ({workout: tWorkout, steps: tSteps, progress: tProgress, splits: tSplits, history: tHistory, tools: tTools}[ui.trainTab] || tWorkout)();
 }
 function tWorkout() {
   if (S.active) return activeView();
   const sp = activeSplit(); const nd = nextDay(sp);
   const ws = weekSessions(); const goal = +S.settings.weeklyWorkouts || 0;
-  let h = `<div class="tiles" style="margin-bottom:14px">${statTile("This week", `${ws.length}${goal ? "/" + goal : ""}`, "workouts")}${statTile("Sets", sum(ws.map(sessSets)), "this week")}${statTile("Volume", fmtVol(sum(ws.map(sessVol))), "this week")}${statTile("All time", Object.keys(S.sessions).length, "workouts")}</div><div class="grid2">`;
+  const allN = Object.keys(S.sessions).length;
+  const stats = ws.length ? `<div class="tiles span2">${statTile("This week", `${ws.length}${goal ? "/" + goal : ""}`, "workouts")}${statTile("Sets", sum(ws.map(sessSets)), "this week")}${statTile("Volume", fmtVol(sum(ws.map(sessVol))), "this week")}${statTile("All time", allN, "workouts")}</div>`
+    : `<p class="small muted span2">No workouts yet this week${goal ? `, goal ${goal}` : ""} · ${allN} all time</p>`;
+  // dense flow: on desktop the muscle card fills the space beside the split, stats sit below both
+  let h = `<div class="grid2" style="grid-auto-flow:row dense">`;
   if (sp && sp.days.length) {
     h += `<section class="card"><div class="card-h"><h2>${esc(sp.name)}</h2><button class="linkbtn" data-act="edit-split" data-id="${sp.id}">Edit</button></div><div class="stack" style="gap:10px">`;
     h += sp.days.map(d => `<div class="daycard" ${d.id === nd.id ? 'style="border-color:var(--c-train)"' : ""}><div class="row between"><div><div class="row" style="gap:8px"><b style="font-size:16px">${esc(d.name)}</b>${d.id === nd.id ? `<span class="pill" style="background:color-mix(in srgb,var(--c-train) 16%,transparent);color:var(--ink)">Up next</span>` : ""}</div><span class="small faint">${d.items.length} exercises · ${sum(d.items.map(i => +i.sets))} sets</span></div><button class="btn sm ${d.id === nd.id ? "pri" : ""}" data-act="start-day" data-split="${sp.id}" data-day="${d.id}">${icon("play", 14)}Start</button></div><span class="small muted">${d.items.map(i => esc(exName(i.ex))).join(", ")}</span></div>`).join("");
@@ -706,6 +720,7 @@ function tWorkout() {
   } else {
     h += `<section class="card"><div class="card-h"><h2>No split yet</h2></div><p class="muted small" style="margin-bottom:12px">A split is your weekly plan, like Push / Pull / Legs. Start from a template and change anything you like.</p><div class="stack" style="gap:8px">${Object.keys(TEMPLATES).map(n => `<button class="btn block ghost" data-act="template" data-name="${esc(n)}" style="justify-content:space-between">${esc(n)}${icon("plus", 16)}</button>`).join("")}<button class="btn block" data-act="new-split">Build my own</button></div></section>`;
   }
+  h += stats;
   const ms = muscleSets(ws); const mArr = MUSCLES.filter(m => ms[m]).map(m => [m, ms[m]]).sort((a, b) => b[1] - a[1]);
   const mx = Math.max(20, ...mArr.map(m => m[1]));
   h += `<section class="card"><div class="card-h"><h2>Sets per muscle this week</h2></div>${mArr.length ? mArr.map(([m, v]) => `<div class="hbar"><span class="nm">${m}</span><span class="bar"><span class="band" style="left:${10 / mx * 100}%;width:${10 / mx * 100}%"></span><i style="width:${v / mx * 100}%;--c:var(--c-train)"></i></span><span class="val">${v}</span></div>`).join("") + `<p class="tiny faint" style="margin-top:8px">Shaded band marks 10 to 20 hard sets, a common weekly target for growth.</p>` : `<p class="faint small">Finish a workout to see which muscles you trained.</p>`}
@@ -741,7 +756,7 @@ function tProgress() {
     const val = p => p[m]; const first = st[0], last = st[st.length - 1];
     const ch = first && val(first) ? (val(last) - val(first)) / val(first) : 0;
     const fmtM = v => m === "reps" ? `${v} reps` : m === "vol" ? fmtVol(v) : fmtW(n1(v));
-    h += `<section class="card span2"><div class="row wrap between" style="margin-bottom:12px;gap:10px"><select id="progEx" data-change="progEx" aria-label="Exercise" style="max-width:320px;font-weight:600">${withHist.map(e => `<option value="${e.id}" ${e.id === ui.progEx ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select><div class="seg" role="group" aria-label="Metric">${metrics.map(([v, l]) => `<button data-act="prog-metric" data-v="${v}" aria-pressed="${m === v}">${l}</button>`).join("")}</div></div>
+    h += `<section class="card span2"><div class="row wrap between" style="margin-bottom:12px;gap:10px"><select id="progEx" data-change="progEx" aria-label="Exercise" style="max-width:320px;font-weight:600">${withHist.map(e => `<option value="${e.id}" ${e.id === ui.progEx ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select><div class="seg g2" role="group" aria-label="Metric">${metrics.map(([v, l]) => `<button data-act="prog-metric" data-v="${v}" aria-pressed="${m === v}">${l}</button>`).join("")}</div></div>
       <div class="tiles" style="margin-bottom:12px">${statTile("Best est. 1RM", fmtW(n1(Math.max(...st.map(p => p.e1rm)))))}${statTile("Heaviest", fmtW(Math.max(...st.map(p => p.top))))}${statTile("Sessions", st.length)}${statTile("Change", `<span style="color:${ch > 0 ? "var(--good)" : ch < 0 ? "var(--bad)" : "var(--ink)"}">${ch > 0 ? "+" : ""}${Math.round(ch * 100)}%</span>`, "since first session")}</div>
       ${st.length > 1 ? chart({type: "line", h: 220, color: "var(--c-train)", label: `${exName(ui.progEx)} progress`, zero: m === "vol" || m === "reps", points: st.map(p => ({x: p.t, y: m === "e1rm" ? n1(p.e1rm) : p[m], xl: fmtDate(p.date), tip: `${fmtDate(p.date, {day: "numeric", month: "short", year: "numeric"})}<br><b>${fmtM(p[m])}</b><br>${p.sets.map(s => `${+s.w}×${s.r}`).join(", ")}`}))}) : `<p class="faint small">One session so far. The chart appears after your second.</p>`}
       <p class="tiny faint" style="margin-top:8px">Estimated 1RM uses the Epley formula: weight × (1 + reps ÷ 30), best set per session.</p></section>`;
@@ -845,7 +860,7 @@ function totals(entries) {
 const kcalOf = e => (e.n.kcal || 0) * e.g / 100;
 function foodTiles() {
   const {g} = foodGoals(); const eaten = totals(dayEntries(today())).t.kcal; const ml = (S.water[today()] || {}).ml || 0; const wg = foodGoals().water;
-  return `<button class="tile" data-tab="food"><span class="k"><i class="dot" style="--c:var(--c-food)"></i>Food</span><span class="v">${Math.round(eaten)}<span class="faint" style="font-size:14px"> / ${g.kcal}</span></span><span class="s">kcal today</span><div class="meter"><i style="width:${Math.min(100, eaten / g.kcal * 100)}%;--c:${eaten > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)"}"></i></div></button>
+  return `<button class="tile" data-tab="food"><span class="k"><i class="dot" style="--c:var(--c-food)"></i>Food</span><span class="v">${fmtInt(eaten)}<span class="faint" style="font-size:14px"> / ${fmtInt(g.kcal)}</span></span><span class="s">kcal today</span><div class="meter"><i style="width:${Math.min(100, eaten / g.kcal * 100)}%;--c:${eaten > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)"}"></i></div></button>
     <button class="tile" data-tab="food"><span class="k"><i class="dot" style="--c:var(--s1)"></i>Water</span><span class="v">${n1(ml / 1000)}<span class="faint" style="font-size:14px"> / ${n1(wg / 1000)} L</span></span><span class="s">today</span><div class="meter"><i style="width:${Math.min(100, ml / wg * 100)}%;--c:var(--s1)"></i></div></button>`;
 }
 
@@ -896,14 +911,14 @@ function vFood() {
   const entries = dayEntries(d); const {t, missing} = totals(entries);
   const left = g.kcal - t.kcal;
   const dayTitle = d === today() ? "Today" : relDay(d);
-  let h = header("Food", `<span style="display:inline-flex;align-items:center;gap:4px"><button class="ibtn sm" data-act="food-day" data-d="-1" aria-label="Previous day">${icon("left", 18)}</button>${dayTitle}<button class="ibtn sm" data-act="food-day" data-d="1" aria-label="Next day" ${d >= today() ? "disabled style='opacity:.3'" : ""}>${icon("right", 18)}</button></span>`, `<button class="btn pri" data-act="add-food" data-meal="${defaultMeal()}">${icon("plus", 18)}<span>Log food</span></button>`);
+  let h = header("Food", `<span style="display:inline-flex;align-items:center;gap:4px"><button class="ibtn sm" data-act="food-day" data-d="-1" aria-label="Previous day">${icon("left", 18)}</button>${dayTitle}<button class="ibtn sm" data-act="food-day" data-d="1" aria-label="Next day" ${d >= today() ? "disabled style='opacity:.3'" : ""}>${icon("right", 18)}</button></span>`, hdrBtn("add-food", "Log food", `data-meal="${defaultMeal()}"`));
   if (!G.ready) h += `<section class="card" style="margin-bottom:14px;border-color:var(--c-food)"><div class="row between wrap"><div class="grow" style="min-width:220px"><b>Set your goals</b><p class="small muted" style="margin-top:2px">Add your sex, age and height and Daybook works out calories, macros and nutrients from your body weight. Until then it uses a standard 2,000 kcal day.</p></div><button class="btn pri sm" data-act="food-goals">Set up goals</button></div></section>`;
   // summary
   const pctK = Math.min(1, t.kcal / g.kcal);
   h += `<div class="grid2"><section class="card"><div class="row" style="gap:18px;align-items:center">
-    <div style="position:relative;flex:none">${ring(pctK, t.kcal > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)", 116)}<div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center"><div><div class="mono" style="font-size:22px;font-weight:600;line-height:1">${Math.round(Math.abs(left))}</div><div class="tiny faint" style="margin-top:3px">${left >= 0 ? "kcal left" : "kcal over"}</div></div></div></div>
+    <div style="position:relative;flex:none">${ring(pctK, t.kcal > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)", 116)}<div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center"><div><div class="mono" style="font-size:22px;font-weight:600;line-height:1">${fmtInt(Math.abs(left))}</div><div class="tiny faint" style="margin-top:3px">${left >= 0 ? "kcal left" : "kcal over"}</div></div></div></div>
     <div class="grow stack" style="gap:9px">${[["p", "Protein", "--m-p"], ["c", "Carbs", "--m-c"], ["f", "Fat", "--m-f"]].map(([k, l, c]) => `<div><div class="row between small"><span>${l}</span><span class="mono">${Math.round(t[k])}<span class="faint"> / ${g[k]} g</span></span></div><div class="meter" style="margin-top:4px"><i style="width:${Math.min(100, t[k] / (g[k] || 1) * 100)}%;--c:var(${c})"></i></div></div>`).join("")}</div></div>
-    <div class="row between small" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted">Eaten <b class="mono" style="color:var(--ink)">${Math.round(t.kcal)}</b></span><span class="muted">Goal <b class="mono" style="color:var(--ink)">${g.kcal}</b></span><button class="linkbtn" data-act="food-goals">Goals</button></div></section>`;
+    <div class="row between small" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted">Eaten <b class="mono" style="color:var(--ink)">${fmtInt(t.kcal)}</b></span><span class="muted">Goal <b class="mono" style="color:var(--ink)">${fmtInt(g.kcal)}</b></span><button class="linkbtn" data-act="food-goals">Goals</button></div></section>`;
   // water
   const ml = (S.water[d] || {}).ml || 0;
   h += `<section class="card"><div class="card-h"><h2>Water</h2><span class="small faint">goal ${n1(G.water / 1000)} L, 35 ml per kg</span></div><div class="row" style="gap:14px;margin-bottom:12px"><span style="color:var(--s1)">${icon("drop", 30, 1.8)}</span><div class="grow"><div class="mono" style="font-size:22px;font-weight:600">${n1(ml / 1000)} L</div><div class="meter" style="margin-top:6px;height:8px"><i style="width:${Math.min(100, ml / G.water * 100)}%;--c:var(--s1)"></i></div></div></div><div class="row wrap"><button class="btn sm" data-act="water" data-v="250">+ Glass 250 ml</button><button class="btn sm" data-act="water" data-v="500">+ Bottle 500 ml</button><button class="btn sm ghost" data-act="water" data-v="-250" ${ml ? "" : "disabled"}>− 250 ml</button></div></section>`;
@@ -911,9 +926,9 @@ function vFood() {
   MEALS.forEach(([m, label]) => {
     const es = entries.filter(e => e.meal === m); const mk = sum(es.map(kcalOf));
     const yday = dkey(addDays(parseD(d), -1)); const yes = dayEntries(yday).filter(e => e.meal === m);
-    h += `<section class="card"><div class="card-h"><h2>${label}</h2><span class="mono small ${mk ? "" : "faint"}">${Math.round(mk)} kcal</span></div>`;
-    h += es.length ? `<div class="list">${es.map(e => `<button class="li" style="width:100%;text-align:left" data-act="edit-entry" data-id="${e.id}"><span class="li-main"><span class="t">${esc(e.name)}</span><span class="sub">${r1(e.g)} g · P ${r1((e.n.p || 0) * e.g / 100)} · C ${r1((e.n.c || 0) * e.g / 100)} · F ${r1((e.n.f || 0) * e.g / 100)}${e.est ? ` <span class="pill warn">estimate</span>` : ""}</span></span><span class="mono" style="font-weight:600">${Math.round(kcalOf(e))}</span></button>`).join("")}</div>` : "";
-    h += `<div class="row wrap" style="margin-top:${es.length ? 10 : 0}px"><button class="btn sm ghost" data-act="add-food" data-meal="${m}">${icon("plus", 14)}Add food</button>${!es.length && yes.length ? `<button class="btn sm ghost" data-act="copy-meal" data-meal="${m}">Copy yesterday (${Math.round(sum(yes.map(kcalOf)))} kcal)</button>` : ""}</div></section>`;
+    h += `<section class="card"><div class="card-h"><h2>${label}</h2><span class="mono small ${mk ? "" : "faint"}">${fmtInt(mk)} kcal</span></div>`;
+    h += es.length ? `<div class="list">${es.map(e => `<button class="li" style="width:100%;text-align:left" data-act="edit-entry" data-id="${e.id}"><span class="li-main"><span class="t">${esc(e.name)}</span><span class="sub">${r1(e.g)} g · P ${r1((e.n.p || 0) * e.g / 100)} · C ${r1((e.n.c || 0) * e.g / 100)} · F ${r1((e.n.f || 0) * e.g / 100)}${e.est ? ` <span class="pill warn">estimate</span>` : ""}</span></span><span class="mono" style="font-weight:600">${fmtInt(kcalOf(e))}</span></button>`).join("")}</div>` : "";
+    h += `<div class="row wrap" style="margin-top:${es.length ? 10 : 0}px"><button class="btn sm ghost" data-act="add-food" data-meal="${m}">${icon("plus", 14)}Add food</button>${!es.length && yes.length ? `<button class="btn sm ghost" data-act="copy-meal" data-meal="${m}">Copy yesterday (${fmtInt(sum(yes.map(kcalOf)))} kcal)</button>` : ""}</div></section>`;
   });
   // nutrients
   const anyMissing = entries.length && MICRO_KEYS.some(k => missing[k]);
@@ -924,10 +939,10 @@ function vFood() {
   }).join("")}</div><p class="tiny faint" style="margin-top:10px">Targets are adult daily reference intakes for your sex and age. Sugar, saturated fat, cholesterol and sodium are upper limits.${anyMissing ? " * Some foods you logged don't list this nutrient, so the real total is likely higher." : ""}</p></section>`;
   // trend
   const days = Array.from({length: 14}, (_, i) => dkey(addDays(new Date(), i - 13)));
-  const bars = days.map(k => { const tt = totals(dayEntries(k)).t; return {l: fmtDate(k, {day: "numeric"}), v: Math.round(tt.kcal), c: tt.kcal > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)", tip: `${fmtDate(k, {weekday: "short", day: "numeric", month: "short"})}<br><b>${Math.round(tt.kcal)} kcal</b> of ${g.kcal}<br>P ${Math.round(tt.p)} · C ${Math.round(tt.c)} · F ${Math.round(tt.f)} g`}; });
+  const bars = days.map(k => { const tt = totals(dayEntries(k)).t; return {l: fmtDate(k, {day: "numeric"}), v: Math.round(tt.kcal), c: tt.kcal > g.kcal * 1.05 ? "var(--warn)" : "var(--c-food)", tip: `${fmtDate(k, {weekday: "short", day: "numeric", month: "short"})}<br><b>${fmtInt(tt.kcal)} kcal</b> of ${fmtInt(g.kcal)}<br>P ${Math.round(tt.p)} · C ${Math.round(tt.c)} · F ${Math.round(tt.f)} g`}; });
   const logged = bars.filter(b => b.v > 0);
-  h += `<section class="card span2"><div class="card-h"><h2>Last 14 days</h2><span class="small faint">${logged.length ? `avg ${Math.round(sum(logged.map(b => b.v)) / logged.length)} kcal on logged days` : ""}</span></div>${logged.length ? chart({type: "bars", h: 160, bars, label: "Calories per day"}) : `<p class="faint small">Days you log show up here.</p>`}</section></div>`;
-  h += `<button class="fab" data-act="add-food" data-meal="${defaultMeal()}" aria-label="Log food">${icon("plus", 26, 2.4)}</button>`;
+  h += `<section class="card span2"><div class="card-h"><h2>Last 14 days</h2><span class="small faint">${logged.length ? `avg ${fmtInt(sum(logged.map(b => b.v)) / logged.length)} kcal on logged days` : ""}</span></div>${logged.length ? chart({type: "bars", h: 160, bars, label: "Calories per day"}) : `<p class="faint small">Days you log show up here.</p>`}</section></div>`;
+  h += fab("add-food", "Log food", `data-meal="${defaultMeal()}"`);
   return h;
 }
 function defaultMeal() { const hr = new Date().getHours(); return hr < 11 ? "breakfast" : hr < 16 ? "lunch" : hr < 21 ? "dinner" : "snacks"; }
@@ -940,7 +955,7 @@ function sFoodGoals() {
       <tr><td>BMR, Mifflin-St Jeor<br><span class="tiny faint">10 × ${n1(w.kg)} kg + 6.25 × ${p.height} cm − 5 × ${G.age} ${p.sex === "male" ? "+ 5" : "− 161"}</span></td><td class="num mono" style="text-align:right">${Math.round(G.bmr)}</td></tr>
       <tr><td>× ${G.act[2]} for ${G.act[1].toLowerCase()}</td><td class="num mono" style="text-align:right">${Math.round(G.tdee)}</td></tr>
       <tr><td>${G.delta ? `${G.delta > 0 ? "+" : "−"} ${Math.abs(G.delta)} for ${Math.abs(p.goal)} kg a week<br><span class="tiny faint">1 kg of body weight ≈ 7,700 kcal</span>` : "No change to maintain"}</td><td class="num mono" style="text-align:right">${G.delta ? (G.delta > 0 ? "+" : "−") + Math.abs(G.delta) : "0"}</td></tr>
-      <tr><td><b>Daily calories</b>${G.floorHit ? `<br><span class="tiny" style="color:var(--warn)">Raised to the ${p.sex === "male" ? "1,500" : "1,200"} kcal minimum</span>` : ""}</td><td class="num mono" style="text-align:right"><b>${G.g.kcal}</b></td></tr>
+      <tr><td><b>Daily calories</b>${G.floorHit ? `<br><span class="tiny" style="color:var(--warn)">Raised to the ${p.sex === "male" ? "1,500" : "1,200"} kcal minimum</span>` : ""}</td><td class="num mono" style="text-align:right"><b>${fmtInt(G.g.kcal)}</b></td></tr>
       <tr><td>Protein · carbs · fat</td><td class="num mono" style="text-align:right">${G.g.p} · ${G.g.c} · ${G.g.f} g</td></tr></tbody></table>
       <p class="tiny faint" style="margin-top:8px">Uses your latest weight${w.from === "log" ? ` from the body weight log (${fmtDate(w.date)})` : ""}, so goals update as your weight changes. This is the same method MyFitnessPal uses.</p></section>` : "";
     return sheetHead("Food goals") + `<form data-form="food-goals" class="stack">
@@ -965,7 +980,7 @@ function foodResults() {
     const q = foodQ.trim(); const ql = q.toLowerCase();
     const mine = Object.values(S.foods).filter(f => !q || (f.name + " " + (f.brand || "")).toLowerCase().includes(ql)).sort((a, b) => a.name.localeCompare(b.name));
     let list = "";
-    const row = (act, attrs, name, sub, kcal) => `<button class="pick" data-act="${act}" ${attrs}><span class="grow" style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(name)}</b><span class="small faint">${sub}</span></span><span class="mono small muted" style="white-space:nowrap">${kcal != null ? Math.round(kcal) + " kcal" : ""}</span></button>`;
+    const row = (act, attrs, name, sub, kcal) => `<button class="pick" data-act="${act}" ${attrs}><span class="grow" style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(name)}</b><span class="small faint">${sub}</span></span><span class="mono small muted" style="white-space:nowrap">${kcal != null ? fmtInt(kcal) + " kcal" : ""}</span></button>`;
     if (!q) {
       const rec = recentFoods();
       if (rec.length) list += `<div class="label" style="padding:10px 4px 4px">Recent</div>` + rec.map(e => row("pick-recent", `data-id="${e.id}"`, e.name, `${r1(e.g)} g last time`, kcalOf(e))).join("");
@@ -1001,7 +1016,7 @@ function openPortion(food, opts = {}) {
 function portionGrams() { const p = portion; const a = num(p.amount); if (!(a > 0)) return 0; if (p.unit === "g") return a; if (p.unit === "oz") return a * 28.35; const s = p.food.servings[+p.unit]; return s ? a * s[0] : a; }
 function portionPreview() {
   const g = portionGrams(); const n = portion.food.per; const v = k => n[k] == null ? "–" : r1(n[k] * g / 100);
-  return `<div class="tiles pv" style="grid-template-columns:repeat(4,minmax(0,1fr))">${statTile("kcal", n.kcal == null ? "–" : Math.round(n.kcal * g / 100))}${statTile("Protein", v("p") + " g")}${statTile("Carbs", v("c") + " g")}${statTile("Fat", v("f") + " g")}</div>
+  return `<div class="tiles pv" style="grid-template-columns:repeat(4,minmax(0,1fr))">${statTile("kcal", n.kcal == null ? "–" : fmtInt(n.kcal * g / 100))}${statTile("Protein", v("p") + " g")}${statTile("Carbs", v("c") + " g")}${statTile("Fat", v("f") + " g")}</div>
     <p class="tiny faint" style="margin-top:8px">${Math.round(g)} g · per 100 g: ${n.kcal ?? "–"} kcal, fiber ${n.fib ?? "–"} g, sugar ${n.sug ?? "–"} g, sodium ${n.na ?? "–"} mg</p>`;
 }
 function sPortion() {
@@ -1119,7 +1134,7 @@ function saveEntry() {
   const e = {id: p.editId || uid(), date: old ? old.date : p.date, meal: p.meal, name: f.name, ref: f.ref, g: r1(g), n: f.per, sv: f.servings || [], created: old ? old.created : Date.now()};
   if (f.estimate) e.est = 1;
   put("food", e); ui.foodMeal = p.meal; closeAll();
-  toast(old ? "Saved" : `Added ${Math.round(g)} g ${f.name.split(",")[0].toLowerCase()}, ${Math.round((f.per.kcal || 0) * g / 100)} kcal`);
+  toast(old ? "Saved" : `Added ${Math.round(g)} g ${f.name.split(",")[0].toLowerCase()}, ${fmtInt((f.per.kcal || 0) * g / 100)} kcal`);
 }
 const FOOD_ACTIONS = {
   "food-day": el => { const n = dkey(addDays(parseD(ui.foodDate || today()), +el.dataset.d)); if (n > today()) return; ui.foodDate = n; render(); },
@@ -1189,7 +1204,7 @@ function stepEst(n) {
 }
 function tSteps() {
   const t = today(), n = stepsOn(t), st = stepStats(), g = st.g, p = n / g, est = stepEst(n), c = "var(--c-steps)";
-  let h = `<section class="card steps-hero"><div class="sring">${multiRing([{k: "Steps", c, p}], 150)}<div class="sc"><b>${fmtInt(n)}</b><span>${Math.round(p * 100)}%</span></div></div>
+  let h = `<section class="card steps-hero"><div class="sring">${multiRing([{k: "Steps", c, p}], 150)}<div class="sc"><b>${Math.round(p * 100)}%</b><span>of goal</span></div></div>
     <div class="stack" style="gap:6px;min-width:0"><div class="label">Today</div><div class="snum">${fmtInt(n)}</div><div class="small muted" style="margin-top:-2px">of ${fmtInt(g)} steps</div>
     <p class="muted small">${n >= g ? `Goal reached${n > g ? `, ${fmtInt(n - g)} over` : ""}.` : `${fmtInt(g - n)} steps to go.`} About ${n1(est.km)} km and ${Math.round(est.kcal)} kcal (estimates).</p>
     <p class="faint small">${S.steps[t] ? (STEP_SRC[S.steps[t].src] || "Typed in") : "Nothing logged for today yet."}</p></div></section>`;
@@ -1524,11 +1539,13 @@ function sSummary(s) {
 }
 function sQuick() {
   return () => sheetHead("Add") + `<div class="stack" style="gap:8px">
+    <button class="pick" data-act="add-food"><span class="dot" style="--c:var(--c-food)"></span><span class="grow"><b>Food</b></span>${icon("right", 16)}</button>
     <button class="pick" data-act="add-tx" data-type="expense"><span class="dot" style="--c:var(--c-money)"></span><span class="grow"><b>Expense</b></span>${icon("right", 16)}</button>
     <button class="pick" data-act="add-tx" data-type="income"><span class="dot" style="--c:var(--c-money)"></span><span class="grow"><b>Income</b></span>${icon("right", 16)}</button>
     <button class="pick" data-act="add-task"><span class="dot" style="--c:var(--c-task)"></span><span class="grow"><b>Task</b></span>${icon("right", 16)}</button>
     <button class="pick" data-act="add-habit"><span class="dot" style="--c:var(--c-habit)"></span><span class="grow"><b>Habit</b></span>${icon("right", 16)}</button>
-    <button class="pick" data-act="go-train"><span class="dot" style="--c:var(--c-train)"></span><span class="grow"><b>Workout</b></span>${icon("right", 16)}</button></div>`;
+    <button class="pick" data-act="go-train"><span class="dot" style="--c:var(--c-train)"></span><span class="grow"><b>Workout</b></span>${icon("right", 16)}</button>
+    <button class="pick" data-act="go-weight"><span class="dot" style="--c:var(--s7)"></span><span class="grow"><b>Body weight</b></span>${icon("right", 16)}</button></div>`;
 }
 
 /* ---------- workout actions ---------- */
@@ -1595,6 +1612,7 @@ const A = {
   "sign-out": async () => { try { if (db) await db.close(); } catch {} await signOut(); },
   quick: () => openSheet(sQuick()),
   "go-train": () => { closeAll(); ui.trainTab = "workout"; go("train"); },
+  "go-weight": () => { closeAll(); ui.trainTab = "progress"; go("train"); const i = $("#bw-p"); if (i) { i.scrollIntoView({block: "center"}); i.focus({preventScroll: true}); } },
   fill: el => { const i = document.getElementById(el.dataset.target); if (i) { i.value = el.dataset.v; i.focus(); } },
   radio: el => setRadio(el),
   "add-habit": () => { closeAll(); openSheet(sHabit()); },
