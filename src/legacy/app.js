@@ -102,7 +102,7 @@ const TABS = [["today","Today"],["habits","Habits"],["tasks","Tasks"],["food","F
 const GAME_TABS = [["today","Hero"],["quests","Quests"],["food","Food"],["train","Train"],["money","Money"],["town","Town"]];
 const gameOn = () => { const g = S.settings.game; return !!(g && g.start && !g.off); };
 const tabList = () => gameOn() ? GAME_TABS : TABS;
-ui.questTab = ui.questTab || "board"; ui.townTab = ui.townTab || "armory";
+ui.questTab = ui.questTab || "board"; ui.townTab = ui.townTab || "armory"; ui.armoryTab = ui.armoryTab || "armor";
 function fixTab() {
   if (gameOn() && (ui.tab === "habits" || ui.tab === "tasks")) { ui.questTab = ui.tab; ui.tab = "quests"; }
   if (!gameOn() && ui.tab === "quests") ui.tab = ui.questTab === "tasks" ? "tasks" : "habits";
@@ -1449,6 +1449,9 @@ const STEP_FORMS = {
 const ITEM = Object.fromEntries(CAT.items.map(i => [i.id, i]));
 const SLOT_NAME = Object.fromEntries(CAT.slots.map(s => [s.id, s.name]));
 const SET_OF = Object.fromEntries(CAT.sets.map(s => [s.id, s]));
+const ORIGIN = Object.fromEntries(CAT.origins.map(o => [o.id, o]));
+const BOSS = Object.fromEntries(CAT.bosses.map(b => [b.id, b]));
+const AV_SLOTS = ["head", "chest", "arms", "legs", "weapon"];
 const ALL_WD = [0, 1, 2, 3, 4, 5, 6];
 const wdName = (i, style = "short") => new Date(2024, 0, 1 + i).toLocaleDateString(undefined, {weekday: style});
 const daysText = d => !d || d.length === 7 ? "Every day" : d.length === 5 && d.every(i => i < 5) ? "Weekdays" : d.length === 2 && d.every(i => i > 4) ? "Weekends" : d.map(i => wdName(i)).join(", ");
@@ -1458,12 +1461,28 @@ const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; r
 const coin = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.2" fill="var(--gold)"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="var(--gold-ink)" stroke-opacity=".4" stroke-width="1.4"/></svg>`;
 const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Gold</span></span>`;
 const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Gold</span></span></span>`;
-const heroDoc = () => ({name: "", look: {}, equip: {}, ...(S.hero || {})});
+const heroDoc = () => ({name: "", look: {}, equip: {}, talismans: [], ...(S.hero || {})});
 function heroEquip(equipIds) {
   const out = {};
-  for (const [slot, id] of Object.entries(equipIds || heroDoc().equip || {})) { const it = ITEM[id]; if (it) out[slot] = {color: E.rarities[it.rarity].color, rarity: it.rarity}; }
+  for (const [slot, id] of Object.entries(equipIds || heroDoc().equip || {})) { const it = ITEM[id]; if (it && AV_SLOTS.includes(slot)) out[slot] = {color: E.rarities[it.rarity].color, rarity: it.rarity, kind: it.kind}; }
   return out;
 }
+// Talismans worn: only ones you own, and only as many as your slots allow.
+const talismanSlots = () => GE.talismanSlots(Object.keys(S.inv), CAT, E);
+const heroTalismans = () => (heroDoc().talismans || []).filter(id => ITEM[id] && S.inv[id]).slice(0, talismanSlots());
+const heroPerks = () => GE.talismanPerks(heroTalismans(), CAT, E);
+const PERK_TEXT = {maxHp: v => `+${v} max HP`, heal: v => `+${v} HP per quest done`, dmgPct: v => `${v}% less day-end damage`, goldPct: v => `+${v}% Gold from quests`, xpPct: v => `+${v}% XP from quests`, streakRate: () => "Streak bonus builds twice as fast"};
+const perkText = P => Object.entries(P || {}).filter(([, v]) => v).map(([k, v]) => PERK_TEXT[k] ? PERK_TEXT[k](v) : k).join(" · ");
+// An origin's starter kit: its set's four pieces plus its weapon.
+const originKit = o => [...CAT.items.filter(i => o.setId && i.setId === o.setId).map(i => i.id), o.weapon].filter(id => ITEM[id]);
+const kitEquip = ids => Object.fromEntries(ids.map(id => [ITEM[id].slot, id]));
+function grantOrigin(o) {
+  const kit = originKit(o); const date = today(), at = Date.now();
+  kit.forEach((id, i) => { if (!S.inv[id]) put("inv", {id, date, at: at + i, src: "origin"}, true); });
+  setHero({origin: o.id, equip: {...(heroDoc().equip || {}), ...kitEquip(kit)}});
+}
+// Where a boss-only or boss-also item comes from, e.g. "Malenia, Blade of Miquella (level 70)".
+const bossSource = it => (it.source || []).filter(x => BOSS[x]).map(x => `${BOSS[x].name} (level ${E.bosses[x].level})`).join(", ");
 const heroAvatar = (size, label = "") => avatarSvg({look: heroDoc().look, equip: heroEquip(), size, label});
 const setGame = patch => setSettings({game: {...(S.settings.game || {}), ...patch}});
 
@@ -1473,9 +1492,9 @@ function gameData() { return {habits: Object.values(S.habits), tasks: Object.val
 let gMemo = null;
 function gameState() {
   if (!gameOn()) return null;
-  const key = [S.habits, S.tasks, S.steps, S.sessions, S.learn, S.ledger, S.gdays, S.settings, today()];
+  const key = [S.habits, S.tasks, S.steps, S.sessions, S.learn, S.ledger, S.gdays, S.settings, S.hero, S.inv, today()];
   if (gMemo && gMemo.key.every((v, i) => v === key[i])) return gMemo.r;
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT, perks: heroPerks()});
   gMemo = {key, r}; return r;
 }
 // The day-end job: pay what's earned and freeze finished days. It only writes once this
@@ -1487,7 +1506,7 @@ const dataFresh = () => !db || (!(db.busy && db.busy()) && (dbState === "synced"
 function reconcile() {
   if (!gameOn()) return;
   if (!dataFresh()) { if (db && db.busy && db.busy()) scheduleReconcile(); return; }
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT, perks: heroPerks()});
   if (!r.active || (!r.ledgerWrites.length && !r.dayWrites.length)) return;
   // A guard against a write loop: the job is idempotent, so a burst of rewrites means a bug.
   if (Date.now() - recAt > 10000) { recN = 0; recAt = Date.now(); }
@@ -1580,11 +1599,15 @@ function heroCard(s) {
   return `<section class="card herocard">
     <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(104)}</button>
     <div class="hc-main">
-      <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
+      <div class="row between" style="align-items:flex-start;gap:8px"><div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level}${ORIGIN[hd.origin] ? ` ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div><button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
       <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
       <div class="row wrap" style="gap:8px"><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}</div>
     </div></section>`;
+}
+function originCard() {
+  if (heroDoc().origin) return "";
+  return `<section class="card tut"><div class="row" style="align-items:flex-start"><span class="qic" style="--c:var(--gold-ink);--p:0" aria-hidden="true">${icon("shield", 15)}</span><div class="grow"><div class="label">New</div><b class="tut-t">Choose your origin</b><div class="small muted">Pick where your Tarnished comes from and get that origin's starter gear. It's for looks and gives no stats.</div></div><button class="btn sm" data-act="pick-origin">Choose</button></div></section>`;
 }
 function downedCard(s) {
   if (!s.downedRisk) return "";
@@ -1597,7 +1620,7 @@ function vHero() {
   const dateStr = now.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"});
   const hr = now.getHours(); const greet = hr < 5 ? "Late night" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
   let h = header(dateStr, `${greet}${S.settings.name ? ", " + esc(S.settings.name) : ""}`);
-  h += heroCard(s) + downedCard(s) + tutorialCard(s);
+  h += heroCard(s) + originCard() + downedCard(s) + tutorialCard(s);
   const plate = dueToday().filter(x => x.kind === "todo");
   h += `<div class="grid2">${boardCard(s)}<div class="stack">${yesterdayCard(s)}${bountyCard(s)}`;
   h += `<section class="card"><div class="card-h"><h2>On your plate</h2><button class="linkbtn" data-act="add-task" data-kind="todo">Add to-do</button></div>${plate.length ? `<div class="list">${plate.slice(0, 6).map(taskRow).join("")}</div>${plate.length > 6 ? `<button class="linkbtn" data-act="quest-tab" data-v="tasks" style="margin-top:8px">See all ${plate.length}</button>` : ""}` : `<p class="faint small">No to-dos due today.</p>`}</section>`;
@@ -1658,43 +1681,66 @@ function learnView() {
 function vTown() {
   const s = gameState(); const tabs = [["armory", "Armory"], ["wardrobe", "Wardrobe"], ["tavern", "Tavern"]];
   const tt = tabs.some(x => x[0] === ui.townTab) ? ui.townTab : "armory";
-  let h = header("Town", "Hearthhold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button>`, "Town");
+  let h = header("Town", "Roundtable Hold", `<button class="goldpill" data-act="ledger" aria-label="Gold: ${fmtInt(s.gold)}. Open the Gold log">${goldAmt(s.gold)}</button>`, "Town");
   h += `<div class="seg g3" role="group" aria-label="Town section" style="margin-bottom:14px">${tabs.map(([v, l]) => `<button data-act="town-tab" data-v="${v}" aria-pressed="${tt === v}">${l}</button>`).join("")}</div>`;
   return h + ({armory: armoryView, wardrobe: wardrobeView, tavern: tavernView}[tt])(s);
 }
 function armoryView(s) {
-  const items = GE.armoryItems(CAT, E); const gold = spendable(s); const eq = heroDoc().equip || {};
+  const items = GE.armoryItems(CAT, E); const gold = spendable(s); const eq = heroDoc().equip || {}; const worn = new Set(heroTalismans());
+  const tabs = [["armor", "Armor"], ["weapons", "Weapons"], ["talismans", "Talismans"]];
+  const at = tabs.some(x => x[0] === ui.armoryTab) ? ui.armoryTab : "armor";
+  const pick = {armor: i => i.type === "gear" && i.slot !== "weapon", weapons: i => i.type === "gear" && i.slot === "weapon", talismans: i => i.type !== "gear"}[at];
   const res = reservedGold();
-  let h = res ? `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Gold is set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>` : "";
+  let h = `<div class="seg g3" role="group" aria-label="Armory section" style="margin-bottom:12px">${tabs.map(([v, l]) => `<button data-act="armory-tab" data-v="${v}" aria-pressed="${at === v}">${l}</button>`).join("")}</div>`;
+  if (res) h += `<p class="small muted" style="margin-bottom:12px">${fmtInt(res)} Gold is set aside for a Tavern reward, so you have ${goldAmt(gold, 13)} to spend here.</p>`;
+  if (at === "talismans") h += `<p class="small muted" style="margin-bottom:12px">Talismans are the only gear with perks. You have ${talismanSlots()} talisman ${talismanSlots() === 1 ? "slot" : "slots"}; each pouch adds one, up to ${E.talismans.slotsMax}.</p>`;
   h += `<div class="stack">`;
   for (const rar of E.rarityOrder) {
-    const group = items.filter(i => i.rarity === rar); if (!group.length) continue;
-    const R = E.rarities[rar]; const set = SET_OF["set." + rar];
-    h += `<section class="card" style="--r:${R.color}"><div class="card-h"><h2><span class="rdot"></span> ${esc(CAT.rarityNames[rar])}${set ? ` · ${esc(set.name)} set` : ""}</h2>${R.level > s.level ? `<span class="pill">${icon("lock", 12, 2.4)}Unlocks at level ${R.level}</span>` : ""}</div><div class="items">`;
+    const group = items.filter(i => i.rarity === rar && pick(i)); if (!group.length) continue;
+    const R = E.rarities[rar]; const set = at === "armor" ? SET_OF[group[0].setId] : null;
+    const lvl = Math.min(...group.map(i => GE.itemPrice(i, E).level));
+    h += `<section class="card" style="--r:${R.color}"><div class="card-h"><h2><span class="rdot"></span> ${esc(CAT.rarityNames[rar])}${set ? ` · ${esc(set.name)} set` : ""}</h2>${lvl > s.level ? `<span class="pill">${icon("lock", 12, 2.4)}Unlocks at level ${lvl}</span>` : ""}</div><div class="items">`;
     h += group.map(it => {
       const p = GE.itemPrice(it, E); const owned = !!S.inv[it.id]; const c = GE.canBuy(it, {level: s.level, gold, owned}, E);
-      const btn = owned ? `<span class="pill ${eq[it.slot] === it.id ? "good" : ""}">${eq[it.slot] === it.id ? "Equipped" : "Owned"}</span>`
+      const on = it.type === "talisman" ? worn.has(it.id) : eq[it.slot] === it.id;
+      const btn = owned ? `<span class="pill ${on ? "good" : ""}">${on ? "Equipped" : "Owned"}</span>`
         : c.ok ? `<button class="btn sm pri" data-act="buy" data-id="${it.id}" data-confirm="Buy for ${fmtInt(p.gold)}?">${coin(13)}${fmtInt(p.gold)}</button>`
         : c.reason === "level" ? `<span class="price-short" title="Unlocks at level ${c.need}">${icon("lock", 13, 2.4)}${fmtInt(p.gold)}</span>`
         : `<span class="price-short" title="${fmtInt(c.short)} more Gold needed">${coin(13)}${fmtInt(p.gold)}</span>`;
-      return `<div class="item"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(SLOT_NAME[it.slot])}</div>${btn}</div>`;
+      const sub = it.type === "talisman" ? perkText(it.perk) : it.type === "pouch" ? "+1 talisman slot" : SLOT_NAME[it.slot];
+      const boss = bossSource(it);
+      return `<div class="item"><div class="art">${itemArt(it, R.color, 52)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(sub)}</div>${boss ? `<div class="tiny drop">${icon("shield", 11, 2.4)}Also drops from ${esc(boss)}</div>` : ""}${btn}</div>`;
     }).join("");
     h += `</div></section>`;
+  }
+  if (at === "talismans") {
+    const drops = CAT.items.filter(i => i.type === "pouch" && !i.purchasable);
+    h += `<section class="card"><div class="card-h"><h2>Boss drops</h2></div><div class="list">${drops.map(i => `<div class="li" style="padding:9px 0"><span class="grow t">${esc(i.name)}</span><span class="small muted">${S.inv[i.id] ? "Owned" : esc(bossSource(i))}</span></div>`).join("")}</div><p class="tiny faint" style="margin-top:8px">Boss fights open from level ${Math.min(...Object.values(E.bosses).map(b => b.level))}.</p></section>`;
   }
   h += `<p class="tiny faint">Gold is earned only by completing quests. It can't be bought.</p>`;
   return h + `</div>`;
 }
 function wardrobeView(s) {
   const hd = heroDoc(); const eq = hd.equip || {}; const owned = Object.keys(S.inv).map(id => ITEM[id]).filter(Boolean);
-  let h = `<div class="grid2"><section class="card ward"><div class="ward-av">${heroAvatar(150, "Your hero")}</div><div class="stack" style="gap:6px;min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="small muted">Level ${s.level} · ${owned.length} ${owned.length === 1 ? "item" : "items"}</div><button class="btn sm ghost" style="align-self:flex-start;margin-top:6px" data-act="edit-look">${icon("edit", 15)}Change look</button></div></section>`;
+  const gear = owned.filter(i => i.type === "gear"); const tals = owned.filter(i => i.type === "talisman"); const worn = heroTalismans(); const n = talismanSlots();
+  const og = ORIGIN[hd.origin];
+  let h = `<div class="grid2" style="align-items:start"><section class="card ward"><div class="ward-av">${heroAvatar(150, "Your hero")}</div><div class="stack" style="gap:6px;min-width:0"><div class="hc-name">${esc(hd.name || "Tarnished")}</div><div class="small muted">Level ${s.level}${og ? ` ${esc(og.name)}` : ""} · ${gear.length} ${gear.length === 1 ? "piece" : "pieces"} of gear</div><button class="btn sm ghost" style="align-self:flex-start;margin-top:6px" data-act="edit-look">${icon("edit", 15)}Change look</button>${og ? "" : `<button class="btn sm" style="align-self:flex-start" data-act="pick-origin">Choose origin</button>`}</div></section>`;
   h += `<section class="card"><div class="card-h"><h2>Gear</h2></div>`;
-  if (!owned.length) h += `<div class="empty"><span>You don't own any gear yet. The Armory sells it for Gold from quests.</span><button class="btn sm" data-act="town-tab" data-v="armory">Visit the Armory</button></div>`;
-  else h += CAT.slots.filter(sl => owned.some(i => i.slot === sl.id)).map(sl => {
-    const mine = owned.filter(i => i.slot === sl.id).sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
+  if (!gear.length) h += `<div class="empty"><span>You don't own any gear yet. The Armory sells it for Gold from quests.</span><button class="btn sm" data-act="town-tab" data-v="armory">Visit the Armory</button></div>`;
+  else h += CAT.slots.filter(sl => gear.some(i => i.slot === sl.id)).map(sl => {
+    const mine = gear.filter(i => i.slot === sl.id).sort((a, b) => E.rarityOrder.indexOf(a.rarity) - E.rarityOrder.indexOf(b.rarity));
     return `<div class="slotrow"><div class="row between"><b>${esc(sl.name)}</b><span class="small muted">${eq[sl.id] && ITEM[eq[sl.id]] ? esc(ITEM[eq[sl.id]].name) : "Nothing on"}</span></div><div class="wopts">
       <button class="wopt" data-act="equip" data-slot="${sl.id}" data-id="" aria-pressed="${!eq[sl.id]}"><span class="wnone">${icon("x", 18)}</span>None</button>
-      ${mine.map(it => { const col = E.rarities[it.rarity].color; return `<button class="wopt" style="--r:${col}" data-act="equip" data-slot="${sl.id}" data-id="${it.id}" aria-pressed="${eq[sl.id] === it.id}" aria-label="Wear ${esc(it.name)}">${itemArt(it, col, 34)}<span>${esc(CAT.rarityNames[it.rarity])}</span></button>`; }).join("")}</div></div>`;
+      ${mine.map(it => { const col = E.rarities[it.rarity].color; return `<button class="wopt" style="--r:${col}" data-act="equip" data-slot="${sl.id}" data-id="${it.id}" aria-pressed="${eq[sl.id] === it.id}" aria-label="Wear ${esc(it.name)}, ${esc(CAT.rarityNames[it.rarity])}">${itemArt(it, col, 34)}<span>${esc(it.name)}</span></button>`; }).join("")}</div></div>`;
   }).join("");
+  h += `</section>`;
+  // Talismans: the slots you have, what's in them, and what you own.
+  const P = heroPerks();
+  h += `<section class="card"><div class="card-h"><h2>Talismans</h2><span class="small muted">${worn.length} of ${n} ${n === 1 ? "slot" : "slots"}</span></div>
+    <div class="tslots">${Array.from({length: E.talismans.slotsMax}, (_, i) => { const it = ITEM[worn[i]]; return i >= n ? `<span class="tslot locked" title="Needs a talisman pouch">${icon("lock", 14, 2.4)}</span>` : it ? `<span class="tslot" style="--r:${E.rarities[it.rarity].color}" title="${esc(it.name)}">${itemArt(it, E.rarities[it.rarity].color, 30)}</span>` : `<span class="tslot empty"></span>`; }).join("")}</div>
+    <p class="small ${perkText(P) ? "" : "muted"}" style="margin:8px 0 4px">${perkText(P) || "No perks active."}</p>`;
+  if (!tals.length) h += `<div class="empty"><span>Talismans give small perks, like more Gold or less day-end damage.</span><button class="btn sm" data-act="armory-tab" data-v="talismans">See talismans</button></div>`;
+  else h += `<div class="wopts">${tals.map(it => { const col = E.rarities[it.rarity].color; const on = worn.includes(it.id); return `<button class="wopt" style="--r:${col}" data-act="talisman" data-id="${it.id}" aria-pressed="${on}" aria-label="${on ? "Take off" : "Wear"} ${esc(it.name)}: ${esc(perkText(it.perk))}">${itemArt(it, col, 30)}<span>${esc(it.name)}</span></button>`; }).join("")}</div>`;
   return h + `</section></div>`;
 }
 function tavernView(s) {
@@ -1751,6 +1797,13 @@ const lookFields = L => `<div class="field"><span>Skin</span><div class="swatche
   <div class="field"><span>Hair color</span><div class="swatches">${CAT.looks.hair.map(c => `<button type="button" class="sw" style="--c:${c}" data-act="look-pick" data-name="hair" data-v="${c}" aria-pressed="${c === L.hair}" aria-label="Hair color"></button>`).join("")}</div><input type="hidden" name="hair" value="${L.hair}"></div>
   <div class="field"><span>Hair style</span><div class="seg" role="group">${CAT.looks.hairStyle.map(o => `<button type="button" data-act="look-pick" data-name="hairStyle" data-v="${o.id}" aria-pressed="${o.id === L.hairStyle}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="hairStyle" value="${L.hairStyle}"></div>
   <div class="field"><span>Build</span><div class="seg" role="group">${CAT.looks.body.map(o => `<button type="button" data-act="look-pick" data-name="body" data-v="${o.id}" aria-pressed="${o.id === L.body}">${esc(o.name)}</button>`).join("")}</div><input type="hidden" name="body" value="${L.body}"></div>`;
+const originFields = sel => `<div class="field"><span>Origin</span><div class="stack" style="gap:8px" role="group" aria-label="Origin">${CAT.origins.map(o => `<button type="button" class="pickt origin" data-act="origin-pick" data-name="origin" data-v="${o.id}" aria-pressed="${o.id === sel}"><span class="og-av" aria-hidden="true">${avatarSvg({equip: heroEquip(kitEquip(originKit(o))), size: 40})}</span><span class="grow"><b>${esc(o.name)}</b><br><span class="small muted">${esc(o.text)}</span></span><span class="tick">${icon("check", 16, 3)}</span></button>`).join("")}<input type="hidden" name="origin" value="${sel}"></div></div>`;
+function sOrigin() {
+  const sel = CAT.origins[0].id;
+  return () => sheetHead("Choose your origin") + `<form data-form="origin" class="stack"><div class="lookprev" data-look="1">${avatarSvg({look: heroDoc().look, equip: heroEquip(kitEquip(originKit(ORIGIN[sel]))), size: 132})}</div>
+    ${originFields(sel)}<p class="tiny faint">You choose once. Starter gear gives no stats and stays in your Wardrobe next to anything you buy.</p>
+    <div class="sh-foot"><button class="btn pri">Confirm origin</button></div></form>`;
+}
 const formLook = f => ({skin: fv(f, "skin"), hair: fv(f, "hair"), hairStyle: fv(f, "hairStyle"), body: fv(f, "body")});
 function sLook() {
   const hd = heroDoc(); const L = {...DEFAULT_LOOK, ...hd.look};
@@ -1768,15 +1821,16 @@ function suggestWorkoutDays() {
 function sOnboard() {
   const t = today(); const base = GE.stepBaseline(S.steps, t, E); const cur = stepGoal();
   const goals = [...new Set([base, cur, 6000, 8000, 10000, 12000].filter(Boolean))].sort((a, b) => a - b);
-  const sel = base || cur; const L = {...DEFAULT_LOOK};
+  const sel = base || cur; const L = {...DEFAULT_LOOK}; const o0 = CAT.origins[0].id;
   const pre = new Set(["tavern.starter.coffee", "tavern.starter.episode", "tavern.starter.nightoff"]);
   const nh = habitList().filter(h => h.freq !== "weekly").length, nt = Object.values(S.tasks).filter(x => x.kind === "daily").length;
   return () => sheetHead("Create your hero") + `<form data-form="onboard" class="stack ob">
     <div class="ob-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
     <fieldset data-step="1" class="stack">
-      <div class="lookprev">${avatarSvg({look: L, size: 132})}</div>
-      <label class="field"><span>Hero name</span><input name="heroName" maxlength="24" value="${esc(S.settings.name || "")}" placeholder="What should the town call you?" autocomplete="off"></label>
-      ${lookFields(L)}
+      <div class="lookprev">${avatarSvg({look: L, equip: heroEquip(kitEquip(originKit(ORIGIN[o0]))), size: 132})}</div>
+      <label class="field"><span>Hero name</span><input name="heroName" maxlength="24" value="${esc(S.settings.name || "")}" placeholder="What should the Roundtable call you?" autocomplete="off"></label>
+      ${originFields(o0)}
+      <p class="tiny faint">Starter gear is for looks and gives no stats. You can change skin and hair later in the Wardrobe.</p>
       <div class="sh-foot"><button type="button" class="btn pri" data-act="ob-step" data-d="1">Next</button></div>
     </fieldset>
     <fieldset data-step="2" class="stack" hidden>
@@ -1836,6 +1890,11 @@ const GAME_ACTIONS = {
     const nx = f.querySelector(`fieldset[data-step="${n}"]`); if (!nx) return;
     cur.hidden = true; nx.hidden = false; f.querySelectorAll(".ob-dots i").forEach((d, i) => d.classList.toggle("on", i === n - 1)); $("#sheet").scrollTop = 0;
   },
+  "origin-pick": el => {
+    setRadio(el); const f = el.closest("form"); const p = f && f.querySelector(".lookprev"); const o = ORIGIN[el.dataset.v];
+    if (p && o) p.innerHTML = avatarSvg({look: p.dataset.look ? heroDoc().look : DEFAULT_LOOK, equip: heroEquip(kitEquip(originKit(o))), size: 132});
+  },
+  "pick-origin": () => openSheet(sOrigin()),
   "look-pick": el => {
     setRadio(el); const f = el.closest("form"); const p = f && f.querySelector(".lookprev");
     if (p) p.innerHTML = avatarSvg({look: formLook(f), equip: p.dataset.equip ? heroEquip() : {}, size: 132});
@@ -1853,6 +1912,13 @@ const GAME_ACTIONS = {
   },
   "quest-tab": el => { ui.questTab = el.dataset.v; ui.reorder = false; saveUi(); if (ui.tab !== "quests") { closeAll(); go("quests"); } else render(); },
   "town-tab": el => { ui.townTab = el.dataset.v; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else { render(); window.scrollTo(0, 0); } },
+  "armory-tab": el => { ui.armoryTab = el.dataset.v; ui.townTab = "armory"; saveUi(); if (ui.tab !== "town") { closeAll(); go("town"); } else render(); },
+  talisman: el => {
+    const id = el.dataset.id; if (!ITEM[id] || !S.inv[id]) return; const worn = heroTalismans();
+    if (worn.includes(id)) { setHero({talismans: worn.filter(x => x !== id)}); return; }
+    const n = talismanSlots(); if (worn.length >= n) { toast(n === 1 ? "Your one slot is full. Take that talisman off first." : `All ${n} slots are full. Take one off first.`); return; }
+    setHero({talismans: [...worn, id]}); toast(`${ITEM[id].name}: ${perkText(ITEM[id].perk)}`);
+  },
   reorder: () => { ui.reorder = !ui.reorder; render(); },
   "q-move": el => {
     const s = gameState(); if (!s) return; const keys = s.board.today.dailies.map(q => q.key);
@@ -1863,6 +1929,7 @@ const GAME_ACTIONS = {
   ledger: () => openSheet(sLedger(), true),
   "edit-look": () => openSheet(sLook()),
   equip: el => {
+    if (el.dataset.id && !S.inv[el.dataset.id]) return;
     const eq = {...(heroDoc().equip || {})}; if (el.dataset.id) eq[el.dataset.slot] = el.dataset.id; else delete eq[el.dataset.slot];
     setHero({equip: eq});
   },
@@ -1870,9 +1937,16 @@ const GAME_ACTIONS = {
     const it = ITEM[el.dataset.id]; const s = gameState(); if (!it || !s || !canSpend()) return;
     const c = GE.canBuy(it, {level: s.level, gold: spendable(s), owned: !!S.inv[it.id]}, E);
     if (!c.ok) { toast(c.reason === "gold" ? `You need ${fmtInt(c.short)} more Gold` : c.reason === "level" ? `Unlocks at level ${c.need}` : "You already own this"); return; }
-    const at = Date.now(), date = today(); const eq = heroDoc().equip || {}; const wear = !eq[it.slot];
+    const at = Date.now(), date = today(); const eq = heroDoc().equip || {};
     putMany("ledger", [{id: "buy:" + it.id, date, cur: "gold", amt: -c.price.gold, src: "armory", srcId: it.id, bal: s.gold - c.price.gold, at}], true);
-    put("inv", {id: it.id, date, at});
+    put("inv", {id: it.id, date, at, src: "armory"});
+    if (it.type === "pouch") { toast(`${it.name} is yours. You now have ${talismanSlots()} talisman slots`); return; }
+    if (it.type === "talisman") {
+      const worn = heroTalismans(); const wear = worn.length < talismanSlots();
+      if (wear) setHero({talismans: [...worn, it.id]});
+      toast(wear ? `${it.name} is yours, and you're wearing it` : `${it.name} is yours. Your talisman slots are full, so swap it in from the Wardrobe`); return;
+    }
+    const wear = !eq[it.slot] || (ITEM[eq[it.slot]] || {}).rarity === "starter";
     if (wear) setHero({equip: {...eq, [it.slot]: it.id}});
     toast(wear ? `${it.name} is yours, and you're wearing it` : `${it.name} is yours. Wear it from the Wardrobe`);
   },
@@ -1909,10 +1983,16 @@ const GAME_FORMS = {
     const game = {start, dayEnd: "00:00", workoutDays: parseDays(fd.get("workoutDays")), steps: sg > 0, learn: {on: fd.get("learnOn") === "1", goalMin: +fd.get("learnMin") || E.learning.defaultGoalMin, days: null}, order: [], pauses: []};
     game.seed = GE.seedStreak({...gameData(), stepGoal: sg || stepGoal()}, game, start, E);
     setSettings({game, ...(sg ? {stepGoal: sg} : {})});
-    setHero({name: String(fd.get("heroName") || "").trim().slice(0, 24) || "Hero", look: formLook(f), equip: {}, created: Date.now()});
+    setHero({name: String(fd.get("heroName") || "").trim().slice(0, 24) || "Tarnished", look: {...DEFAULT_LOOK}, equip: {}, talismans: [], created: Date.now()});
+    grantOrigin(ORIGIN[fd.get("origin")] || CAT.origins[0]);
     const picked = new Set(String(fd.get("starters") || "").split(",").filter(Boolean));
     CAT.tavernStarters.filter(x => picked.has(x.id)).forEach((x, i) => put("rewards", {id: uid() + i, name: x.name, icon: x.icon, price: x.price, repeatable: x.repeatable, cooldownDays: x.cooldownDays, created: Date.now() + i, count: 0, from: x.id}, true));
     closeAll(); go("today"); toast(`Your adventure begins. ${CAT.tutorial.text}`);
+  },
+  origin: fd => {
+    const o = ORIGIN[fd.get("origin")]; if (!o) return;
+    if (!heroDoc().origin) { grantOrigin(o); toast(`${o.name} it is. Your starter gear is on.`); }
+    closeAll();
   },
   look: (fd, f) => { setHero({name: String(fd.get("heroName") || "").trim().slice(0, 24) || "Hero", look: formLook(f)}); closeAll(); toast("Looking good"); },
   "game-settings": fd => {

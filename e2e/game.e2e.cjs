@@ -78,7 +78,7 @@ function seed(be) {
   // Character creation
   await p.click('.invite [data-act="start-game"]'); await p.waitForSelector('#sheet form[data-form="onboard"]');
   await p.fill('#sheet input[name="heroName"]', "Raki the Bold");
-  await p.click('#sheet [data-name="skin"] >> nth=3'); await p.click('#sheet [data-name="hair"] >> nth=4'); await p.click('#sheet [data-name="hairStyle"][data-v="bun"]');
+  await p.click('#sheet [data-name="origin"][data-v="origin.samurai"]');
   await p.screenshot({ path: `${OUT}/game-2-create-${W}.png` });
   await p.click('#sheet fieldset[data-step="1"] [data-act="ob-step"][data-d="1"]');
   const suggested = await p.textContent('#sheet [data-name="stepGoal"][aria-pressed="true"]');
@@ -94,7 +94,10 @@ function seed(be) {
   const set = be.table.get("meta/settings").data;
   check(set.game && set.game.start && set.game.learn.on === true, "game settings saved on the server");
   check(set.game.seed && set.game.seed.streak >= 6, "history seeded the streak: " + JSON.stringify(set.game.seed));
-  check(be.table.get("game/character") && be.table.get("game/character").data.name === "Raki the Bold", "hero saved");
+  const hero0 = be.table.get("game/character") && be.table.get("game/character").data;
+  check(hero0 && hero0.name === "Raki the Bold" && hero0.origin === "origin.samurai", "hero saved with the Samurai origin");
+  const kit = ["gear.head.land-of-reeds-helm", "gear.chest.land-of-reeds-armor", "gear.arms.land-of-reeds-gauntlets", "gear.legs.land-of-reeds-greaves", "gear.weapon.longbow"];
+  check(kit.every(id => be.table.get("inv/" + id)) && kit.every(id => Object.values(hero0.equip).includes(id)), "Samurai starter kit owned and worn");
   check(rows("rewards").length === 3, "3 starter rewards saved");
   check(ledger().length === 0, "nothing paid yet");
   await shot("5-hero");
@@ -104,7 +107,7 @@ function seed(be) {
   const before = await p.textContent(".herocard .goldpill");
   await p.click('.board [data-act="toggle-habit"] >> nth=0'); await p.waitForTimeout(400);
   const t1 = await p.textContent("#toast");
-  check(/Hero Awakens/.test(t1), "toast after first quest: " + t1);
+  check(/Arise, Tarnished/.test(t1), "toast after first quest: " + t1);
   await p.waitForTimeout(1500);
   check(ledger().some(e => e.src === "tutorial") && ledger().some(e => e.src === "quest"), "tutorial and quest reward on the server ledger");
   const after = await p.textContent(".herocard .goldpill");
@@ -138,9 +141,16 @@ function seed(be) {
   if (buy) { const id = await buy.getAttribute("data-id"); await buy.click(); await buy.click(); await p.waitForTimeout(900);
     check(!!be.table.get("inv/" + id), "bought " + id);
     check(gold() < g0, `server gold ${g0} → ${gold()}`);
-    check(Object.values(be.table.get("game/character").data.equip || {}).includes(id), "new gear auto-equipped");
+    check(Object.values(be.table.get("game/character").data.equip || {}).includes(id), "new gear replaces starter gear");
   } else check(false, "nothing affordable in the Armory with " + g0 + " Gold");
   await shot("11-armory-after");
+  await p.click('[data-act="armory-tab"][data-v="weapons"]'); await shot("11b-armory-weapons");
+  check(/Hand of Malenia/.test(await p.textContent("#view")) && /Also drops from Malenia/.test(await p.textContent("#view")), "the Hand of Malenia is sold and drops from Malenia");
+  await p.click('[data-act="armory-tab"][data-v="talismans"]'); await shot("11c-armory-talismans");
+  const tbuy = await p.$('[data-act="buy"][data-id^="talisman."]');
+  if (tbuy) { const id = await tbuy.getAttribute("data-id"); await tbuy.click(); await tbuy.click(); await p.waitForTimeout(900);
+    check((be.table.get("game/character").data.talismans || []).includes(id), "bought talisman " + id + " is worn");
+  } else console.log("  (no talisman affordable with", gold(), "Gold)");
   await p.click('[data-act="town-tab"][data-v="wardrobe"]'); await shot("12-wardrobe");
   await p.click('[data-act="town-tab"][data-v="tavern"]'); await shot("13-tavern");
   const red = await p.$('[data-act="redeem"]');
@@ -165,6 +175,24 @@ function seed(be) {
   check(await p.textContent(".herocard .small.muted") === lvl && await p.textContent(".herocard .goldpill") === gp, `after reload: ${lvl}, ${gp.trim()}`);
   const n0 = ledger().length; await p.waitForTimeout(2000);
   check(ledger().length === n0, "no extra ledger writes after reload (idempotent)");
+
+  // Talismans: put more Gold on the server, reload, buy one, and check its perk applies.
+  const lk = [...be.table.keys()].find(k => k.startsWith("ledgerm/")); const nowD = new Date();
+  const tk = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}-${String(nowD.getDate()).padStart(2, "0")}`;
+  be.table.get(lk).data.items["e2e:gift"] = { id: "e2e:gift", date: tk, cur: "gold", amt: 2000, src: "quest", srcId: "e2e", at: Date.now() };
+  await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith("daybook:v1")) localStorage.removeItem(k); });
+  await p.reload(); await p.waitForSelector("#view .herocard", { timeout: 10000 }); await p.waitForTimeout(1200);
+  const hpMax = async () => +(await p.getAttribute(".herocard [aria-label=\"HP\"]", "aria-valuemax"));
+  const mx0 = await hpMax();
+  await p.click('[data-tab="town"]:visible'); await p.click('[data-act="town-tab"][data-v="armory"]'); await p.click('[data-act="armory-tab"][data-v="talismans"]');
+  const tb = '[data-act="buy"][data-id="talisman.crimson-amber-medallion"]'; await p.click(tb); await p.click(tb); await p.waitForTimeout(800);
+  check((be.table.get("game/character").data.talismans || []).includes("talisman.crimson-amber-medallion"), "bought talisman is worn");
+  const pb = '[data-act="buy"][data-id="talisman.gold-scarab"]'; if (await p.$(pb)) { await p.click(pb); await p.click(pb); await p.waitForTimeout(800); }
+  check((be.table.get("game/character").data.talismans || []).length === 1, "one slot: the second talisman waits in the Wardrobe");
+  await p.click('[data-act="town-tab"][data-v="wardrobe"]'); await shot("17-wardrobe-talisman");
+  check(/\+10 max HP/.test(await p.textContent("#view")), "Wardrobe shows the active perk");
+  await p.click('[data-tab="today"]:visible'); await p.waitForTimeout(300);
+  check(await hpMax() === mx0 + 10, `max HP ${mx0} → ${await hpMax()}`);
   console.log("errors:", errs);
   await b.close();
   if (errs.length) process.exit(1);

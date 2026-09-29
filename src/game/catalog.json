@@ -1,1040 +1,1396 @@
 {
- "version": 1,
- "slots": [
-  {
-   "id": "helm",
-   "name": "Helm"
-  },
-  {
-   "id": "armor",
-   "name": "Armor"
-  },
-  {
-   "id": "boots",
-   "name": "Boots"
-  },
-  {
-   "id": "cape",
-   "name": "Cape"
-  },
-  {
-   "id": "weapon",
-   "name": "Weapon"
-  },
-  {
-   "id": "aura",
-   "name": "Aura"
-  }
- ],
- "rarityNames": {
-  "common": "Common",
-  "uncommon": "Uncommon",
-  "rare": "Rare",
-  "epic": "Epic",
-  "legendary": "Legendary",
-  "mythic": "Mythic"
- },
- "sets": [
-  {
-   "id": "set.common",
-   "name": "Traveler's",
-   "rarity": "common",
-   "bonus": null
-  },
-  {
-   "id": "set.uncommon",
-   "name": "Ironbound",
-   "rarity": "uncommon",
-   "bonus": "Faint dust trail when walking"
-  },
-  {
-   "id": "set.rare",
-   "name": "Stormrunner",
-   "rarity": "rare",
-   "bonus": "Crackling spark trail"
-  },
-  {
-   "id": "set.epic",
-   "name": "Nightwarden",
-   "rarity": "epic",
-   "bonus": "Shadow wisps and a night tint"
-  },
-  {
-   "id": "set.legendary",
-   "name": "Sunforged",
-   "rarity": "legendary",
-   "bonus": "Animated sunrise glow with light rays"
-  },
-  {
-   "id": "set.mythic",
-   "name": "Eternal",
-   "rarity": "mythic",
-   "bonus": "Starfield overlay and a unique idle animation"
-  }
- ],
- "classes": [
-  {
-   "id": "warrior",
-   "name": "Warrior",
-   "stat": "str",
-   "weapon": "Swords"
-  },
-  {
-   "id": "ranger",
-   "name": "Ranger",
-   "stat": "end",
-   "weapon": "Bows"
-  },
-  {
-   "id": "mage",
-   "name": "Mage",
-   "stat": "int",
-   "weapon": "Staves and tomes"
-  },
-  {
-   "id": "monk",
-   "name": "Monk",
-   "stat": "dis",
-   "weapon": "Wraps and beads"
-  }
- ],
- "stats": {
-  "str": "Strength",
-  "end": "Endurance",
-  "int": "Intellect",
-  "dis": "Discipline"
- },
- "items": [
-  {
-   "id": "gear.helm.common",
-   "name": "Traveler's Hood",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.helm.uncommon",
-   "name": "Ironbound Helm",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.helm.rare",
-   "name": "Stormrunner Circlet",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.helm.epic",
-   "name": "Nightwarden Cowl",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.helm.legendary",
-   "name": "Sunforged Crown",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.helm.mythic",
-   "name": "Eternal Halo",
-   "type": "gear",
-   "slot": "helm",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": null,
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "365-day overall streak"
-  },
-  {
-   "id": "gear.armor.common",
-   "name": "Traveler's Tunic",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.armor.uncommon",
-   "name": "Ironbound Mail",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.armor.rare",
-   "name": "Stormrunner Jerkin",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.armor.epic",
-   "name": "Nightwarden Plate",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.armor.legendary",
-   "name": "Sunforged Aegis",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.armor.mythic",
-   "name": "Eternal Raiment",
-   "type": "gear",
-   "slot": "armor",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": null,
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Complete all 4 launch campaigns"
-  },
-  {
-   "id": "gear.boots.common",
-   "name": "Traveler's Boots",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.boots.uncommon",
-   "name": "Ironbound Greaves",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.boots.rare",
-   "name": "Stormrunner Striders",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.boots.epic",
-   "name": "Nightwarden Treads",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.boots.legendary",
-   "name": "Sunforged Sabatons",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.boots.mythic",
-   "name": "Eternal Wingsteps",
-   "type": "gear",
-   "slot": "boots",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": null,
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "1,000,000 lifetime steps"
-  },
-  {
-   "id": "gear.cape.common",
-   "name": "Traveler's Cloak",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.cape.uncommon",
-   "name": "Ironbound Mantle",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.cape.rare",
-   "name": "Stormrunner Cape",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.cape.epic",
-   "name": "Nightwarden Shroud",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.cape.legendary",
-   "name": "Sunforged Mantle",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": null,
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.cape.mythic",
-   "name": "Eternal Starcloak",
-   "type": "gear",
-   "slot": "cape",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": null,
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Top contribution tier in a World Boss victory"
-  },
-  {
-   "id": "gear.aura.common",
-   "name": "Firefly Glow",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "common",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.aura.uncommon",
-   "name": "Petal Drift",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "uncommon",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.aura.rare",
-   "name": "Frostbreath",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "rare",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.aura.epic",
-   "name": "Voidflame",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "epic",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.aura.legendary",
-   "name": "Solar Flare",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "legendary",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.aura.mythic",
-   "name": "Starfall",
-   "type": "gear",
-   "slot": "aura",
-   "rarity": "mythic",
-   "setId": null,
-   "cls": null,
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Reach level 50"
-  },
-  {
-   "id": "gear.weapon.warrior.common",
-   "name": "Wooden Sword",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": "warrior",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.warrior.uncommon",
-   "name": "Iron Longsword",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": "warrior",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.warrior.rare",
-   "name": "Stormcleaver",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": "warrior",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.warrior.epic",
-   "name": "Nightfang Greatsword",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": "warrior",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.warrior.legendary",
-   "name": "Sunforged Blade",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": "warrior",
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.warrior.mythic",
-   "name": "Eternal Edge",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": "warrior",
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
-  },
-  {
-   "id": "gear.weapon.ranger.common",
-   "name": "Hunting Bow",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": "ranger",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.ranger.uncommon",
-   "name": "Ironwood Longbow",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": "ranger",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.ranger.rare",
-   "name": "Stormstring Bow",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": "ranger",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.ranger.epic",
-   "name": "Nightwarden Recurve",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": "ranger",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.ranger.legendary",
-   "name": "Sunforged Longbow",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": "ranger",
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.ranger.mythic",
-   "name": "Eternal Arc",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": "ranger",
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
-  },
-  {
-   "id": "gear.weapon.mage.common",
-   "name": "Apprentice Wand",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": "mage",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.mage.uncommon",
-   "name": "Ironbound Tome",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": "mage",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.mage.rare",
-   "name": "Stormcaller Staff",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": "mage",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.mage.epic",
-   "name": "Nightwarden Grimoire",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": "mage",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.mage.legendary",
-   "name": "Sunforged Scepter",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": "mage",
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.mage.mythic",
-   "name": "Eternal Codex",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": "mage",
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
-  },
-  {
-   "id": "gear.weapon.monk.common",
-   "name": "Linen Wraps",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "common",
-   "setId": "set.common",
-   "cls": "monk",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.monk.uncommon",
-   "name": "Iron Knuckles",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "uncommon",
-   "setId": "set.uncommon",
-   "cls": "monk",
-   "source": [
-    "shop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.monk.rare",
-   "name": "Stormpalm Wraps",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "rare",
-   "setId": "set.rare",
-   "cls": "monk",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.monk.epic",
-   "name": "Nightwarden Prayer Beads",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "epic",
-   "setId": "set.epic",
-   "cls": "monk",
-   "source": [
-    "shop",
-    "drop"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.monk.legendary",
-   "name": "Sunforged Fists",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "legendary",
-   "setId": "set.legendary",
-   "cls": "monk",
-   "source": [
-    "shop",
-    "drop",
-    "campaign"
-   ],
-   "purchasable": true
-  },
-  {
-   "id": "gear.weapon.monk.mythic",
-   "name": "Eternal Lotus",
-   "type": "gear",
-   "slot": "weapon",
-   "rarity": "mythic",
-   "setId": "set.mythic",
-   "cls": "monk",
-   "source": [
-    "achievement"
-   ],
-   "purchasable": false,
-   "unlock": "Complete your class's full skill tree and defeat 25 bosses"
-  }
- ],
- "quests": {
-  "steps": [
-   "Patrol the Eastern Road",
-   "Walk the Kingsway",
-   "Scout the Moorland",
-   "Follow the Old Trade Route",
-   "Circle the City Walls",
-   "Cross the Windy Pass"
+  "version": 2,
+  "slots": [
+    {
+      "id": "head",
+      "name": "Head"
+    },
+    {
+      "id": "chest",
+      "name": "Chest"
+    },
+    {
+      "id": "arms",
+      "name": "Arms"
+    },
+    {
+      "id": "legs",
+      "name": "Legs"
+    },
+    {
+      "id": "weapon",
+      "name": "Weapon"
+    },
+    {
+      "id": "talisman",
+      "name": "Talisman"
+    }
   ],
-  "workout": [
-   "Drill in the Barracks",
-   "Train at the Forge Yard",
-   "Spar with the Guard",
-   "Lift the Castle Gate",
-   "Hold the Bridge",
-   "Temper Your Blade"
+  "rarityNames": {
+    "starter": "Starter",
+    "common": "Common",
+    "uncommon": "Uncommon",
+    "rare": "Rare",
+    "epic": "Epic",
+    "legendary": "Legendary",
+    "mythic": "Mythic"
+  },
+  "origins": [
+    {
+      "id": "origin.vagabond",
+      "name": "Vagabond",
+      "text": "A knight exiled from their homeland, in sturdy armor with a longsword.",
+      "setId": "set.vagabond",
+      "weapon": "gear.weapon.longsword"
+    },
+    {
+      "id": "origin.samurai",
+      "name": "Samurai",
+      "text": "A fighter from the distant Land of Reeds, armed with a longbow.",
+      "setId": "set.samurai",
+      "weapon": "gear.weapon.longbow"
+    },
+    {
+      "id": "origin.astrologer",
+      "name": "Astrologer",
+      "text": "A scholar who reads fate in the stars, with a glintstone staff.",
+      "setId": "set.astrologer",
+      "weapon": "gear.weapon.astrologers-staff"
+    },
+    {
+      "id": "origin.confessor",
+      "name": "Confessor",
+      "text": "A church spy who works in the shadows, armed with a broadsword.",
+      "setId": "set.confessor",
+      "weapon": "gear.weapon.broadsword"
+    },
+    {
+      "id": "origin.wretch",
+      "name": "Wretch",
+      "text": "Starts with nothing but a club. Everything else is earned.",
+      "setId": null,
+      "weapon": "gear.weapon.club"
+    }
   ],
-  "learn": [
-   "Study in the Athenaeum",
-   "Decode the Old Runes",
-   "Copy the Scrolls",
-   "Attend the Sage's Lecture",
-   "Chart the Stars",
-   "Learn the Ancient Tongue"
+  "sets": [
+    {
+      "id": "set.vagabond",
+      "name": "Vagabond Knight",
+      "rarity": "starter"
+    },
+    {
+      "id": "set.samurai",
+      "name": "Land of Reeds",
+      "rarity": "starter"
+    },
+    {
+      "id": "set.astrologer",
+      "name": "Astrologer",
+      "rarity": "starter"
+    },
+    {
+      "id": "set.confessor",
+      "name": "Confessor",
+      "rarity": "starter"
+    },
+    {
+      "id": "set.kaiden",
+      "name": "Kaiden",
+      "rarity": "common"
+    },
+    {
+      "id": "set.knight",
+      "name": "Knight",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "set.carian-knight",
+      "name": "Carian Knight",
+      "rarity": "rare"
+    },
+    {
+      "id": "set.banished-knight",
+      "name": "Banished Knight",
+      "rarity": "epic"
+    },
+    {
+      "id": "set.black-knife",
+      "name": "Black Knife",
+      "rarity": "legendary"
+    },
+    {
+      "id": "set.malenia",
+      "name": "Malenia",
+      "rarity": "mythic"
+    }
   ],
-  "habit": [
-   "Keep the Oath",
-   "Tend the Hearth",
-   "Hold the Vigil",
-   "Walk the Monk's Path",
-   "Honor the Code",
-   "Keep the Lantern Lit"
+  "items": [
+    {
+      "id": "gear.head.vagabond-knight-helm",
+      "name": "Vagabond Knight Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "starter",
+      "setId": "set.vagabond",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.chest.vagabond-knight-armor",
+      "name": "Vagabond Knight Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "starter",
+      "setId": "set.vagabond",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.arms.vagabond-knight-gauntlets",
+      "name": "Vagabond Knight Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "starter",
+      "setId": "set.vagabond",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.legs.vagabond-knight-greaves",
+      "name": "Vagabond Knight Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "starter",
+      "setId": "set.vagabond",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.head.land-of-reeds-helm",
+      "name": "Land of Reeds Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "starter",
+      "setId": "set.samurai",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.chest.land-of-reeds-armor",
+      "name": "Land of Reeds Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "starter",
+      "setId": "set.samurai",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.arms.land-of-reeds-gauntlets",
+      "name": "Land of Reeds Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "starter",
+      "setId": "set.samurai",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.legs.land-of-reeds-greaves",
+      "name": "Land of Reeds Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "starter",
+      "setId": "set.samurai",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.head.astrologer-hood",
+      "name": "Astrologer Hood",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "starter",
+      "setId": "set.astrologer",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.chest.astrologer-robe",
+      "name": "Astrologer Robe",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "starter",
+      "setId": "set.astrologer",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.arms.astrologer-gloves",
+      "name": "Astrologer Gloves",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "starter",
+      "setId": "set.astrologer",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.legs.astrologer-trousers",
+      "name": "Astrologer Trousers",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "starter",
+      "setId": "set.astrologer",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.head.confessor-hood",
+      "name": "Confessor Hood",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "starter",
+      "setId": "set.confessor",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.chest.confessor-armor",
+      "name": "Confessor Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "starter",
+      "setId": "set.confessor",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.arms.confessor-gloves",
+      "name": "Confessor Gloves",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "starter",
+      "setId": "set.confessor",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.legs.confessor-boots",
+      "name": "Confessor Boots",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "starter",
+      "setId": "set.confessor",
+      "source": [
+        "origin"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "gear.head.kaiden-helm",
+      "name": "Kaiden Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "common",
+      "setId": "set.kaiden",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.kaiden-armor",
+      "name": "Kaiden Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "common",
+      "setId": "set.kaiden",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.kaiden-gauntlets",
+      "name": "Kaiden Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "common",
+      "setId": "set.kaiden",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.kaiden-trousers",
+      "name": "Kaiden Trousers",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "common",
+      "setId": "set.kaiden",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.head.knight-helm",
+      "name": "Knight Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "uncommon",
+      "setId": "set.knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.knight-armor",
+      "name": "Knight Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "uncommon",
+      "setId": "set.knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.knight-gauntlets",
+      "name": "Knight Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "uncommon",
+      "setId": "set.knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.knight-greaves",
+      "name": "Knight Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "uncommon",
+      "setId": "set.knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.head.carian-knight-helm",
+      "name": "Carian Knight Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "rare",
+      "setId": "set.carian-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.carian-knight-armor",
+      "name": "Carian Knight Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "rare",
+      "setId": "set.carian-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.carian-knight-gauntlets",
+      "name": "Carian Knight Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "rare",
+      "setId": "set.carian-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.carian-knight-greaves",
+      "name": "Carian Knight Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "rare",
+      "setId": "set.carian-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.head.banished-knight-helm",
+      "name": "Banished Knight Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "epic",
+      "setId": "set.banished-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.banished-knight-armor",
+      "name": "Banished Knight Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "epic",
+      "setId": "set.banished-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.banished-knight-gauntlets",
+      "name": "Banished Knight Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "epic",
+      "setId": "set.banished-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.banished-knight-greaves",
+      "name": "Banished Knight Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "epic",
+      "setId": "set.banished-knight",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.head.black-knife-hood",
+      "name": "Black Knife Hood",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "legendary",
+      "setId": "set.black-knife",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.black-knife-armor",
+      "name": "Black Knife Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "legendary",
+      "setId": "set.black-knife",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.black-knife-gauntlets",
+      "name": "Black Knife Gauntlets",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "legendary",
+      "setId": "set.black-knife",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.black-knife-greaves",
+      "name": "Black Knife Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "legendary",
+      "setId": "set.black-knife",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.head.malenias-winged-helm",
+      "name": "Malenia's Winged Helm",
+      "type": "gear",
+      "slot": "head",
+      "rarity": "mythic",
+      "setId": "set.malenia",
+      "source": [
+        "shop",
+        "boss.malenia"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.chest.malenias-armor",
+      "name": "Malenia's Armor",
+      "type": "gear",
+      "slot": "chest",
+      "rarity": "mythic",
+      "setId": "set.malenia",
+      "source": [
+        "shop",
+        "boss.malenia"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.arms.malenias-gauntlet",
+      "name": "Malenia's Gauntlet",
+      "type": "gear",
+      "slot": "arms",
+      "rarity": "mythic",
+      "setId": "set.malenia",
+      "source": [
+        "shop",
+        "boss.malenia"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.legs.malenias-greaves",
+      "name": "Malenia's Greaves",
+      "type": "gear",
+      "slot": "legs",
+      "rarity": "mythic",
+      "setId": "set.malenia",
+      "source": [
+        "shop",
+        "boss.malenia"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.longsword",
+      "name": "Longsword",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "sword",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.broadsword",
+      "name": "Broadsword",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "sword",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.club",
+      "name": "Club",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "club",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.astrologers-staff",
+      "name": "Astrologer's Staff",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "staff",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.dagger",
+      "name": "Dagger",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "dagger",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.longbow",
+      "name": "Longbow",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "bow",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.finger-seal",
+      "name": "Finger Seal",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "seal",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.scimitar",
+      "name": "Scimitar",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "curved",
+      "rarity": "uncommon",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.claymore",
+      "name": "Claymore",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "greatsword",
+      "rarity": "uncommon",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.halberd",
+      "name": "Halberd",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "polearm",
+      "rarity": "uncommon",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.uchigatana",
+      "name": "Uchigatana",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "katana",
+      "rarity": "rare",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.zweihander",
+      "name": "Zweihander",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "greatsword",
+      "rarity": "rare",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.estoc",
+      "name": "Estoc",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "thrust",
+      "rarity": "rare",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.nagakiba",
+      "name": "Nagakiba",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "katana",
+      "rarity": "epic",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.bloodhounds-fang",
+      "name": "Bloodhound's Fang",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "curved",
+      "rarity": "epic",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.meteorite-staff",
+      "name": "Meteorite Staff",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "staff",
+      "rarity": "epic",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.moonveil",
+      "name": "Moonveil",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "katana",
+      "rarity": "legendary",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.rivers-of-blood",
+      "name": "Rivers of Blood",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "katana",
+      "rarity": "legendary",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.dark-moon-greatsword",
+      "name": "Dark Moon Greatsword",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "greatsword",
+      "rarity": "legendary",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.hand-of-malenia",
+      "name": "Hand of Malenia",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "katana",
+      "rarity": "mythic",
+      "source": [
+        "shop",
+        "boss.malenia"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.starscourge-greatsword",
+      "name": "Starscourge Greatsword",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "greatsword",
+      "rarity": "mythic",
+      "source": [
+        "shop",
+        "boss.radahn"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "gear.weapon.blasphemous-blade",
+      "name": "Blasphemous Blade",
+      "type": "gear",
+      "slot": "weapon",
+      "kind": "greatsword",
+      "rarity": "mythic",
+      "source": [
+        "shop",
+        "boss.rykard"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.crimson-amber-medallion",
+      "name": "Crimson Amber Medallion",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "common",
+      "perk": {
+        "maxHp": 10
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.green-turtle-talisman",
+      "name": "Green Turtle Talisman",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "common",
+      "perk": {
+        "heal": 1
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.dragoncrest-shield-talisman",
+      "name": "Dragoncrest Shield Talisman",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "uncommon",
+      "perk": {
+        "dmgPct": 25
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.erdtrees-favor",
+      "name": "Erdtree's Favor",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "uncommon",
+      "perk": {
+        "maxHp": 10,
+        "heal": 1
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.gold-scarab",
+      "name": "Gold Scarab",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "rare",
+      "perk": {
+        "goldPct": 3
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.silver-scarab",
+      "name": "Silver Scarab",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "rare",
+      "perk": {
+        "xpPct": 3
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.crimson-seed-talisman",
+      "name": "Crimson Seed Talisman",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "epic",
+      "perk": {
+        "heal": 2
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.dragoncrest-greatshield-talisman",
+      "name": "Dragoncrest Greatshield Talisman",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "epic",
+      "perk": {
+        "dmgPct": 50
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.old-lords-talisman",
+      "name": "Old Lord's Talisman",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "legendary",
+      "perk": {
+        "streakRate": 1
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "talisman.marikas-soreseal",
+      "name": "Marika's Soreseal",
+      "type": "talisman",
+      "slot": "talisman",
+      "rarity": "legendary",
+      "perk": {
+        "maxHp": 30
+      },
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "pouch.armory",
+      "name": "Talisman Pouch",
+      "type": "pouch",
+      "rarity": "legendary",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "pouch.radahn",
+      "name": "Talisman Pouch (Radahn)",
+      "type": "pouch",
+      "rarity": "legendary",
+      "source": [
+        "boss.radahn"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "pouch.malenia",
+      "name": "Talisman Pouch (Malenia)",
+      "type": "pouch",
+      "rarity": "mythic",
+      "source": [
+        "boss.malenia"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "ash.lone-wolf",
+      "name": "Lone Wolf Ashes",
+      "type": "ash",
+      "rarity": "common",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "ash.jellyfish",
+      "name": "Jellyfish Ashes",
+      "type": "ash",
+      "rarity": "uncommon",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "ash.kaiden-sellsword",
+      "name": "Kaiden Sellsword Ashes",
+      "type": "ash",
+      "rarity": "rare",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "ash.banished-knight-oleg",
+      "name": "Banished Knight Oleg",
+      "type": "ash",
+      "rarity": "epic",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "ash.black-knife-tiche",
+      "name": "Black Knife Tiche",
+      "type": "ash",
+      "rarity": "legendary",
+      "source": [
+        "shop"
+      ],
+      "purchasable": true
+    },
+    {
+      "id": "npc.alexander",
+      "name": "Iron Fist Alexander",
+      "type": "npc",
+      "rarity": "legendary",
+      "source": [
+        "streak.steps"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "npc.sellen",
+      "name": "Sorceress Sellen",
+      "type": "npc",
+      "rarity": "legendary",
+      "source": [
+        "streak.learning"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "npc.millicent",
+      "name": "Millicent",
+      "type": "npc",
+      "rarity": "legendary",
+      "source": [
+        "streak.discipline"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "npc.blaidd",
+      "name": "Blaidd the Half-Wolf",
+      "type": "npc",
+      "rarity": "mythic",
+      "source": [
+        "streak.workouts"
+      ],
+      "purchasable": false
+    },
+    {
+      "id": "mount.torrent",
+      "name": "Torrent",
+      "type": "mount",
+      "rarity": "legendary",
+      "source": [
+        "level"
+      ],
+      "purchasable": false
+    }
   ],
-  "task": [
-   "Run an Errand for the Steward",
-   "Answer the Town Crier",
-   "Mend the Village Fence",
-   "Deliver the Letter",
-   "Clear the Road",
-   "Help at the Market"
+  "bosses": [
+    {
+      "id": "boss.radahn",
+      "name": "Starscourge Radahn",
+      "drops": [
+        "gear.weapon.starscourge-greatsword",
+        "pouch.radahn"
+      ]
+    },
+    {
+      "id": "boss.rykard",
+      "name": "Rykard, Lord of Blasphemy",
+      "drops": [
+        "gear.weapon.blasphemous-blade"
+      ]
+    },
+    {
+      "id": "boss.malenia",
+      "name": "Malenia, Blade of Miquella",
+      "drops": [
+        "gear.weapon.hand-of-malenia",
+        "gear.head.malenias-winged-helm",
+        "gear.chest.malenias-armor",
+        "gear.arms.malenias-gauntlet",
+        "gear.legs.malenias-greaves",
+        "pouch.malenia"
+      ]
+    }
   ],
-  "periodic": [
-   "Bounty",
-   "Contract",
-   "Commission"
+  "classes": [
+    {
+      "id": "warrior",
+      "name": "Knight",
+      "stat": "str",
+      "weapon": "Swords"
+    },
+    {
+      "id": "ranger",
+      "name": "Bandit",
+      "stat": "end",
+      "weapon": "Bows and daggers"
+    },
+    {
+      "id": "mage",
+      "name": "Sorcerer",
+      "stat": "int",
+      "weapon": "Staves"
+    },
+    {
+      "id": "monk",
+      "name": "Prophet",
+      "stat": "dis",
+      "weapon": "Seals"
+    }
+  ],
+  "stats": {
+    "str": "Strength",
+    "end": "Endurance",
+    "int": "Intellect",
+    "dis": "Discipline"
+  },
+  "quests": {
+    "steps": [
+      "Cross Limgrave on foot",
+      "Walk the Weeping Peninsula",
+      "Scout the edge of Caelid",
+      "Climb the Altus Plateau",
+      "Circle Stormveil's walls",
+      "Trek the Mountaintops of the Giants"
+    ],
+    "workout": [
+      "Train at the Roundtable Hold",
+      "Spar with a Tree Sentinel",
+      "Drill at Stormveil's gate",
+      "Temper your blade at the smithing table",
+      "Hold the bridge at Limgrave",
+      "Test your strength in the Colosseum"
+    ],
+    "learn": [
+      "Study at Raya Lucaria",
+      "Read in the Academy library",
+      "Decipher glintstone sorceries",
+      "Attend Sellen's lesson",
+      "Chart the stars like the Astrologers",
+      "Study the Erdtree's incantations"
+    ],
+    "habit": [
+      "Rest at a Site of Grace",
+      "Keep your oath to Melina",
+      "Hold the vigil by the Erdtree",
+      "Follow the guidance of grace",
+      "Honor the Roundtable",
+      "Tend the Church of Elleh"
+    ],
+    "task": [
+      "Run an errand for Roderika",
+      "Answer the call of the Roundtable",
+      "Help Boc with his sewing",
+      "Deliver Irina's letter",
+      "Clear the road for the merchants",
+      "Aid Kalé at the Church of Elleh"
+    ],
+    "periodic": [
+      "Bounty",
+      "Contract",
+      "Commission"
+    ]
+  },
+  "tutorial": {
+    "id": "quest.tutorial.awakens",
+    "name": "Arise, Tarnished",
+    "text": "Complete any quest today."
+  },
+  "looks": {
+    "skin": [
+      "#f6d7c3",
+      "#eab896",
+      "#d19a72",
+      "#a8704a",
+      "#7a4b2e",
+      "#4e2e1c"
+    ],
+    "hair": [
+      "#1f1a17",
+      "#4a2f1f",
+      "#8a5a2b",
+      "#d6a756",
+      "#b8462f",
+      "#c9cbd1",
+      "#6b4bd6",
+      "#2b7bb9"
+    ],
+    "hairStyle": [
+      {
+        "id": "short",
+        "name": "Short"
+      },
+      {
+        "id": "long",
+        "name": "Long"
+      },
+      {
+        "id": "bun",
+        "name": "Bun"
+      },
+      {
+        "id": "none",
+        "name": "None"
+      }
+    ],
+    "body": [
+      {
+        "id": "slim",
+        "name": "Slim"
+      },
+      {
+        "id": "broad",
+        "name": "Broad"
+      }
+    ]
+  },
+  "tavernStarters": [
+    {
+      "id": "tavern.starter.snack",
+      "name": "Favorite snack",
+      "icon": "🍫",
+      "price": 50,
+      "repeatable": true,
+      "cooldownDays": 0
+    },
+    {
+      "id": "tavern.starter.coffee",
+      "name": "Fancy coffee",
+      "icon": "☕",
+      "price": 50,
+      "repeatable": true,
+      "cooldownDays": 0
+    },
+    {
+      "id": "tavern.starter.episode",
+      "name": "An episode of a show",
+      "icon": "📺",
+      "price": 150,
+      "repeatable": true,
+      "cooldownDays": 0
+    },
+    {
+      "id": "tavern.starter.game",
+      "name": "An hour of gaming",
+      "icon": "🎮",
+      "price": 150,
+      "repeatable": true,
+      "cooldownDays": 0
+    },
+    {
+      "id": "tavern.starter.takeout",
+      "name": "Takeout dinner",
+      "icon": "🍕",
+      "price": 400,
+      "repeatable": true,
+      "cooldownDays": 7
+    },
+    {
+      "id": "tavern.starter.nightoff",
+      "name": "A night off",
+      "icon": "🌙",
+      "price": 400,
+      "repeatable": true,
+      "cooldownDays": 7
+    },
+    {
+      "id": "tavern.starter.book",
+      "name": "A new book",
+      "icon": "📚",
+      "price": 1200,
+      "repeatable": true,
+      "cooldownDays": 0
+    },
+    {
+      "id": "tavern.starter.big",
+      "name": "Something I've wanted for a while",
+      "icon": "🎁",
+      "price": 3000,
+      "repeatable": false,
+      "cooldownDays": 0
+    }
+  ],
+  "tavernIcons": [
+    "🍫",
+    "☕",
+    "🍕",
+    "🍦",
+    "📺",
+    "🎮",
+    "🎬",
+    "📚",
+    "🌙",
+    "🛁",
+    "🎧",
+    "👟",
+    "🎁",
+    "✈️",
+    "🍷",
+    "💆"
   ]
- },
- "tutorial": {
-  "id": "quest.tutorial.awakens",
-  "name": "A Hero Awakens",
-  "text": "Complete any quest today."
- },
- "looks": {
-  "skin": [
-   "#f6d7c3",
-   "#eab896",
-   "#d19a72",
-   "#a8704a",
-   "#7a4b2e",
-   "#4e2e1c"
-  ],
-  "hair": [
-   "#1f1a17",
-   "#4a2f1f",
-   "#8a5a2b",
-   "#d6a756",
-   "#b8462f",
-   "#c9cbd1",
-   "#6b4bd6",
-   "#2b7bb9"
-  ],
-  "hairStyle": [
-   {
-    "id": "short",
-    "name": "Short"
-   },
-   {
-    "id": "long",
-    "name": "Long"
-   },
-   {
-    "id": "bun",
-    "name": "Bun"
-   },
-   {
-    "id": "none",
-    "name": "None"
-   }
-  ],
-  "body": [
-   {
-    "id": "slim",
-    "name": "Slim"
-   },
-   {
-    "id": "broad",
-    "name": "Broad"
-   }
-  ]
- },
- "tavernStarters": [
-  {
-   "id": "tavern.starter.snack",
-   "name": "Favorite snack",
-   "icon": "🍫",
-   "price": 50,
-   "repeatable": true,
-   "cooldownDays": 0
-  },
-  {
-   "id": "tavern.starter.coffee",
-   "name": "Fancy coffee",
-   "icon": "☕",
-   "price": 50,
-   "repeatable": true,
-   "cooldownDays": 0
-  },
-  {
-   "id": "tavern.starter.episode",
-   "name": "An episode of a show",
-   "icon": "📺",
-   "price": 150,
-   "repeatable": true,
-   "cooldownDays": 0
-  },
-  {
-   "id": "tavern.starter.game",
-   "name": "An hour of gaming",
-   "icon": "🎮",
-   "price": 150,
-   "repeatable": true,
-   "cooldownDays": 0
-  },
-  {
-   "id": "tavern.starter.takeout",
-   "name": "Takeout dinner",
-   "icon": "🍕",
-   "price": 400,
-   "repeatable": true,
-   "cooldownDays": 7
-  },
-  {
-   "id": "tavern.starter.nightoff",
-   "name": "A night off",
-   "icon": "🌙",
-   "price": 400,
-   "repeatable": true,
-   "cooldownDays": 7
-  },
-  {
-   "id": "tavern.starter.book",
-   "name": "A new book",
-   "icon": "📚",
-   "price": 1200,
-   "repeatable": true,
-   "cooldownDays": 0
-  },
-  {
-   "id": "tavern.starter.big",
-   "name": "Something I've wanted for a while",
-   "icon": "🎁",
-   "price": 3000,
-   "repeatable": false,
-   "cooldownDays": 0
-  }
- ],
- "tavernIcons": [
-  "🍫",
-  "☕",
-  "🍕",
-  "🍦",
-  "📺",
-  "🎮",
-  "🎬",
-  "📚",
-  "🌙",
-  "🛁",
-  "🎧",
-  "👟",
-  "🎁",
-  "✈️",
-  "🍷",
-  "💆"
- ]
 }

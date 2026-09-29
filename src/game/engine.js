@@ -38,13 +38,14 @@ export function levelInfo(xp, E = ECONOMY) {
   }
   return { level, into: 0, need: 0, max: true };
 }
-export const maxHp = (level, E = ECONOMY) => E.hp.base + E.hp.perLevel * (level - 1);
-export const streakBonus = (streak, E = ECONOMY) => Math.min(E.streakBonus.cap, E.streakBonus.perDay * Math.max(0, streak));
-export function reward(base, { verified = false, bonus = 0 } = {}, E = ECONOMY) {
+// P is the talisman perk totals from talismanPerks(); every field is optional.
+export const maxHp = (level, E = ECONOMY, P = {}) => E.hp.base + E.hp.perLevel * (level - 1) + (P.maxHp || 0);
+export const streakBonus = (streak, E = ECONOMY, P = {}) => Math.min(E.streakBonus.cap, E.streakBonus.perDay * (1 + (P.streakRate || 0)) * Math.max(0, streak));
+export function reward(base, { verified = false, bonus = 0 } = {}, E = ECONOMY, P = {}) {
   const m = (verified ? E.earn.verifiedMult : 1) * (1 + bonus);
-  return { xp: Math.round(base.xp * m), gold: Math.round(base.gold * m) };
+  return { xp: Math.round(base.xp * m * (1 + (P.xpPct || 0) / 100)), gold: Math.round(base.gold * m * (1 + (P.goldPct || 0) / 100)) };
 }
-export const dayDamage = (missed, E = ECONOMY) => Math.min(E.hp.dailyDamageCap, E.hp.missDamage * missed);
+export const dayDamage = (missed, E = ECONOMY, P = {}) => Math.round(Math.min(E.hp.dailyDamageCap, E.hp.missDamage * missed) * (1 - (P.dmgPct || 0) / 100));
 
 /* ---------- quests ---------- */
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -128,14 +129,33 @@ export function avgDailyGold(ledger, today, start, E = ECONOMY) {
 
 /* ---------- shop ---------- */
 export function itemPrice(item, E = ECONOMY) {
+  if (!item.purchasable) return null;
+  if (item.type === "pouch") return { gold: E.talismans.pouch.gold, level: E.talismans.pouch.level };
   const r = E.rarities[item.rarity];
-  if (!r || r.gold == null || !item.purchasable) return null;
+  if (!r || r.gold == null) return null;
   const gold = Math.round(r.gold * (E.slotMult[item.slot] || 1) / 5) * 5;
-  return { gold, essence: r.essence || 0, level: r.level || 0 };
+  return { gold, level: r.level || 0 };
 }
 export function armoryItems(C, E = ECONOMY) {
   const max = E.rarityOrder.indexOf(E.armory.maxRarity);
-  return C.items.filter(i => i.type === "gear" && i.purchasable && E.rarityOrder.indexOf(i.rarity) <= max && (E.armory.sellsWeapons || i.slot !== "weapon"));
+  return C.items.filter(i => ["gear", "talisman", "pouch"].includes(i.type) && i.purchasable && itemPrice(i, E)
+    && E.rarityOrder.indexOf(i.rarity) <= max && (E.armory.sellsWeapons || i.slot !== "weapon"));
+}
+// Perk totals from the equipped talismans, each kind stopped at its cap.
+export function talismanPerks(ids, C, E = ECONOMY) {
+  const out = {};
+  for (const id of new Set(ids || [])) {
+    const it = (C.items || []).find(i => i.id === id);
+    if (it && it.type === "talisman") for (const [k, v] of Object.entries(it.perk || {})) out[k] = (out[k] || 0) + v;
+  }
+  for (const k of Object.keys(out)) out[k] = Math.min(out[k], E.talismans.caps[k] ?? out[k]);
+  return out;
+}
+// Talisman slots: the starting slot plus one per pouch owned.
+export function talismanSlots(ownedIds, C, E = ECONOMY) {
+  const own = new Set(ownedIds || []);
+  const pouches = (C.items || []).filter(i => i.type === "pouch" && own.has(i.id)).length;
+  return Math.min(E.talismans.slotsMax, E.talismans.slotsStart + pouches);
 }
 export function canBuy(item, { level, gold, owned }, E = ECONOMY) {
   const p = itemPrice(item, E);
@@ -176,14 +196,15 @@ export function seedStreak(data, G, start, E = ECONOMY) {
 }
 
 /* ---------- the day-end job and today's state ----------
- * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C }
+ * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C, perks }
+ * perks are the equipped talismans' totals; they apply to the days that are still open.
  * Days before yesterday are frozen: their record is stored once and never recomputed, so later
  * edits to habits or schedules can't rewrite history. Yesterday stays open until today ends, so a
  * forgotten check-off can still be fixed. Quest rewards are ledger entries with fixed ids, so
  * running this twice (or on two devices) never pays twice. */
 export function simulate(input) {
   const E = input.E || ECONOMY, C = input.C || {};
-  const G = input.game || {}; const now = input.now || new Date();
+  const G = input.game || {}; const now = input.now || new Date(); const P = input.perks || {};
   const today = gameDate(now, G.dayEnd || E.dayEnd.default); const yesterday = addKey(today, -1);
   // A start after today (the day boundary moved later) clamps to today.
   const start = G.start && G.start > today ? today : G.start;
@@ -211,17 +232,17 @@ export function simulate(input) {
   // 2. Quest and all-clear rewards for days that aren't frozen yet.
   for (let k = start; k <= today; k = addKey(k, 1)) {
     const r = recs[k]; if (r.frozen) continue;
-    const bonus = streakBonus(streakBefore[k], E); const inWindow = k >= payFrom;
+    const bonus = streakBonus(streakBefore[k], E, P); const inWindow = k >= payFrom;
     r.bonus = bonus;
     r.dailies.forEach((q, i) => {
       q.rewarded = i < slots;
-      q.reward = reward(E.earn.daily, { verified: q.verified, bonus }, E);
+      q.reward = reward(E.earn.daily, { verified: q.verified, bonus }, E, P);
       if (q.rewarded && q.done && (inWindow || q.verified)) {
         want.set(`q:${k}:${q.key}:xp`, { date: k, cur: "xp", amt: q.reward.xp, src: "quest", srcId: q.key });
         want.set(`q:${k}:${q.key}:gold`, { date: k, cur: "gold", amt: q.reward.gold, src: "quest", srcId: q.key });
       }
     });
-    r.allClearReward = reward(E.earn.allClear, { bonus }, E);
+    r.allClearReward = reward(E.earn.allClear, { bonus }, E, P);
     if (r.allClear && inWindow) {
       want.set(`ac:${k}:xp`, { date: k, cur: "xp", amt: r.allClearReward.xp, src: "allclear", srcId: k });
       want.set(`ac:${k}:gold`, { date: k, cur: "gold", amt: r.allClearReward.gold, src: "allclear", srcId: k });
@@ -240,7 +261,7 @@ export function simulate(input) {
     if (paused(k)) continue;
     for (const p of periodicOn(ix, k)) {
       const id = `per:${p.key}:${p.period}`; if (perKeys.has(id)) continue; perKeys.add(id);
-      const rw = reward(E.earn.periodic, {}, E); p.reward = rw;
+      const rw = reward(E.earn.periodic, {}, E, P); p.reward = rw;
       const old = stored[id + ":gold"];
       if (p.done) {
         const date = old && old.date ? old.date : today;
@@ -251,7 +272,7 @@ export function simulate(input) {
       }
     }
   }
-  periodic.forEach(p => { p.reward = reward(E.earn.periodic, {}, E); });
+  periodic.forEach(p => { p.reward = reward(E.earn.periodic, {}, E, P); });
 
   // 4. The tutorial quest pays once, for the first quest completed after the game starts.
   const tutId = "tut:" + ((C.tutorial && C.tutorial.id) || "awakens");
@@ -277,16 +298,16 @@ export function simulate(input) {
   const levelAt = k => { let L = 1; for (let n = 2; n <= info.level; n++) if ((lvlDate[n] || today) <= k) L = n; return L; };
 
   // 6. HP, replayed from the first game day. Frozen days keep their stored ending HP.
-  let hp = maxHp(levelAt(addKey(start, -1)), E); let downedRisk = false; const dayWrites = [];
+  let hp = maxHp(levelAt(addKey(start, -1)), E, P); let downedRisk = false; const dayWrites = [];
   for (let k = start; k <= today; k = addKey(k, 1)) {
     const r = recs[k];
     if (r.frozen) { hp = r.hp; continue; }
-    const L = levelAt(k), mx = maxHp(L, E);
-    r.heal = E.hp.healPerDaily * r.done;
+    const L = levelAt(k), mx = maxHp(L, E, P);
+    r.heal = (E.hp.healPerDaily + (P.heal || 0)) * r.done;
     hp = Math.min(mx, hp + r.heal);
     if (E.levelUp.fullHeal && L > levelAt(addKey(k, -1))) hp = mx;
     if (k === today) break;
-    r.dmg = r.sched ? dayDamage(r.missed, E) : 0; hp -= r.dmg; r.downed = false;
+    r.dmg = r.sched ? dayDamage(r.missed, E, P) : 0; hp -= r.dmg; r.downed = false;
     if (hp <= 0) {
       if (k < yesterday) {
         r.downed = true;
@@ -317,8 +338,8 @@ export function simulate(input) {
   return {
     active: true, today, yesterday, start,
     xp: xpTotal, ...info, gold: ledgerSum(all, "gold"),
-    hp: Math.max(0, hp), maxHp: maxHp(info.level, E), downedRisk,
-    streak, best: Math.max(best, streak), bonus: streakBonus(streakBefore[today], E),
+    hp: Math.max(0, hp), maxHp: maxHp(info.level, E, P), downedRisk, perks: P,
+    streak, best: Math.max(best, streak), bonus: streakBonus(streakBefore[today], E, P),
     slots, board: { today: recs[today], yesterday: recs[yesterday] && !recs[yesterday].frozen && yesterday >= start ? recs[yesterday] : null, periodic },
     tutorial: { done: tutDone, reward: E.earn.tutorial },
     ledger: merged,

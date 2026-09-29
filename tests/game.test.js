@@ -29,13 +29,14 @@ function open(w, now, canWrite = true) {
   return r;
 }
 
-test("XP curve follows 100 × level^1.2 and levels carry over", () => {
-  assert.equal(G.xpToNext(1, E), 100);
-  assert.equal(G.xpToNext(2, E), 230);
-  assert.equal(G.xpToNext(10, E), Math.round(100 * 10 ** 1.2));
-  assert.deepEqual(G.levelInfo(99, E), { level: 1, into: 99, need: 100, max: false });
-  assert.deepEqual(G.levelInfo(100, E), { level: 2, into: 0, need: 230, max: false });
+test("XP curve follows base × level^exp and levels carry over", () => {
+  const n = L => Math.round(E.xp.base * L ** E.xp.exp);
+  assert.equal(G.xpToNext(1, E), n(1));
+  assert.equal(G.xpToNext(10, E), n(10));
+  assert.deepEqual(G.levelInfo(n(1) - 1, E), { level: 1, into: n(1) - 1, need: n(1), max: false });
+  assert.deepEqual(G.levelInfo(n(1), E), { level: 2, into: 0, need: n(2), max: false });
   assert.equal(G.levelInfo(1e9, E).level, E.xp.levelCap);
+  assert.equal(E.xp.levelCap, 99, "room past the level 50 to 70 bosses");
 });
 
 test("verified and streak bonuses multiply the base reward", () => {
@@ -70,10 +71,10 @@ test("day one pays quests, the all-clear, the tutorial and the first level-up", 
   const w = world("2026-09-29", 2); doAll(w, "2026-09-29");
   const r = open(w, at("2026-09-29"));
   const ids = r.ledgerWrites.map(e => e.id).sort();
-  assert.deepEqual(ids, ["ac:2026-09-29:gold", "ac:2026-09-29:xp", "lvl:2:gold", "q:2026-09-29:habit:h0:gold", "q:2026-09-29:habit:h0:xp", "q:2026-09-29:habit:h1:gold", "q:2026-09-29:habit:h1:xp", "tut:quest.tutorial.awakens:gold", "tut:quest.tutorial.awakens:xp"]);
+  assert.deepEqual(ids.filter(id => !id.startsWith("lvl:")), ["ac:2026-09-29:gold", "ac:2026-09-29:xp", "q:2026-09-29:habit:h0:gold", "q:2026-09-29:habit:h0:xp", "q:2026-09-29:habit:h1:gold", "q:2026-09-29:habit:h1:xp", "tut:quest.tutorial.awakens:gold", "tut:quest.tutorial.awakens:xp"]);
   assert.equal(r.xp, 20 + 20 + 30 + 50);
-  assert.equal(r.level, 2);
-  assert.equal(r.gold, 20 + 20 + 20 + 50 + 100);
+  assert.equal(r.level, G.levelInfo(120, E).level);
+  assert.equal(r.gold, 20 + 20 + 20 + 50 + 100 * (r.level - 1));
   assert.equal(r.hp, G.maxHp(2, E), "a level-up restores full HP");
   const g = r.ledgerWrites.filter(e => e.cur === "gold");
   assert.ok(g.every(e => typeof e.bal === "number" && e.src && e.srcId && e.at), "gold entries carry source, balance and time");
@@ -231,19 +232,71 @@ test("your history seeds the first-day streak but pays nothing", () => {
   assert.ok(Object.values(w.ledger).every(e => e.date >= "2026-09-29"));
 });
 
+const item = id => { const it = C.items.find(i => i.id === id); assert.ok(it, "missing item " + id); return it; };
 test("shop prices follow rarity × slot and the level gates", () => {
-  const item = id => C.items.find(i => i.id === id);
-  assert.equal(G.itemPrice(item("gear.helm.common"), E).gold, 150);
-  assert.equal(G.itemPrice(item("gear.armor.uncommon"), E).gold, 675);
-  assert.equal(G.itemPrice(item("gear.aura.rare"), E).gold, 1500);
-  assert.equal(G.itemPrice(item("gear.helm.mythic"), E), null, "Mythic is never sold");
-  assert.deepEqual(G.canBuy(item("gear.helm.rare"), { level: 7, gold: 5000 }, E), { ok: false, reason: "level", need: 8 });
-  assert.deepEqual(G.canBuy(item("gear.helm.common"), { level: 1, gold: 100 }, E), { ok: false, reason: "gold", short: 50 });
-  assert.equal(G.canBuy(item("gear.helm.common"), { level: 1, gold: 150 }, E).ok, true);
+  assert.equal(G.itemPrice(item("gear.head.kaiden-helm"), E).gold, 150);
+  assert.equal(G.itemPrice(item("gear.chest.knight-armor"), E).gold, 675);
+  assert.equal(G.itemPrice(item("gear.arms.carian-knight-gauntlets"), E).gold, 900);
+  assert.equal(G.itemPrice(item("gear.weapon.uchigatana"), E).gold, 1500, "the Uchigatana is a Rare weapon");
+  assert.equal(G.itemPrice(item("gear.head.vagabond-knight-helm"), E), null, "origin gear is never sold");
+  assert.equal(G.itemPrice(item("pouch.radahn"), E), null, "boss pouches only drop");
+  assert.deepEqual(G.itemPrice(item("pouch.armory"), E), { gold: E.talismans.pouch.gold, level: E.talismans.pouch.level });
+  assert.deepEqual(G.canBuy(item("gear.weapon.uchigatana"), { level: 7, gold: 5000 }, E), { ok: false, reason: "level", need: 8 });
+  assert.deepEqual(G.canBuy(item("gear.head.kaiden-helm"), { level: 1, gold: 100 }, E), { ok: false, reason: "gold", short: 50 });
+  assert.equal(G.canBuy(item("gear.head.kaiden-helm"), { level: 1, gold: 150 }, E).ok, true);
   const sold = G.armoryItems(C, E);
-  assert.ok(sold.every(i => ["common", "uncommon", "rare"].includes(i.rarity) && i.slot !== "weapon"));
-  assert.equal(sold.length, 15);
+  assert.ok(sold.some(i => i.slot === "weapon") && sold.some(i => i.type === "talisman") && sold.some(i => i.id === "pouch.armory"));
+  assert.ok(sold.every(i => i.rarity !== "starter" && i.purchasable));
   assert.equal(new Set(C.items.map(i => i.id)).size, C.items.length, "item ids are unique");
+});
+
+test("the Hand of Malenia costs about six months of full-effort Gold, or drops from Malenia", () => {
+  const hand = item("gear.weapon.hand-of-malenia");
+  const p = G.itemPrice(hand, E);
+  // Steady full effort: 4 dailies and the all-clear at the capped streak bonus, plus level-up Gold.
+  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).gold + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).gold + E.levelUp.gold * 50 / 365;
+  const days = p.gold / perDay;
+  assert.ok(days > 150 && days < 210, `${Math.round(days)} days of Gold`);
+  assert.ok(hand.source.includes("boss.malenia"));
+  const boss = C.bosses.find(b => b.id === "boss.malenia");
+  assert.ok(boss.drops.includes(hand.id) && E.bosses[boss.id].level >= 50);
+});
+
+test("talismans add capped perks, and pouches add slots up to four", () => {
+  assert.deepEqual(G.talismanPerks(["talisman.gold-scarab", "talisman.crimson-amber-medallion"], C, E), { goldPct: 3, maxHp: 10 });
+  assert.equal(G.talismanPerks(["talisman.dragoncrest-shield-talisman", "talisman.dragoncrest-greatshield-talisman"], C, E).dmgPct, E.talismans.caps.dmgPct, "stacked shields stop at the cap");
+  assert.deepEqual(G.talismanPerks(["gear.weapon.uchigatana", "nope"], C, E), {}, "only talismans carry perks");
+  assert.equal(G.talismanSlots([], C, E), 1);
+  assert.equal(G.talismanSlots(["pouch.armory", "gear.weapon.club"], C, E), 2);
+  assert.equal(G.talismanSlots(["pouch.armory", "pouch.radahn", "pouch.malenia"], C, E), 4);
+  assert.ok(C.items.filter(i => i.type === "gear").every(i => !i.perk), "armor and weapons never give stats");
+});
+
+test("talisman perks change open days' rewards, HP and damage", () => {
+  const base = world("2026-09-20", 4); const P = { goldPct: 5, xpPct: 5, maxHp: 20, heal: 1, dmgPct: 50, streakRate: 1 };
+  for (let k = "2026-09-20"; k <= "2026-09-27"; k = G.addKey(k, 1)) if (k !== "2026-09-24") doAll(base, k);
+  const plain = G.simulate({ ...base, now: at("2026-09-28"), canWrite: false, E, C });
+  const perk = G.simulate({ ...base, now: at("2026-09-28"), canWrite: false, E, C, perks: P });
+  assert.equal(perk.maxHp, plain.maxHp + 20);
+  assert.ok(perk.gold > plain.gold && perk.xp > plain.xp);
+  assert.equal(G.dayDamage(2, E, P), 10, "half of the 20 damage from two misses");
+  assert.equal(G.streakBonus(5, E, P), 0.2, "the streak bonus builds twice as fast");
+  assert.equal(G.streakBonus(50, E, P), E.streakBonus.cap, "but keeps its cap");
+});
+
+test("the catalog is complete: origins, sets, bosses and slots all line up", () => {
+  const slots = new Set(C.slots.map(s => s.id));
+  for (const it of C.items) {
+    assert.ok(C.rarityNames[it.rarity] && E.rarities[it.rarity], "rarity " + it.id);
+    if (it.type === "gear" || it.type === "talisman") assert.ok(slots.has(it.slot), "slot " + it.id);
+    if (it.type === "gear" && it.slot === "weapon") assert.ok(it.kind, "weapon kind " + it.id);
+  }
+  assert.equal(C.origins.length, 5);
+  for (const o of C.origins) {
+    item(o.weapon);
+    if (o.setId) assert.equal(C.items.filter(i => i.setId === o.setId).length, 4, o.id + " wears a full set");
+  }
+  for (const b of C.bosses) { assert.ok(E.bosses[b.id], b.id); b.drops.forEach(item); }
 });
 
 test("the Tavern estimates days of quests and respects cooldowns", () => {
@@ -271,6 +324,10 @@ test("full daily completion reaches the pacing targets in the right ballpark", (
   const levelOn = {};
   for (let k = "2026-01-01"; k <= "2026-03-01"; k = G.addKey(k, 1)) { doAll(w, k); r = open(w, at(k, 21)); if (!levelOn[r.level]) levelOn[r.level] = k; }
   const days = k => Math.round((G.parseKey(k) - G.parseKey("2026-01-01")) / 864e5) + 1;
-  assert.ok(days(levelOn[5]) <= 12, `level 5 on day ${days(levelOn[5])}`);
-  assert.ok(days(levelOn[10]) <= 60, `level 10 on day ${days(levelOn[10])}`);
+  assert.ok(days(levelOn[5]) <= 10, `level 5 on day ${days(levelOn[5])}`);
+  assert.ok(days(levelOn[10]) <= 28, `level 10 on day ${days(levelOn[10])}`);
+  // Level 50 takes about a year of the same effort (steady state, capped streak bonus, weekly task).
+  let need = 0; for (let L = 1; L < 50; L++) need += G.xpToNext(L, E);
+  const perDay = 4 * G.reward(E.earn.daily, { bonus: E.streakBonus.cap }, E).xp + G.reward(E.earn.allClear, { bonus: E.streakBonus.cap }, E).xp;
+  assert.ok(need / perDay > 320 && need / perDay < 400, `level 50 in about ${Math.round(need / perDay)} days`);
 });

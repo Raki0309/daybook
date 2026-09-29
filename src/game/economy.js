@@ -1,10 +1,11 @@
 // Every tunable number in the game lives here. Feature code reads these values
 // and never hardcodes its own. Names and items live in catalog.json.
 export const ECONOMY = {
-  version: 1,
+  version: 2,
 
-  // XP to go from level L to L+1 is round(base × L^exp).
-  xp: { base: 100, exp: 1.2, levelCap: 50 },
+  // XP to go from level L to L+1 is round(base × L^exp). With every daily done (4 dailies
+  // plus the all-clear), level 10 takes about 3 weeks and level 50 about a year.
+  xp: { base: 85, exp: 0.8, levelCap: 99 },
   levelUp: { gold: 100, fullHeal: true },
 
   // Rewards per completed quest, before the verified and streak multipliers.
@@ -29,19 +30,36 @@ export const ECONOMY = {
   // Step sources that count as verified. Typed-in steps are self-reported.
   verifiedStepSources: ["health", "shortcut", "export"],
 
+  // Gear is cosmetic: no rarity gives stats. Only talismans carry small perks (see talismans).
   rarities: {
-    common: { color: "#9CA3AF", gold: 150, essence: 0, level: 0 },
-    uncommon: { color: "#22C55E", gold: 450, essence: 0, level: 0 },
-    rare: { color: "#3B82F6", gold: 1200, essence: 0, level: 8 },
-    epic: { color: "#A855F7", gold: 2500, essence: 8, level: 15 },
-    legendary: { color: "#F59E0B", gold: 5000, essence: 25, level: 20 },
-    mythic: { color: "#EF4444", gold: null, essence: null, level: null },
+    starter: { color: "#8C8577", gold: null, level: 0 },
+    common: { color: "#9CA3AF", gold: 150, level: 0 },
+    uncommon: { color: "#22C55E", gold: 450, level: 0 },
+    rare: { color: "#3B82F6", gold: 1200, level: 8 },
+    epic: { color: "#A855F7", gold: 2500, level: 15 },
+    legendary: { color: "#F59E0B", gold: 5000, level: 20 },
+    // About 6 months of quest Gold for a mythic weapon (20,000 × 1.25).
+    mythic: { color: "#EF4444", gold: 20000, level: 30 },
   },
   rarityOrder: ["common", "uncommon", "rare", "epic", "legendary", "mythic"],
-  slotMult: { armor: 1.5, weapon: 1.25, aura: 1.25, helm: 1, boots: 1, cape: 1 },
+  slotMult: { chest: 1.5, weapon: 1.25, head: 1, legs: 1, arms: 0.75, talisman: 1 },
 
-  // Phase 1 sells Common to Rare gear. Weapons wait for classes.
-  armory: { maxRarity: "rare", sellsWeapons: false },
+  armory: { maxRarity: "mythic", sellsWeapons: true },
+
+  // Talisman perks add up per kind, then stop at these caps.
+  talismans: {
+    slotsStart: 1, slotsMax: 4,
+    caps: { goldPct: 5, xpPct: 5, dmgPct: 50, maxHp: 60, heal: 4, streakRate: 1 },
+    pouch: { gold: 5000, level: 20 }, // the one pouch the Armory sells; the rest drop from bosses
+  },
+
+  // Boss fights come in a later phase; their level gates live here now so the Armory can say
+  // where each drop comes from.
+  bosses: {
+    "boss.radahn": { level: 50 },
+    "boss.rykard": { level: 60 },
+    "boss.malenia": { level: 70 },
+  },
 
   tavern: { avgDays: 14, tiers: [["Snack", 50], ["Treat", 150], ["Night off", 400], ["Big purchase", 3000]], maxPrice: 1000000 },
 
