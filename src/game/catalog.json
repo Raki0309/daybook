@@ -1452,5 +1452,799 @@
     "✈️",
     "🍷",
     "💆"
+  ],
+  "achievementAreas": [
+    {
+      "id": "streak",
+      "name": "Streaks"
+    },
+    {
+      "id": "streak-steps",
+      "name": "Steps streaks"
+    },
+    {
+      "id": "streak-workouts",
+      "name": "Workout streaks"
+    },
+    {
+      "id": "streak-learning",
+      "name": "Learning streaks"
+    },
+    {
+      "id": "streak-discipline",
+      "name": "Discipline streaks"
+    },
+    {
+      "id": "level",
+      "name": "Levels"
+    },
+    {
+      "id": "quests",
+      "name": "Quests"
+    },
+    {
+      "id": "steps",
+      "name": "Steps"
+    },
+    {
+      "id": "workouts",
+      "name": "Workouts"
+    },
+    {
+      "id": "learning",
+      "name": "Learning"
+    },
+    {
+      "id": "collection",
+      "name": "Collections"
+    }
+  ],
+  "achievementText": {
+    "streak": "{n} days in a row with every daily quest done",
+    "streak.steps": "{n} days in a row at your step goal",
+    "streak.workouts": "{n} workout days in a row",
+    "streak.learning": "{n} learning days in a row",
+    "streak.discipline": "{n} days in a row with every habit and daily task done",
+    "level": "Reach level {n}",
+    "quests": "Complete {n} quests",
+    "steps": "Walk {n} steps",
+    "workouts": "Log {n} workouts",
+    "learnHours": "Learn for {n} hours",
+    "talismans": "Own {n} talismans",
+    "ashes": "Awaken {n} Spirit Ashes"
+  },
+  "achievements": [
+    {
+      "id": "ach.streak-3",
+      "name": "Wanderer",
+      "area": "streak",
+      "rarity": "common",
+      "grants": [
+        "title.wanderer"
+      ]
+    },
+    {
+      "id": "ach.streak-7",
+      "name": "Kindled",
+      "area": "streak",
+      "rarity": "uncommon",
+      "grants": [
+        "title.kindled"
+      ]
+    },
+    {
+      "id": "ach.streak-14",
+      "name": "Grace-Guided",
+      "area": "streak",
+      "rarity": "uncommon",
+      "grants": [
+        "title.grace-guided"
+      ]
+    },
+    {
+      "id": "ach.streak-30",
+      "name": "Unbroken",
+      "area": "streak",
+      "rarity": "rare",
+      "grants": [
+        "title.unbroken",
+        "frame.silver-filigree"
+      ]
+    },
+    {
+      "id": "ach.streak-60",
+      "name": "Roundtable Knight",
+      "area": "streak",
+      "rarity": "rare",
+      "grants": [
+        "title.roundtable-knight",
+        "frame.runed-stone"
+      ]
+    },
+    {
+      "id": "ach.streak-100",
+      "name": "Champion of the Erdtree",
+      "area": "streak",
+      "rarity": "epic",
+      "grants": [
+        "title.champion-of-the-erdtree",
+        "frame.erdtree-gilding",
+        "banner.leyndell-at-dusk"
+      ]
+    },
+    {
+      "id": "ach.streak-180",
+      "name": "Lord of Grace",
+      "area": "streak",
+      "rarity": "legendary",
+      "grants": [
+        "title.lord-of-grace",
+        "frame.golden-order",
+        "banner.erdtree-ablaze"
+      ]
+    },
+    {
+      "id": "ach.streak-365",
+      "name": "Elden Lord",
+      "area": "streak",
+      "rarity": "mythic",
+      "grants": [
+        "title.elden-lord",
+        "frame.elden-ring",
+        "banner.age-of-stars"
+      ]
+    },
+    {
+      "id": "ach.streak-730",
+      "name": "Timeless",
+      "area": "streak",
+      "rarity": "mythic",
+      "grants": [
+        "title.timeless",
+        "banner.eternal-city"
+      ]
+    },
+    {
+      "id": "ach.steps-streak-7",
+      "name": "Wayfarer",
+      "area": "streak-steps",
+      "rarity": "uncommon",
+      "grants": [
+        "title.wayfarer"
+      ]
+    },
+    {
+      "id": "ach.steps-streak-30",
+      "name": "Limgrave Strider",
+      "area": "streak-steps",
+      "rarity": "rare",
+      "grants": [
+        "title.limgrave-strider"
+      ]
+    },
+    {
+      "id": "ach.steps-streak-100",
+      "name": "Stormhill Walker",
+      "area": "streak-steps",
+      "rarity": "epic",
+      "grants": [
+        "title.stormhill-walker",
+        "frame.stormhill-ring"
+      ]
+    },
+    {
+      "id": "ach.steps-streak-365",
+      "name": "Walker of the Lands Between",
+      "area": "streak-steps",
+      "rarity": "legendary",
+      "grants": [
+        "title.walker-of-the-lands-between",
+        "banner.the-long-road"
+      ]
+    },
+    {
+      "id": "ach.workouts-streak-12",
+      "name": "Brawler",
+      "area": "streak-workouts",
+      "rarity": "uncommon",
+      "grants": [
+        "title.brawler"
+      ]
+    },
+    {
+      "id": "ach.workouts-streak-36",
+      "name": "Crucible Knight",
+      "area": "streak-workouts",
+      "rarity": "rare",
+      "grants": [
+        "title.crucible-knight"
+      ]
+    },
+    {
+      "id": "ach.workouts-streak-78",
+      "name": "Giant-Slayer",
+      "area": "streak-workouts",
+      "rarity": "epic",
+      "grants": [
+        "title.giant-slayer",
+        "frame.crucible-horns"
+      ]
+    },
+    {
+      "id": "ach.workouts-streak-156",
+      "name": "Starscourge",
+      "area": "streak-workouts",
+      "rarity": "legendary",
+      "grants": [
+        "title.starscourge",
+        "banner.caelid-skies"
+      ]
+    },
+    {
+      "id": "ach.learning-streak-7",
+      "name": "Glintstone Student",
+      "area": "streak-learning",
+      "rarity": "uncommon",
+      "grants": [
+        "title.glintstone-student"
+      ]
+    },
+    {
+      "id": "ach.learning-streak-30",
+      "name": "Academy Sorcerer",
+      "area": "streak-learning",
+      "rarity": "rare",
+      "grants": [
+        "title.academy-sorcerer"
+      ]
+    },
+    {
+      "id": "ach.learning-streak-100",
+      "name": "Lusat's Heir",
+      "area": "streak-learning",
+      "rarity": "epic",
+      "grants": [
+        "title.lusats-heir",
+        "frame.glintstone-crown"
+      ]
+    },
+    {
+      "id": "ach.learning-streak-365",
+      "name": "Master of Raya Lucaria",
+      "area": "streak-learning",
+      "rarity": "legendary",
+      "grants": [
+        "title.master-of-raya-lucaria",
+        "banner.academy-library"
+      ]
+    },
+    {
+      "id": "ach.discipline-streak-7",
+      "name": "Vowed",
+      "area": "streak-discipline",
+      "rarity": "uncommon",
+      "grants": [
+        "title.vowed"
+      ]
+    },
+    {
+      "id": "ach.discipline-streak-30",
+      "name": "Oathkeeper",
+      "area": "streak-discipline",
+      "rarity": "rare",
+      "grants": [
+        "title.oathkeeper"
+      ]
+    },
+    {
+      "id": "ach.discipline-streak-100",
+      "name": "Golden Order Ascetic",
+      "area": "streak-discipline",
+      "rarity": "epic",
+      "grants": [
+        "title.golden-order-ascetic",
+        "frame.prayer-beads"
+      ]
+    },
+    {
+      "id": "ach.discipline-streak-365",
+      "name": "Keeper of the Golden Order",
+      "area": "streak-discipline",
+      "rarity": "legendary",
+      "grants": [
+        "title.keeper-of-the-golden-order",
+        "banner.haligtree"
+      ]
+    },
+    {
+      "id": "ach.first-quest",
+      "name": "Arisen",
+      "area": "quests",
+      "rarity": "common",
+      "grants": [
+        "title.tarnished"
+      ]
+    },
+    {
+      "id": "ach.level-10",
+      "name": "Risen",
+      "area": "level",
+      "rarity": "uncommon",
+      "grants": [
+        "title.risen"
+      ]
+    },
+    {
+      "id": "ach.level-25",
+      "name": "Veteran of the Roundtable",
+      "area": "level",
+      "rarity": "rare",
+      "grants": [
+        "title.veteran-of-the-roundtable"
+      ]
+    },
+    {
+      "id": "ach.level-50",
+      "name": "Champion of the Lands Between",
+      "area": "level",
+      "rarity": "legendary",
+      "grants": [
+        "title.champion-of-the-lands-between"
+      ]
+    },
+    {
+      "id": "ach.quests-100",
+      "name": "A Hundred Trials",
+      "area": "quests",
+      "rarity": "uncommon",
+      "grants": []
+    },
+    {
+      "id": "ach.quests-1000",
+      "name": "A Thousand Trials",
+      "area": "quests",
+      "rarity": "rare",
+      "grants": []
+    },
+    {
+      "id": "ach.quests-5000",
+      "name": "Endless Trials",
+      "area": "quests",
+      "rarity": "legendary",
+      "grants": [
+        "title.seasoned"
+      ]
+    },
+    {
+      "id": "ach.steps-100k",
+      "name": "A Hundred Thousand Steps",
+      "area": "steps",
+      "rarity": "uncommon",
+      "grants": []
+    },
+    {
+      "id": "ach.steps-1m",
+      "name": "A Million Steps",
+      "area": "steps",
+      "rarity": "rare",
+      "grants": [
+        "title.pilgrim"
+      ]
+    },
+    {
+      "id": "ach.steps-10m",
+      "name": "Ten Million Steps",
+      "area": "steps",
+      "rarity": "legendary",
+      "grants": [
+        "title.worldwalker"
+      ]
+    },
+    {
+      "id": "ach.workouts-50",
+      "name": "Fifty Battles",
+      "area": "workouts",
+      "rarity": "uncommon",
+      "grants": []
+    },
+    {
+      "id": "ach.workouts-250",
+      "name": "Battle-Hardened",
+      "area": "workouts",
+      "rarity": "rare",
+      "grants": [
+        "title.battle-hardened"
+      ]
+    },
+    {
+      "id": "ach.workouts-1000",
+      "name": "A Thousand Battles",
+      "area": "workouts",
+      "rarity": "legendary",
+      "grants": [
+        "title.warmaster"
+      ]
+    },
+    {
+      "id": "ach.learning-10",
+      "name": "Ten Hours of Study",
+      "area": "learning",
+      "rarity": "uncommon",
+      "grants": []
+    },
+    {
+      "id": "ach.learning-100",
+      "name": "A Hundred Hours of Study",
+      "area": "learning",
+      "rarity": "rare",
+      "grants": [
+        "title.scholar"
+      ]
+    },
+    {
+      "id": "ach.learning-500",
+      "name": "Five Hundred Hours",
+      "area": "learning",
+      "rarity": "legendary",
+      "grants": [
+        "title.loremaster"
+      ]
+    },
+    {
+      "id": "ach.talismans-5",
+      "name": "Talisman Collector",
+      "area": "collection",
+      "rarity": "rare",
+      "grants": []
+    },
+    {
+      "id": "ach.ashes-3",
+      "name": "Spirit Caller",
+      "area": "collection",
+      "rarity": "rare",
+      "grants": [
+        "title.spirit-caller"
+      ]
+    }
+  ],
+  "cosmetics": [
+    {
+      "id": "title.wanderer",
+      "type": "title",
+      "name": "Wanderer",
+      "rarity": "common"
+    },
+    {
+      "id": "title.kindled",
+      "type": "title",
+      "name": "Kindled",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.grace-guided",
+      "type": "title",
+      "name": "Grace-Guided",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.unbroken",
+      "type": "title",
+      "name": "Unbroken",
+      "rarity": "rare"
+    },
+    {
+      "id": "frame.silver-filigree",
+      "type": "frame",
+      "name": "Silver Filigree",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.roundtable-knight",
+      "type": "title",
+      "name": "Roundtable Knight",
+      "rarity": "rare"
+    },
+    {
+      "id": "frame.runed-stone",
+      "type": "frame",
+      "name": "Runed Stone",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.champion-of-the-erdtree",
+      "type": "title",
+      "name": "Champion of the Erdtree",
+      "rarity": "epic"
+    },
+    {
+      "id": "frame.erdtree-gilding",
+      "type": "frame",
+      "name": "Erdtree Gilding",
+      "rarity": "epic"
+    },
+    {
+      "id": "banner.leyndell-at-dusk",
+      "type": "banner",
+      "name": "Leyndell at Dusk",
+      "rarity": "epic"
+    },
+    {
+      "id": "title.lord-of-grace",
+      "type": "title",
+      "name": "Lord of Grace",
+      "rarity": "legendary"
+    },
+    {
+      "id": "frame.golden-order",
+      "type": "frame",
+      "name": "Golden Order",
+      "rarity": "legendary"
+    },
+    {
+      "id": "banner.erdtree-ablaze",
+      "type": "banner",
+      "name": "The Erdtree Ablaze",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.elden-lord",
+      "type": "title",
+      "name": "Elden Lord",
+      "rarity": "mythic"
+    },
+    {
+      "id": "frame.elden-ring",
+      "type": "frame",
+      "name": "Elden Ring",
+      "rarity": "mythic"
+    },
+    {
+      "id": "banner.age-of-stars",
+      "type": "banner",
+      "name": "Age of the Stars",
+      "rarity": "mythic"
+    },
+    {
+      "id": "title.timeless",
+      "type": "title",
+      "name": "Timeless",
+      "rarity": "mythic"
+    },
+    {
+      "id": "banner.eternal-city",
+      "type": "banner",
+      "name": "Nokron, Eternal City",
+      "rarity": "mythic"
+    },
+    {
+      "id": "title.wayfarer",
+      "type": "title",
+      "name": "Wayfarer",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.limgrave-strider",
+      "type": "title",
+      "name": "Limgrave Strider",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.stormhill-walker",
+      "type": "title",
+      "name": "Stormhill Walker",
+      "rarity": "epic"
+    },
+    {
+      "id": "frame.stormhill-ring",
+      "type": "frame",
+      "name": "Stormhill Ring",
+      "rarity": "epic"
+    },
+    {
+      "id": "title.walker-of-the-lands-between",
+      "type": "title",
+      "name": "Walker of the Lands Between",
+      "rarity": "legendary"
+    },
+    {
+      "id": "banner.the-long-road",
+      "type": "banner",
+      "name": "The Long Road",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.brawler",
+      "type": "title",
+      "name": "Brawler",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.crucible-knight",
+      "type": "title",
+      "name": "Crucible Knight",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.giant-slayer",
+      "type": "title",
+      "name": "Giant-Slayer",
+      "rarity": "epic"
+    },
+    {
+      "id": "frame.crucible-horns",
+      "type": "frame",
+      "name": "Crucible Horns",
+      "rarity": "epic"
+    },
+    {
+      "id": "title.starscourge",
+      "type": "title",
+      "name": "Starscourge",
+      "rarity": "legendary"
+    },
+    {
+      "id": "banner.caelid-skies",
+      "type": "banner",
+      "name": "Caelid Skies",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.glintstone-student",
+      "type": "title",
+      "name": "Glintstone Student",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.academy-sorcerer",
+      "type": "title",
+      "name": "Academy Sorcerer",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.lusats-heir",
+      "type": "title",
+      "name": "Lusat's Heir",
+      "rarity": "epic"
+    },
+    {
+      "id": "frame.glintstone-crown",
+      "type": "frame",
+      "name": "Glintstone Crown",
+      "rarity": "epic"
+    },
+    {
+      "id": "title.master-of-raya-lucaria",
+      "type": "title",
+      "name": "Master of Raya Lucaria",
+      "rarity": "legendary"
+    },
+    {
+      "id": "banner.academy-library",
+      "type": "banner",
+      "name": "The Academy Library",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.vowed",
+      "type": "title",
+      "name": "Vowed",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.oathkeeper",
+      "type": "title",
+      "name": "Oathkeeper",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.golden-order-ascetic",
+      "type": "title",
+      "name": "Golden Order Ascetic",
+      "rarity": "epic"
+    },
+    {
+      "id": "frame.prayer-beads",
+      "type": "frame",
+      "name": "Prayer Beads",
+      "rarity": "epic"
+    },
+    {
+      "id": "title.keeper-of-the-golden-order",
+      "type": "title",
+      "name": "Keeper of the Golden Order",
+      "rarity": "legendary"
+    },
+    {
+      "id": "banner.haligtree",
+      "type": "banner",
+      "name": "Haligtree Sanctum",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.tarnished",
+      "type": "title",
+      "name": "Tarnished",
+      "rarity": "common"
+    },
+    {
+      "id": "title.risen",
+      "type": "title",
+      "name": "Risen",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "title.veteran-of-the-roundtable",
+      "type": "title",
+      "name": "Veteran of the Roundtable",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.champion-of-the-lands-between",
+      "type": "title",
+      "name": "Champion of the Lands Between",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.seasoned",
+      "type": "title",
+      "name": "Seasoned",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.pilgrim",
+      "type": "title",
+      "name": "Pilgrim",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.worldwalker",
+      "type": "title",
+      "name": "Worldwalker",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.battle-hardened",
+      "type": "title",
+      "name": "Battle-Hardened",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.warmaster",
+      "type": "title",
+      "name": "Warmaster",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.scholar",
+      "type": "title",
+      "name": "Scholar",
+      "rarity": "rare"
+    },
+    {
+      "id": "title.loremaster",
+      "type": "title",
+      "name": "Loremaster",
+      "rarity": "legendary"
+    },
+    {
+      "id": "title.spirit-caller",
+      "type": "title",
+      "name": "Spirit Caller",
+      "rarity": "rare"
+    }
+  ],
+  "cosmeticTypes": [
+    {
+      "id": "title",
+      "name": "Title"
+    },
+    {
+      "id": "frame",
+      "name": "Frame"
+    },
+    {
+      "id": "banner",
+      "name": "Banner"
+    }
   ]
 }

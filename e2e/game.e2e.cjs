@@ -120,6 +120,16 @@ function seed(be) {
   console.log("  board:", await p.textContent(".board .card-h .pill"), "| server gold:", gold(), "| levels:", ledger().filter(e => e.src === "levelup").map(e => e.srcId));
   await shot("6-hero-done");
 
+  // Profile: trophies, titles and streaks
+  await p.click('.herocard [data-act="profile"].trophypill'); await p.waitForSelector("#sheet .trophy");
+  check((await p.$$eval("#sheet .trophy.won .t", ts => ts.map(t => t.textContent))).includes("Arisen"), "first quest trophy is won");
+  check(ledger().some(e => e.id === "ach:ach.first-quest" && e.cur === "trophy"), "the trophy is recorded in the ledger");
+  await p.click('#sheet [data-act="cosmetic"][data-id="title.tarnished"]'); await p.waitForTimeout(400);
+  check((await p.textContent(".herocard .hc-title")) === "Tarnished", "the chosen title shows on the hero card");
+  await p.waitForTimeout(250); await p.screenshot({ path: `${OUT}/game-6b-profile-${W}${process.env.DARK ? "-dark" : ""}.png` });
+  check(!(await overflow()), "profile has no sideways scroll");
+  await p.click("#sheet [data-act=close]");
+
   // Quests tab
   await p.click('[data-tab="quests"]:visible'); await p.waitForSelector(".board");
   await shot("7-quests");

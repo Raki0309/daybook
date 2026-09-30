@@ -280,3 +280,24 @@ input:focus, select:focus, textarea:focus { outline: none; --ring: var(--gold); 
 .herocard .flame { font-size: 13px; }
 .tiles.t3 .tile { padding: 12px; }
 .tiles.t3 .tile .v { font-size: 14px; }
+
+/* ---------- profile, titles, frames, banners, trophies ---------- */
+button.hc-name { text-align: left; padding: 0; background: none; color: var(--gold); cursor: pointer; }
+.hc-title { font: 11px var(--font-m); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); margin-top: 3px; }
+.hc-av.framed { --ring: var(--edge); box-shadow: var(--sunk), var(--ring-out), 0 0 0 calc(var(--u) * 2) var(--outline), 0 0 0 calc(var(--u) * 3) var(--edge); }
+.hc-av.framed.glow { box-shadow: var(--sunk), var(--ring-out), 0 0 0 calc(var(--u) * 2) var(--outline), 0 0 0 calc(var(--u) * 3) var(--edge), 0 0 16px color-mix(in srgb, var(--edge) 70%, transparent); }
+.herocard.bannered { background: linear-gradient(180deg, color-mix(in srgb, var(--bn) 20%, var(--surface)), var(--surface) 60%); }
+.profcard { margin-bottom: 8px; }
+.profcard .hc-av { width: 132px; height: 132px; display: grid; }
+.trophypill { cursor: pointer; }
+.chip.cos { --ring: var(--r); }
+.chip.cos[aria-pressed="true"] { --ring: var(--outline); }
+.trophy { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: var(--u) solid var(--line); }
+.list .trophy:first-child { border-top: 0; }
+.trophy .tro-ic { width: 40px; height: 40px; flex: none; display: grid; place-items: center; margin: var(--u); color: var(--ink-3); background: var(--well); --ring: var(--line); box-shadow: var(--sunk), var(--ring-out); }
+.trophy.won .tro-ic { color: var(--r); --ring: var(--r); background: radial-gradient(closest-side, color-mix(in srgb, var(--r) 30%, transparent), transparent 90%), var(--well); }
+.trophy .t { font: 600 15px/1.25 var(--font-b); }
+.trophy:not(.won) .t { color: var(--ink-2); }
+.trophy .meter { flex: 1; min-width: 0; }
+.trophy .tro-r { flex: none; text-align: right; }
+.trophy .rew { gap: 2px; }

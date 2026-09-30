@@ -290,8 +290,28 @@ export function seedStreak(data, G, start, E = ECONOMY) {
   return { streak: run, best };
 }
 
+/* ---------- achievements ---------- */
+// The numbers achievements read: best streaks, level, and lifetime counts from the game's first day.
+export function achievementMetrics({ data = {}, start, today, best = 0, streaks = {}, level = 1, ledger = {}, stable, owned = [], C = {} }) {
+  const inRange = k => k >= start && k <= today;
+  let steps = 0; for (const [k, e] of Object.entries(data.steps || {})) if (inRange(k)) steps += +e.n || 0;
+  const learnMin = (data.learn || []).filter(e => inRange(e.date)).reduce((a, e) => a + (+e.min || 0), 0);
+  const tal = new Set((C.items || []).filter(i => i.type === "talisman").map(i => i.id));
+  return {
+    streak: best, ...Object.fromEntries(Object.entries(streaks).map(([t, v]) => ["streak." + t, v.best])), level,
+    quests: Object.entries(ledger).filter(([id, e]) => /^(q|per):/.test(id) && e.cur === "xp" && +e.amt > 0).length,
+    steps, workouts: (data.sessions || []).filter(x => inRange(x.date)).length, learnHours: Math.floor(learnMin / 60),
+    talismans: owned.filter(id => tal.has(id)).length, ashes: Object.keys((stable && stable.awakened) || {}).length,
+  };
+}
+// Everything the unlocked achievements grant (titles, frames, banners).
+export const unlockedCosmetics = (achievements, C = {}) => {
+  const done = new Set(achievements.filter(a => a.done).map(a => a.id));
+  return (C.achievements || []).filter(a => done.has(a.id)).flatMap(a => a.grants || []);
+};
+
 /* ---------- the day-end job and today's state ----------
- * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C, perks, stable }
+ * input: { data, game, ledger: {id: entry}, days: {date: frozen record}, now: Date, at: ms, canWrite, E, C, perks, stable, owned }
  * perks are the equipped talismans' totals; they apply to the days that are still open.
  * Days before yesterday are frozen: their record is stored once and never recomputed, so later
  * edits to habits or schedules can't rewrite history. Yesterday stays open until today ends, so a
@@ -314,7 +334,8 @@ export function simulate(input) {
   const paused = k => (G.pauses || []).some(p => k >= p.from && k <= p.to);
 
   // 1. Outcomes and the overall streak, day by day from the first game day.
-  const recs = {}; let run = (G.seed && G.seed.streak) || 0, best = Math.max(run, (G.seed && G.seed.best) || 0);
+  // won: the best streak reached on an all-clear game day, for trophies (history alone pays nothing).
+  const recs = {}; let run = (G.seed && G.seed.streak) || 0, best = Math.max(run, (G.seed && G.seed.best) || 0), won = 0;
   const streakBefore = {};
   // Type streaks: a scheduled day either extends or breaks each type; today can only extend.
   // Days frozen before type streaks existed carry no types and are skipped.
@@ -322,12 +343,12 @@ export function simulate(input) {
   const addTypes = (types, k) => { for (const [t, met] of Object.entries(types || {})) { if (met) trun[t]++; else if (k !== today && !rested(k)) trun[t] = 0; tbest[t] = Math.max(tbest[t], trun[t]); } };
   for (let k = start; k <= today; k = addKey(k, 1)) {
     streakBefore[k] = run;
-    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = rekindled(k) ? Math.max(run, frozen[k].streak ?? 0) : frozen[k].streak ?? run; best = Math.max(best, run); addTypes(frozen[k].types, k); continue; }
+    if (frozen[k]) { recs[k] = { ...frozen[k], frozen: true }; run = rekindled(k) ? Math.max(run, frozen[k].streak ?? 0) : frozen[k].streak ?? run; best = Math.max(best, run); if (frozen[k].allClear) won = Math.max(won, run); addTypes(frozen[k].types, k); continue; }
     // Days while the game was switched off count as rest days: no quests, no damage, streak kept.
     const off = paused(k); const dailies = off ? [] : dailiesOn(ix, G, k, E); const o = outcome(dailies);
     recs[k] = { ...o, date: k, dailies, paused: off, types: typeOutcome(dailies), rest: rested(k) };
     if (o.sched) { if (o.allClear) run++; else if (k !== today && !rested(k) && !rekindled(k)) run = 0; }
-    recs[k].streak = run; best = Math.max(best, run); addTypes(recs[k].types, k);
+    recs[k].streak = run; best = Math.max(best, run); if (o.allClear) won = Math.max(won, run); addTypes(recs[k].types, k);
   }
 
   // 2. Quest and all-clear rewards for days that aren't frozen yet.
@@ -409,6 +430,19 @@ export function simulate(input) {
     const eid = `lvl:${L}:essence`;
     if (E.levelUp.essenceEvery && L % E.levelUp.essenceEvery === 0 && !stored[eid]) { const e = { date: lvlDate[L] || today, cur: "essence", amt: 1, src: "levelup", srcId: String(L) }; want.set(eid, e); merged[eid] = { ...e, id: eid }; }
   }
+  // 5b. Achievements pay once, the first time they're met, and stay earned: the ach:<id> entry is the record.
+  const typeBest = Object.fromEntries(STREAK_TYPES.map(t => [t, { best: tbest[t] }]));
+  const M = achievementMetrics({ data: input.data, start, today, best: won, streaks: typeBest, level: info.level, ledger: merged, stable: input.stable, owned: input.owned, C });
+  const achievements = Object.entries(E.achievements || {}).map(([id, a]) => {
+    const rec = stored[`ach:${id}`]; const cur = M[a.metric] || 0; const done = !!rec || cur >= a.n;
+    if (done && !rec) {
+      const put = (key, cur, amt) => { const e = { date: today, cur, amt, src: "achievement", srcId: id }; want.set(key, e); merged[key] = { ...e, id: key }; };
+      put(`ach:${id}`, "trophy", 1);
+      if (a.gold) put(`ach:${id}:gold`, "gold", a.gold);
+      if (a.essence) put(`ach:${id}:essence`, "essence", a.essence);
+    }
+    return { id, metric: a.metric, n: a.n, cur: Math.min(cur, a.n), done, date: rec ? rec.date : done ? today : null, gold: a.gold || 0, essence: a.essence || 0 };
+  });
   const levelAt = k => { let L = 1; for (let n = 2; n <= info.level; n++) if ((lvlDate[n] || today) <= k) L = n; return L; };
 
   // 6. HP, replayed from the first game day. Frozen days keep their stored ending HP.
@@ -464,6 +498,7 @@ export function simulate(input) {
     streak, best: Math.max(best, streak), bonus: streakBonus(streakBefore[today], E, P),
     streaks: Object.fromEntries(STREAK_TYPES.map(t => [t, { cur: trun[t], best: tbest[t] }])),
     stable: stableState(input.stable, recs, today, C, E),
+    achievements, cosmetics: unlockedCosmetics(achievements, C),
     slots, board: { today: recs[today], yesterday: recs[yesterday] && !recs[yesterday].frozen && yesterday >= start ? recs[yesterday] : null, periodic },
     tutorial: { done: tutDone, reward: E.earn.tutorial },
     ledger: merged,

@@ -1463,6 +1463,11 @@ const SLOT_NAME = Object.fromEntries(CAT.slots.map(s => [s.id, s.name]));
 const SET_OF = Object.fromEntries(CAT.sets.map(s => [s.id, s]));
 const ORIGIN = Object.fromEntries(CAT.origins.map(o => [o.id, o]));
 const BOSS = Object.fromEntries(CAT.bosses.map(b => [b.id, b]));
+// Trophies grant titles, frames and banners; the hero wears one of each.
+const ACH = Object.fromEntries((CAT.achievements || []).map(a => [a.id, a]));
+const COSMETIC = Object.fromEntries((CAT.cosmetics || []).map(c => [c.id, c]));
+const AREA_ICON = {streak: "flame", "streak-steps": "steps", "streak-workouts": "train", "streak-learning": "book", "streak-discipline": "habits", level: "star", quests: "quests", steps: "steps", workouts: "train", learning: "book", collection: "shield"};
+const GLOW = ["epic", "legendary", "mythic"];
 const AV_SLOTS = ["head", "chest", "arms", "legs", "weapon"];
 const ALL_WD = [0, 1, 2, 3, 4, 5, 6];
 const wdName = (i, style = "short") => new Date(2024, 0, 1 + i).toLocaleDateString(undefined, {weekday: style});
@@ -1502,6 +1507,9 @@ const STREAK_NAME = {steps: "Steps", workouts: "Workouts", learning: "Learning",
 const npcGoal = (n) => ({steps: `${n.days} days in a row at your step goal`, workouts: `${n.days} workout days in a row`, learning: `${n.days} learning days in a row`, discipline: `${n.days} days in a row with every habit and daily task done`})[n.streak];
 const companion = () => { const it = ITEM[stableDoc().summoned]; return it && (it.type === "ash" ? stableDoc().awakened[it.id] : true) ? it : null; };
 const bossSource = it => (it.source || []).filter(x => BOSS[x]).map(x => `${BOSS[x].name} (level ${E.bosses[x].level})`).join(", ");
+const achText = a => (CAT.achievementText[a.metric] || "").replace("{n}", fmtInt(a.n));
+const worn = (s, type) => { const id = heroDoc()[type]; return id && COSMETIC[id] && s.cosmetics.includes(id) ? COSMETIC[id] : null; };
+const frameAttrs = fr => fr ? ` framed${GLOW.includes(fr.rarity) ? " glow" : ""}" style="--edge:var(--r-${fr.rarity})` : "";
 const heroAvatar = (size, label = "") => avatarSvg({look: heroDoc().look, equip: heroEquip(), size, label});
 const setGame = patch => setSettings({game: {...(S.settings.game || {}), ...patch}});
 
@@ -1513,7 +1521,7 @@ function gameState() {
   if (!gameOn()) return null;
   const key = [S.habits, S.tasks, S.steps, S.sessions, S.learn, S.ledger, S.gdays, S.settings, S.hero, S.inv, today()];
   if (gMemo && gMemo.key.every((v, i) => v === key[i])) return gMemo.r;
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT, perks: heroPerks(), stable: stableDoc()});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: false, E, C: CAT, perks: heroPerks(), stable: stableDoc(), owned: Object.keys(S.inv)});
   gMemo = {key, r}; return r;
 }
 // The day-end job: pay what's earned and freeze finished days. It only writes once this
@@ -1525,7 +1533,7 @@ const dataFresh = () => !db || (!(db.busy && db.busy()) && (dbState === "synced"
 function reconcile() {
   if (!gameOn()) return;
   if (!dataFresh()) { if (db && db.busy && db.busy()) scheduleReconcile(); return; }
-  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT, perks: heroPerks(), stable: stableDoc()});
+  const r = GE.simulate({data: gameData(), game: S.settings.game, ledger: S.ledger, days: S.gdays, now: new Date(), at: Date.now(), canWrite: true, E, C: CAT, perks: heroPerks(), stable: stableDoc(), owned: Object.keys(S.inv)});
   if (!r.active || (!r.ledgerWrites.length && !r.dayWrites.length)) return;
   // A guard against a write loop: the job is idempotent, so a burst of rewrites means a bug.
   if (Date.now() - recAt > 10000) { recN = 0; recAt = Date.now(); }
@@ -1539,12 +1547,18 @@ let gPrev = null, gWatch = 0;
 function gameFeedback() {
   const s = gameState(); if (!s) { gPrev = null; return; }
   const npcs = Object.entries(GE.npcStatus(s.streaks, E)).filter(([, n]) => n.unlocked).map(([id]) => id);
-  const p = gPrev; gPrev = {xp: s.xp, gold: s.gold, level: s.level, tut: s.tutorial.done, ready: !!(s.stable.awakening && s.stable.awakening.ready), npcs};
+  const ach = s.achievements.filter(a => a.done).map(a => a.id);
+  const p = gPrev; gPrev = {xp: s.xp, gold: s.gold, level: s.level, tut: s.tutorial.done, ready: !!(s.stable.awakening && s.stable.awakening.ready), npcs, ach};
   if (!p) return;
+  const won = ach.filter(id => !p.ach.includes(id)); const inWatch = Date.now() - gWatch <= 2500;
   const fresh = npcs.find(id => !p.npcs.includes(id));
   if (fresh) { toast(`${ITEM[fresh].name} wants to join you. Summon them from Spirits in the Town`); return; }
   if (gPrev.ready && !p.ready) { toast(`${ITEM[s.stable.awakening.id].name} is ready to awaken. Open Spirits in the Town`); return; }
-  if (Date.now() - gWatch > 2500) return;
+  if (won.length && !(inWatch && (s.level > p.level || (s.tutorial.done && !p.tut)))) {
+    const a = s.achievements.find(x => x.id === won[0]); gWatch = 0;
+    toast(`Trophy: ${ACH[a.id].name}${a.gold ? `, +${fmtInt(a.gold)} Runes` : ""}${a.essence ? `, +${a.essence} ${CAT.currencies.essence}` : ""}${won.length > 1 ? ` (and ${won.length - 1} more)` : ""}`); return;
+  }
+  if (!inWatch) return;
   if (s.level > p.level) { gWatch = 0; toast(`Level ${s.level}! +${fmtInt(E.levelUp.gold * (s.level - p.level))} Runes and full HP`); return; }
   if (s.tutorial.done && !p.tut) { gWatch = 0; toast(`${CAT.tutorial.name} complete: +${E.earn.tutorial.xp} XP, +${E.earn.tutorial.gold} Runes`); return; }
   if (s.xp > p.xp) { gWatch = 0; toast(`+${s.xp - p.xp} XP, +${fmtInt(s.gold - p.gold)} Runes`); }
@@ -1627,13 +1641,14 @@ function tutorialCard(s) {
 }
 function heroCard(s) {
   const hd = heroDoc(); const hpP = s.maxHp ? s.hp / s.maxHp : 0; const tone = hpP > .5 ? "good" : hpP > .25 ? "warn" : "bad";
-  return `<section class="card herocard px-panel ornate">
-    <button class="hc-av" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(128)}${companion() ? `<span class="hc-pet">${itemArt(companion(), E.rarities[companion().rarity].color, 34)}</span>` : ""}${heroDoc().mount && ITEM[heroDoc().mount] ? `<span class="hc-mount">${itemArt(ITEM[heroDoc().mount], E.rarities[ITEM[heroDoc().mount].rarity].color, 30)}</span>` : ""}</button>
+  const ti = worn(s, "title"), fr = worn(s, "frame"), bn = worn(s, "banner"); const won = s.achievements.filter(a => a.done).length;
+  return `<section class="card herocard px-panel ornate${bn ? " bannered" : ""}"${bn ? ` style="--bn:var(--r-${bn.rarity})"` : ""}>
+    <button class="hc-av${frameAttrs(fr)}" data-act="town-tab" data-v="wardrobe" aria-label="Open the wardrobe">${heroAvatar(128)}${companion() ? `<span class="hc-pet">${itemArt(companion(), E.rarities[companion().rarity].color, 34)}</span>` : ""}${heroDoc().mount && ITEM[heroDoc().mount] ? `<span class="hc-mount">${itemArt(ITEM[heroDoc().mount], E.rarities[ITEM[heroDoc().mount].rarity].color, 30)}</span>` : ""}</button>
     <div class="hc-main">
-      <div style="min-width:0"><div class="hc-name">${esc(hd.name || "Hero")}</div><div class="hc-lv">Level ${s.level}${ORIGIN[hd.origin] ? ` · ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div>
+      <div style="min-width:0"><button class="hc-name" data-act="profile" aria-label="${esc(hd.name || "Hero")}. Open your profile">${esc(hd.name || "Hero")}</button>${ti ? `<div class="hc-title">${esc(ti.name)}</div>` : ""}<div class="hc-lv">Level ${s.level}${ORIGIN[hd.origin] ? ` · ${esc(ORIGIN[hd.origin].name)}` : ""}</div></div>
       <div class="statbar"><div class="lab"><span>${icon("bolt", 13, 2.4)}XP</span><span class="mono">${s.max ? "Max level" : `${fmtInt(s.into)} / ${fmtInt(s.need)}`}</span></div><div class="meter" role="progressbar" aria-label="XP to next level" aria-valuenow="${s.into}" aria-valuemax="${s.need}"><i style="width:${s.max ? 100 : s.into / s.need * 100}%;--c:var(--xp)"></i></div></div>
       <div class="statbar"><div class="lab"><span>${icon("heart", 13, 2.4)}HP${s.hp < s.maxHp && s.held["item.flask-of-crimson-tears"] ? ` <button class="linkbtn flaskbtn" data-act="flask">Drink a flask (${s.held["item.flask-of-crimson-tears"]})</button>` : ""}</span><span class="mono">${s.hp} / ${s.maxHp}</span></div><div class="meter" role="progressbar" aria-label="HP" aria-valuenow="${s.hp}" aria-valuemax="${s.maxHp}"><i style="width:${hpP * 100}%;--c:var(--${tone})"></i></div></div>
-      <div class="row wrap" style="gap:6px"><button class="goldpill" data-act="ledger" aria-label="Runes: ${fmtInt(s.gold)}. Open the log">${goldAmt(s.gold)}</button><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
+      <div class="row wrap" style="gap:6px"><button class="goldpill" data-act="ledger" aria-label="Runes: ${fmtInt(s.gold)}. Open the log">${goldAmt(s.gold)}</button><span class="flame ${s.streak ? "on" : ""}">${icon("flame", 15)}${s.streak} day streak</span><button class="pill trophypill" data-act="profile" aria-label="Trophies: ${won} of ${s.achievements.length}. Open your profile">${icon("star", 12)}${won}/${s.achievements.length}</button>${s.bonus ? `<span class="pill acc">+${Math.round(s.bonus * 100)}% rewards</span>` : ""}${companion() ? `<button class="pill" data-act="town-tab" data-v="spirits">${esc(companion().name)}${companion().type === "ash" && s.stable.bond[companion().id] ? ` +${s.stable.bond[companion().id].level}` : ""}</button>` : ""}</div>
     </div></section>`;
 }
 function rekindleCard(s) {
@@ -1885,7 +1900,35 @@ function ledgerLabel(e) {
   const k = String(e.srcId || "");
   if (e.src === "quest") { if (k.startsWith("habit:")) return (S.habits[k.slice(6)] || {}).name || "Habit quest"; if (k.startsWith("task:")) return (S.tasks[k.slice(5)] || {}).title || "Task quest"; return {steps: "Steps quest", workout: "Workout quest", learn: "Learning quest"}[k] || "Quest"; }
   if (e.src === "periodic") { const id = k.split(":")[1]; return "Bounty: " + ((k.startsWith("habit:") ? (S.habits[id] || {}).name : (S.tasks[id] || {}).title) || "done"); }
-  return {allclear: "All-clear bonus", tutorial: CAT.tutorial.name, levelup: `Reached level ${k}`, downed: "Downed", bounty: "Weekly bounty", rekindle: "Rekindled your streak", armory: `Bought ${(ITEM[k] || {}).name || "gear"}`, tavern: `Redeemed ${e.name || "a reward"}`}[e.src] || e.src;
+  return {allclear: "All-clear bonus", tutorial: CAT.tutorial.name, levelup: `Reached level ${k}`, downed: "Downed", bounty: "Weekly bounty", rekindle: "Rekindled your streak", achievement: `Trophy: ${(ACH[k] || {}).name || "earned"}`, armory: `Bought ${(ITEM[k] || {}).name || "gear"}`, tavern: `Redeemed ${e.name || "a reward"}`}[e.src] || e.src;
+}
+function sProfile() {
+  return () => {
+    const s = gameState(); if (!s) return sheetHead("Profile") + `<p class="faint">The game is off.</p>`;
+    const hd = heroDoc(); const got = new Set(s.cosmetics); const won = s.achievements.filter(a => a.done).length;
+    const ti = worn(s, "title"), fr = worn(s, "frame"), bn = worn(s, "banner");
+    let h = sheetHead("Profile") + `<section class="card herocard profcard${bn ? " bannered" : ""}"${bn ? ` style="--bn:var(--r-${bn.rarity})"` : ""}><span class="hc-av${frameAttrs(fr)}">${heroAvatar(128)}</span><div class="hc-main"><div class="hc-name">${esc(hd.name || "Hero")}</div>${ti ? `<div class="hc-title">${esc(ti.name)}</div>` : ""}<div class="hc-lv">Level ${s.level}${ORIGIN[hd.origin] ? ` · ${esc(ORIGIN[hd.origin].name)}` : ""}</div>${bn ? `<div class="tiny faint">Banner: ${esc(bn.name)}</div>` : ""}</div></section>`;
+    for (const t of CAT.cosmeticTypes) {
+      const list = CAT.cosmetics.filter(c => c.type === t.id && got.has(c.id)); const cur = worn(s, t.id);
+      h += `<div class="slotrow"><div class="row between"><b>${esc(t.name)}</b><span class="small muted">${cur ? esc(cur.name) : "None"}</span></div>`;
+      h += list.length ? `<div class="chips" style="margin-top:10px" role="group" aria-label="${esc(t.name)}"><button class="chip" data-act="cosmetic" data-type="${t.id}" data-id="" aria-pressed="${!cur}">None</button>${list.map(c => `<button class="chip cos" style="--r:var(--r-${c.rarity})" data-act="cosmetic" data-type="${t.id}" data-id="${c.id}" aria-pressed="${!!cur && cur.id === c.id}">${esc(c.name)}</button>`).join("")}</div>`
+        : `<p class="small muted" style="margin-top:4px">None earned yet. Trophies below grant them.</p>`;
+      h += `</div>`;
+    }
+    h += `<div class="card-h" style="margin-top:18px"><h2>Streaks</h2></div><div class="list">`;
+    const srow = (name, cur, best) => `<div class="li" style="padding:8px 0"><span class="grow t">${name}</span><span class="mono small">${fmtInt(cur)} now · best ${fmtInt(best)}</span></div>`;
+    h += srow("Every daily quest", s.streak, s.best) + GE.STREAK_TYPES.map(t => srow(STREAK_NAME[t], s.streaks[t].cur, s.streaks[t].best)).join("") + `</div>`;
+    h += `<div class="card-h" style="margin-top:18px"><h2>Trophies</h2><span class="pill">${won} of ${s.achievements.length}</span></div>`;
+    for (const ar of CAT.achievementAreas) {
+      const list = s.achievements.filter(a => ACH[a.id] && ACH[a.id].area === ar.id); if (!list.length) continue;
+      h += `<div class="label" style="margin:14px 0 2px">${esc(ar.name)}</div><div class="list">` + list.map(a => {
+        const d = ACH[a.id]; const grants = d.grants.map(g => COSMETIC[g] ? esc(COSMETIC[g].name) : "").filter(Boolean).join(", ");
+        const pay = [a.gold ? goldAmt(a.gold, 12) : "", a.essence ? seedAmt(a.essence, 12) : ""].filter(Boolean).join(" ");
+        return `<div class="trophy${a.done ? " won" : ""}" style="--r:var(--r-${d.rarity})"><span class="tro-ic" aria-hidden="true">${icon(AREA_ICON[ar.id] || "star", 24)}</span><div class="grow" style="min-width:0"><div class="t">${esc(d.name)}</div><div class="tiny faint">${esc(achText(a))}${grants ? ` · ${grants}` : ""}</div>${a.done ? "" : `<div class="row" style="gap:8px">${bar(a.cur, a.n, `var(--r-${d.rarity})`)}<span class="tiny mono faint">${fmtInt(a.cur)}/${fmtInt(a.n)}</span></div>`}</div><div class="tro-r">${a.done ? `<span class="pill good">${icon("check", 12)}${fmtDate(a.date)}</span>` : `<span class="rew">${pay}</span>`}</div></div>`;
+      }).join("") + `</div>`;
+    }
+    return h;
+  };
 }
 function sLedger() {
   return () => {
@@ -2059,6 +2102,12 @@ const GAME_ACTIONS = {
     setGame({order: [...keys, ...(S.settings.game.order || []).filter(k => !keys.includes(k))]});
   },
   ledger: () => openSheet(sLedger(), true),
+  profile: () => openSheet(sProfile(), true),
+  cosmetic: el => {
+    const t = el.dataset.type, id = el.dataset.id; if (!["title", "frame", "banner"].includes(t)) return;
+    const s = gameState(); if (id && !(s && s.cosmetics.includes(id))) return;
+    setHero({[t]: id || null});
+  },
   "edit-look": () => openSheet(sLook()),
   equip: el => {
     if (el.dataset.id && !S.inv[el.dataset.id]) return;

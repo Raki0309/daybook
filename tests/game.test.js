@@ -71,10 +71,10 @@ test("day one pays quests, the all-clear, the tutorial and the first level-up", 
   const w = world("2026-09-29", 2); doAll(w, "2026-09-29");
   const r = open(w, at("2026-09-29"));
   const ids = r.ledgerWrites.map(e => e.id).sort();
-  assert.deepEqual(ids.filter(id => !id.startsWith("lvl:")), ["ac:2026-09-29:gold", "ac:2026-09-29:xp", "q:2026-09-29:habit:h0:gold", "q:2026-09-29:habit:h0:xp", "q:2026-09-29:habit:h1:gold", "q:2026-09-29:habit:h1:xp", "tut:quest.tutorial.awakens:gold", "tut:quest.tutorial.awakens:xp"]);
+  assert.deepEqual(ids.filter(id => !id.startsWith("lvl:") && !id.startsWith("ach:")), ["ac:2026-09-29:gold", "ac:2026-09-29:xp", "q:2026-09-29:habit:h0:gold", "q:2026-09-29:habit:h0:xp", "q:2026-09-29:habit:h1:gold", "q:2026-09-29:habit:h1:xp", "tut:quest.tutorial.awakens:gold", "tut:quest.tutorial.awakens:xp"]);
   assert.equal(r.xp, 20 + 20 + 30 + 50);
   assert.equal(r.level, G.levelInfo(120, E).level);
-  assert.equal(r.gold, 20 + 20 + 20 + 50 + 100 * (r.level - 1));
+  assert.equal(r.gold, 20 + 20 + 20 + 50 + 100 * (r.level - 1) + E.achievements["ach.first-quest"].gold);
   assert.equal(r.hp, G.maxHp(2, E), "a level-up restores full HP");
   const g = r.ledgerWrites.filter(e => e.cur === "gold");
   assert.ok(g.every(e => typeof e.bal === "number" && e.src && e.srcId && e.at), "gold entries carry source, balance and time");
@@ -434,9 +434,9 @@ test("flasks heal, Memory Stones add reward slots, and every fifth level gives a
   assert.equal(G.simulate({ ...w, now: at("2026-09-03", 22), canWrite: false, E, C }).slots, E.slots.start + 1);
   const rich = world("2026-09-01", 1); rich.ledger.x = { id: "x", date: "2026-09-01", cur: "xp", amt: 20000, src: "quest", srcId: "x" };
   const r = G.simulate({ ...rich, now: at("2026-09-01", 22), canWrite: true, E, C });
-  const seeds = r.ledgerWrites.filter(e => e.cur === "essence");
+  const seeds = r.ledgerWrites.filter(e => e.cur === "essence" && e.src === "levelup");
   assert.equal(seeds.length, Math.floor(r.level / E.levelUp.essenceEvery));
-  assert.equal(r.essence, seeds.length);
+  assert.equal(r.essence, seeds.length + E.achievements["ach.level-25"].essence, "plus the level-25 trophy");
 });
 
 test("weekly bounties start the first full week, pay XP, Gold and a Golden Seed once, and can be undone", () => {
@@ -454,4 +454,58 @@ test("weekly bounties start the first full week, pay XP, Gold and a Golden Seed 
   const u = open(w, at("2026-09-13", 23));
   assert.ok(u.bounties.some(b => !b.done));
   for (const b of u.bounties.filter(b => !b.done)) assert.equal(w.ledger[`${b.id}:gold`].amt, 0);
+});
+
+test("achievements pay once when first met, and stay earned when the streak later breaks", () => {
+  const w = world("2026-09-01", 2);
+  for (let k = "2026-09-01"; k <= "2026-09-03"; k = G.addKey(k, 1)) { doAll(w, k); open(w, at(k, 21)); }
+  const r = open(w, at("2026-09-03", 22));
+  const a3 = r.achievements.find(a => a.id === "ach.streak-3");
+  assert.ok(a3.done && w.ledger["ach:ach.streak-3"], "3-day streak trophy recorded");
+  assert.equal(w.ledger["ach:ach.streak-3:gold"].amt, E.achievements["ach.streak-3"].gold);
+  assert.ok(r.cosmetics.includes("title.wanderer"), "its title unlocks");
+  assert.ok(!r.achievements.find(a => a.id === "ach.streak-7").done);
+  // Undo today's check-offs: the streak drops, the trophy stays and nothing is paid again.
+  w.data.habits.forEach(h => { delete h.done["2026-09-03"]; });
+  const after = open(w, at("2026-09-03", 23));
+  assert.ok(after.achievements.find(a => a.id === "ach.streak-3").done);
+  assert.ok(!after.ledgerWrites.some(e => e.id.startsWith("ach:")), "no second payment");
+  assert.ok(after.cosmetics.includes("title.wanderer"));
+});
+
+test("lifetime achievements count from the game's first day, not history", () => {
+  const w = world("2026-09-10", 1);
+  w.data.steps = { "2026-09-01": { n: 90000, src: "health" }, "2026-09-10": { n: 12000, src: "health" } };
+  const m = G.achievementMetrics({ data: w.data, start: "2026-09-10", today: "2026-09-10" });
+  assert.equal(m.steps, 12000);
+  const w2 = world("2026-09-01", 1);
+  w2.data.steps = { "2026-09-01": { n: 60000, src: "health" }, "2026-09-02": { n: 45000, src: "health" } };
+  const r = G.simulate({ ...w2, now: at("2026-09-02", 20), canWrite: true, E, C });
+  assert.ok(r.achievements.find(a => a.id === "ach.steps-100k").done, "100k steps since the start");
+  assert.ok(r.ledgerWrites.some(e => e.id === "ach:ach.steps-100k:gold"));
+});
+
+test("every achievement has its numbers, a rule text and real cosmetics", () => {
+  const ids = C.achievements.map(a => a.id);
+  assert.deepEqual([...ids].sort(), Object.keys(E.achievements).sort(), "catalog and economy list the same achievements");
+  const cos = new Set(C.cosmetics.map(c => c.id));
+  for (const a of C.achievements) {
+    const cfg = E.achievements[a.id];
+    assert.ok(C.achievementText[cfg.metric], `${a.id} has rule text`);
+    assert.ok(cfg.n > 0 && (cfg.gold > 0 || cfg.essence > 0), `${a.id} has a goal and a reward`);
+    assert.ok(C.achievementAreas.some(x => x.id === a.area), `${a.id} has an area`);
+    assert.ok(a.grants.every(g => cos.has(g)), `${a.id} grants known cosmetics`);
+    assert.ok(E.rarities[a.rarity], `${a.id} has a rarity`);
+  }
+  assert.equal(new Set(C.cosmetics.map(c => c.id)).size, C.cosmetics.length, "cosmetic ids are unique");
+});
+
+test("a streak carried over from history earns trophies only once a game day is all clear", () => {
+  const w = world("2026-09-01", 2); w.game.seed = { streak: 6, best: 40 };
+  const r0 = open(w, at("2026-09-01", 9));
+  assert.ok(!r0.achievements.find(a => a.id === "ach.streak-3").done, "the seed alone earns nothing");
+  doAll(w, "2026-09-01");
+  const r1 = open(w, at("2026-09-01", 21));
+  assert.ok(r1.achievements.find(a => a.id === "ach.streak-7").done, "day one extends the carried streak to 7");
+  assert.ok(!r1.achievements.find(a => a.id === "ach.streak-14").done, "the old best of 40 pays nothing");
 });
