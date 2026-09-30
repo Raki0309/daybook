@@ -1,7 +1,9 @@
-// Hero and gear art. The hero and any gear piece with a layer in hero-data.json (from the art thread,
-// keyed by catalog item ID) are pixel sprites; other items fall back to the placeholder shapes below.
+// Hero and item art from the art thread, keyed by catalog item ID. Worn gear has a layer in hero-data.json;
+// talismans, pouches, consumables, companions, Torrent, bosses and the Golden Seed are icons in items-data.json.
+// Anything not drawn yet falls back to the placeholder shapes below.
 import HERO from "./hero-data.json";
-import { heroGrid, gearGrid, spriteSvg, lookPalette, fitScale } from "./sprite.js";
+import ICONS from "./items-data.json";
+import { heroGrid, gearGrid, spriteSvg, lookPalette, fitScale, crop } from "./sprite.js";
 
 const SHADE = "rgb(0 0 0 / .16)";
 
@@ -16,7 +18,18 @@ export function avatarSvg({ look = DEFAULT_LOOK, equip = {}, size = 128, label =
 }
 
 // True when the art thread has drawn this item.
-export const hasSprite = id => !!HERO.gear[id];
+export const hasSprite = id => !!(HERO.gear[id] || ICONS.items[id]);
+
+const ICON_GRID = {};
+const iconGrid = id => ICONS.items[id] ? (ICON_GRID[id] || (ICON_GRID[id] = crop(ICONS.items[id].rows))) : null;
+
+// Whole scales keep pixels square. A sprite bigger than the box (a 64px companion in a 30px slot) is shrunk to fit.
+function fit(rows, pal, size) {
+  const n = Math.max(rows.length, rows[0].length);
+  if (n <= size) return spriteSvg(rows, pal, { scale: fitScale(rows, size) });
+  const k = size / n, w = Math.round(rows[0].length * k), h = Math.round(rows.length * k);
+  return spriteSvg(rows, pal, { scale: 1 }).replace(/width="\d+" height="\d+"/, `width="${w}" height="${h}"`);
+}
 
 const SLOT_ART = {
   head: c => `<path d="M8 28c0-10 7-18 16-18s16 8 16 18z" fill="${c}"/><rect x="6" y="26" width="36" height="7" rx="3.5" fill="${c}"/><rect x="6" y="26" width="36" height="7" rx="3.5" fill="${SHADE}"/>`,
@@ -30,6 +43,7 @@ const SLOT_ART = {
   scroll: c => `<rect x="12" y="10" width="24" height="28" rx="3" fill="#efe3c2"/><rect x="9" y="7" width="30" height="6" rx="3" fill="${c}"/><rect x="9" y="35" width="30" height="6" rx="3" fill="${c}"/><path d="M17 20h14M17 25h14M17 30h9" stroke="${SHADE}" stroke-width="2"/>`,
   flask: c => `<path d="M20 6h8v8l8 10v14a6 6 0 0 1-6 6H18a6 6 0 0 1-6-6V24l8-10z" fill="#d4dae6"/><path d="M13 27h22v11a5 5 0 0 1-5 5H18a5 5 0 0 1-5-5z" fill="#d23b3b"/><rect x="18" y="3" width="12" height="5" rx="2" fill="#8a5a2b"/>`,
   stone: c => `<path d="M24 5l14 10-4 22-10 6-10-6-4-22z" fill="${c}"/><path d="M24 5v38M10 15l14 8 14-8" stroke="${SHADE}" stroke-width="2" fill="none"/>`,
+  boss: c => `<path d="M10 20l5-12 5 7 4-9 4 9 5-7 5 12z" fill="${c}"/><path d="M12 22h24v8c0 8-5 13-12 13s-12-5-12-13z" fill="${c}"/><path d="M16 29h6M26 29h6" stroke="#1c1f2a" stroke-width="3"/><path d="M12 22h24" stroke="${SHADE}" stroke-width="3"/>`,
   pouch: c => `<path d="M14 16h20l4 22a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4z" fill="${c}"/><path d="M12 12h24v6H12z" fill="${c}"/><path d="M12 18h24" stroke="${SHADE}" stroke-width="3"/><circle cx="24" cy="29" r="4" fill="${SHADE}"/>`,
 };
 const WEAPON_ICON = {
@@ -45,9 +59,12 @@ const WEAPON_ICON = {
   bow: c => `<path d="M12 6q34 18 0 36" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/><path d="M12 6v36" stroke="${SHADE}" stroke-width="1.5"/>`,
   seal: c => `<rect x="14" y="20" width="20" height="22" rx="6" fill="${c}"/><path d="M18 20V8M24 20V5M30 20V9" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`,
 };
+// item is a catalog entry ({id, slot, type, kind}); bosses and currency art pass just {id}.
 export function itemArt(item, color, size = 48) {
   const g = item && gearGrid(HERO, item.id);
-  if (g && g.length) return spriteSvg(g, lookPalette(HERO.palette), { scale: fitScale(g, size) });
-  const f = item.slot === "weapon" ? WEAPON_ICON[item.kind] || WEAPON_ICON.sword : SLOT_ART[item.kind] || SLOT_ART[item.type] || SLOT_ART[item.slot] || SLOT_ART.talisman;
+  if (g && g.length) return fit(g, lookPalette(HERO.palette), size);
+  const ic = iconGrid(item.id);
+  if (ic && ic.length) return fit(ic, ICONS.items[item.id].pal, size);
+  const f = item.slot === "weapon" ? WEAPON_ICON[item.kind] || WEAPON_ICON.sword : SLOT_ART[item.kind] || SLOT_ART[item.type] || SLOT_ART[item.slot] || SLOT_ART[item.id.split(".")[0]] || SLOT_ART.talisman;
   return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true">${f(color)}</svg>`;
 }

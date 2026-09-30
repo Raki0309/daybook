@@ -1472,7 +1472,7 @@ const fv = (f, n) => { const el = f.elements.namedItem(n); return el ? el.value 
 const multiDays = (name, days, label = "Days") => { const on = days || ALL_WD; return `<div class="multi wdays" role="group" aria-label="${label}"><input type="hidden" name="${name}" value="${on.join(",")}">${ALL_WD.map(i => `<button type="button" class="chip" data-act="multi" data-v="${i}" aria-pressed="${on.includes(i)}" aria-label="${wdName(i, "long")}">${wdName(i)}</button>`).join("")}</div>`; };
 const coin = (s = 14) => `<span class="coin">${pixelIcon("rune", pxSize(s))}</span>`;
 const goldAmt = (n, s = 14) => `<span class="gold">${coin(s)}${fmtInt(n)}<span class="sr"> Runes</span></span>`;
-const seed = (s = 14) => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2c3.2 2.5 4.8 5.2 4.8 8a4.8 4.8 0 0 1-9.6 0c0-2.8 1.6-5.5 4.8-8z" fill="var(--gold)"/><path d="M8 5.2v7.4" stroke="var(--gold-ink)" stroke-opacity=".45" stroke-width="1.3"/></svg>`;
+const seed = (s = 14) => `<span class="coin">${pixelIcon("seed", pxSize(s))}</span>`;
 const seedAmt = (n, s = 14) => `<span class="gold">${seed(s)}${fmtInt(n)}<span class="sr"> ${CAT.currencies.essence}</span></span>`;
 const rewardChip = (rw, on) => `<span class="rew${on ? " on" : ""}"><span class="rx">+${rw.xp} XP</span><span class="rg">${coin(12)}${rw.gold}<span class="sr"> Runes</span></span></span>`;
 const heroDoc = () => ({name: "", look: {}, equip: {}, talismans: [], ...(S.hero || {})});
@@ -1753,8 +1753,8 @@ function armoryView(s) {
     h += `</div></section>`;
   }
   if (at === "talismans") {
-    const drops = CAT.items.filter(i => i.type === "pouch" && !i.purchasable);
-    h += `<section class="card"><div class="card-h"><h2>Boss drops</h2></div><div class="list">${drops.map(i => `<div class="li" style="padding:9px 0"><span class="grow t">${esc(i.name)}</span><span class="small muted">${S.inv[i.id] ? "Owned" : esc(bossSource(i))}</span></div>`).join("")}</div><p class="tiny faint" style="margin-top:8px">Boss fights open from level ${Math.min(...Object.values(E.bosses).map(b => b.level))}.</p></section>`;
+    const bosses = CAT.bosses.map(b => ({ ...b, pouch: ITEM[b.drops.find(d => ITEM[d] && ITEM[d].type === "pouch")] })).filter(b => b.pouch);
+    h += `<section class="card"><div class="card-h"><h2>Boss drops</h2></div><div class="list">${bosses.map(b => `<div class="li" style="padding:8px 0;gap:12px"><span class="pet-art sm${s.level >= E.bosses[b.id].level ? "" : " dim"}" style="--r:var(--r-${b.pouch.rarity})">${itemArt(b, E.rarities[b.pouch.rarity].color, 40)}</span><span class="grow t">${esc(b.pouch.name)}<br><span class="tiny faint">${esc(b.name)}, level ${E.bosses[b.id].level}</span></span><span class="small muted">${S.inv[b.pouch.id] ? "Owned" : ""}</span></div>`).join("")}</div><p class="tiny faint" style="margin-top:8px">Boss fights open from level ${Math.min(...Object.values(E.bosses).map(b => b.level))}.</p></section>`;
   }
   h += `<p class="tiny faint">Runes are earned only by completing quests. They can't be bought.</p>`;
   return h + `</div>`;
@@ -1772,7 +1772,7 @@ function itemsView(s, gold) {
     return `<div class="item" style="--r:var(--r-${it.rarity})"><div class="art">${itemArt(it, R.color, 64)}</div><div class="nm">${esc(it.name)}</div><div class="tiny faint">${esc(text)}</div><div class="tiny">${have}</div>${btn}</div>`;
   }).join("");
   h += `</div></section>`;
-  h += `<section class="card"><div class="card-h"><h2>Rekindling</h2></div><p class="small muted">If your streak broke two days ago, the Hero page offers to rekindle it for ${E.rekindle.essence} ${esc(CAT.currencies.essence)}, once every ${E.rekindle.cooldownDays} days. You have ${seedAmt(s.essence, 13)}. Seeds come from weekly bounties and every ${E.levelUp.essenceEvery} levels.</p></section>`;
+  h += `<section class="card"><div class="card-h"><h2>Rekindling</h2></div><div class="row" style="gap:14px;align-items:center"><span class="pet-art">${itemArt({ id: "currency.golden-seed" }, "var(--gold)", 56)}</span><p class="small muted grow">If your streak broke two days ago, the Hero page offers to rekindle it for ${E.rekindle.essence} ${esc(CAT.currencies.essence)}, once every ${E.rekindle.cooldownDays} days. You have ${seedAmt(s.essence, 13)}. Seeds come from weekly bounties and every ${E.levelUp.essenceEvery} levels.</p></div></section>`;
   return h + `</div>`;
 }
 function wardrobeView(s) {
@@ -1824,7 +1824,7 @@ function spiritsView(s) {
       const woke = !!st.awakened[it.id]; const on = st.summoned === it.id; const b = S2.bond[it.id];
       const act = on ? `<span class="pill good">Summoned</span>` : woke ? `<button class="btn sm" data-act="summon" data-id="${it.id}">Summon</button>`
         : aw && aw.id === it.id ? `<span class="pill">Awakening</span>` : `<button class="btn sm ghost" data-act="awaken-start" data-id="${it.id}"${aw ? ` data-confirm="Switch? ${esc(ITEM[aw.id].name)} loses its progress"` : ""}>Start awakening</button>`;
-      return `<div class="li" style="padding:8px 0;gap:12px"><span class="pet-art sm${woke ? "" : " dim"}">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}${woke && b ? ` +${b.level}` : ""}<br><span class="tiny faint">${esc(CAT.rarityNames[it.rarity])}${woke ? "" : " · dormant"}</span></span>${act}</div>`;
+      return `<div class="li" style="padding:8px 0;gap:12px"><span class="pet-art sm${woke ? "" : " dim"}">${itemArt(it, col(it), 40)}</span><span class="grow t">${esc(it.name)}${woke && b ? ` +${b.level}` : ""}<br><span class="tiny faint">${esc(CAT.rarityNames[it.rarity])}${woke ? "" : " · dormant"}</span></span>${act}</div>`;
     }).join("") + `</div></section>`;
   }
   h += `</div><div class="stack">`;
@@ -1832,11 +1832,11 @@ function spiritsView(s) {
   h += `<section class="card"><div class="card-h"><h2>Legends</h2></div><p class="small muted" style="margin-bottom:6px">They join you after a long streak of one kind of quest.</p><div class="list">` + Object.entries(npc).map(([id, n]) => {
     const it = ITEM[id]; const on = st.summoned === id;
     const act = !n.unlocked ? `<span class="pill">${icon("lock", 12, 2.4)}${n.best} / ${n.days}</span>` : on ? `<span class="pill good">Summoned</span>` : `<button class="btn sm" data-act="summon" data-id="${id}">Summon</button>`;
-    return `<div class="li" style="padding:8px 0;gap:12px;align-items:flex-start"><span class="pet-art sm${n.unlocked ? "" : " dim"}" style="--r:var(--r-${it.rarity})">${itemArt(it, col(it), 30)}</span><span class="grow t">${esc(it.name)}<br><span class="tiny faint">${esc(npcGoal(n))}. ${n.cur ? `Now ${n.cur}, best ${n.best}.` : n.best ? `Best ${n.best}.` : ""}</span></span>${act}</div>`;
+    return `<div class="li" style="padding:8px 0;gap:12px;align-items:flex-start"><span class="pet-art sm${n.unlocked ? "" : " dim"}" style="--r:var(--r-${it.rarity})">${itemArt(it, col(it), 40)}</span><span class="grow t">${esc(it.name)}<br><span class="tiny faint">${esc(npcGoal(n))}. ${n.cur ? `Now ${n.cur}, best ${n.best}.` : n.best ? `Best ${n.best}.` : ""}</span></span>${act}</div>`;
   }).join("") + `</div></section>`;
   // Torrent
   const tor = ITEM["mount.torrent"]; const torOk = s.level >= E.stable.torrent.level; const riding = heroDoc().mount === tor.id;
-  h += `<section class="card"><div class="row" style="gap:12px;align-items:center"><span class="pet-art sm${torOk ? "" : " dim"}" style="--r:var(--r-${tor.rarity})">${itemArt(tor, col(tor), 30)}</span><span class="grow t"><b>${esc(tor.name)}</b><br><span class="tiny faint">${torOk ? "Your spectral steed" : `Joins you at level ${E.stable.torrent.level}`}</span></span>${torOk ? `<button class="btn sm${riding ? "" : " pri"}" data-act="ride">${riding ? "Dismount" : "Ride"}</button>` : `<span class="pill">${icon("lock", 12, 2.4)}Level ${E.stable.torrent.level}</span>`}</div></section>`;
+  h += `<section class="card"><div class="row" style="gap:12px;align-items:center"><span class="pet-art sm${torOk ? "" : " dim"}" style="--r:var(--r-${tor.rarity})">${itemArt(tor, col(tor), 40)}</span><span class="grow t"><b>${esc(tor.name)}</b><br><span class="tiny faint">${torOk ? "Your spectral steed" : `Joins you at level ${E.stable.torrent.level}`}</span></span>${torOk ? `<button class="btn sm${riding ? "" : " pri"}" data-act="ride">${riding ? "Dismount" : "Ride"}</button>` : `<span class="pill">${icon("lock", 12, 2.4)}Level ${E.stable.torrent.level}</span>`}</div></section>`;
   // Twin Maiden Husks: ashes for sale
   const sale = GE.shopItems(CAT, "ash", E);
   h += `<section class="card"><div class="card-h"><h2>Twin Maiden Husks</h2></div><div class="items">` + sale.map(it => {

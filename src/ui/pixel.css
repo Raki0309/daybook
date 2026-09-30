@@ -272,6 +272,7 @@ input:focus, select:focus, textarea:focus { outline: none; --ring: var(--gold); 
 .tslot { background: var(--well); border: 0; --ring: var(--r, var(--line)); box-shadow: var(--sunk), var(--ring-out); margin: var(--u); }
 .tslot.empty { border: 0; --ring: var(--line); }
 .pet-art { background: radial-gradient(closest-side, color-mix(in srgb, var(--r, var(--gold)) 26%, transparent), transparent 85%), var(--well); box-shadow: var(--sunk); }
+.pet-art.dim .px-sprite { filter: grayscale(1) brightness(1.35); opacity: .75; }
 .hc-pet, .hc-mount { filter: drop-shadow(0 2px 0 rgb(0 0 0 / .45)); }
 .auth-card .brand { font: 400 30px/1 var(--font-title); }
 .auth-card h1 { font: 400 36px/1.05 var(--font-title); letter-spacing: .01em; }
