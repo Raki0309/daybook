@@ -47,6 +47,8 @@ function mockBackend() {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
   await ctx.route(SB + "/**", r => be.handle(r));
   await ctx.route("wss://**", r => r.abort());
+  // Production builds carry the Turnstile site key; a stand-in hands out tokens.
+  await ctx.route("https://challenges.cloudflare.com/**", r => r.fulfill({ contentType: "text/javascript", body: "let cb;window.turnstile={render:(el,o)=>{cb=o.callback;setTimeout(()=>cb('tok-'+Date.now()),50);return 1},reset:()=>setTimeout(()=>cb('tok-'+Date.now()),50)};" }));
   const p = await ctx.newPage();
   p.on("pageerror", e => errs.push("pageerror: " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/websocket|ERR_|fonts|Failed to load resource/i.test(m.text())) errs.push("console: " + m.text()); });
