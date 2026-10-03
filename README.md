@@ -22,6 +22,12 @@ Deletes are soft (`deleted = true`) so Realtime can filter every change per user
 
 A web app can't read HealthKit, so an iPhone Shortcut sends daily step totals to `POST /rest/v1/rpc/ingest_health?apikey=<publishable key>` (the key sits in the address so the Shortcut needs no headers) with a personal key (`p_token`) and lines like `2026-09-27 10432` (`p_text`). The key is created in Settings › Apple Health; only its SHA-256 hash is stored. The step-by-step Shortcut guide is inside the app. The function is callable without signing in on purpose (the Supabase security advisor flags it); it does nothing without a valid key.
 
+## Demo and CAPTCHA
+
+"Try the demo" on the sign-in screen signs in anonymously (Supabase anonymous sign-ins). `src/demo.js` fills the new account with 30 days of habits, tasks, workouts, food, water, money and steps, dated back from that day and written through the normal document store. Demo accounts can't create an Apple Health key or restore backups; `0003_demo.sql` enforces that in the database and caps a demo account at 400 documents of 64 KB each.
+
+CAPTCHA is Cloudflare Turnstile. Put the public site key in `VITE_TURNSTILE_SITE_KEY` (`.env.production`) and the secret in Supabase under Authentication > Attack Protection. Without a site key the widget is skipped, so deploy the key before switching CAPTCHA on in Supabase.
+
 ## Develop
 
 ```sh

@@ -1,4 +1,4 @@
-import { cloudDb, cloudConfig, account, createHealthToken, healthTokenInfo, signOut } from "../cloud.js";
+import { cloudDb, cloudConfig, account, isDemo, createHealthToken, healthTokenInfo, signOut } from "../cloud.js";
 import { ECONOMY as E } from "../game/economy.js";
 import CAT from "../game/catalog.json";
 import * as GE from "../game/engine.js";
@@ -1310,7 +1310,7 @@ function tSteps() {
 let healthMsg = null;
 function stepImportCard() {
   return `<section class="card span2"><div class="card-h"><h2>Bring in Apple Health steps</h2></div>
-    ${db ? `<div class="row wrap" style="gap:12px;margin-bottom:14px;align-items:center"><p class="small muted grow" style="min-width:220px">${healthInfo && healthInfo.last_used ? `Automatic sync is on. Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "Set up a Shortcut once and your iPhone sends your steps here every evening."}</p><button class="btn ${healthInfo ? "ghost" : "pri"}" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up automatic sync"}</button></div>` : ""}
+    ${db && !isDemo() ? `<div class="row wrap" style="gap:12px;margin-bottom:14px;align-items:center"><p class="small muted grow" style="min-width:220px">${healthInfo && healthInfo.last_used ? `Automatic sync is on. Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "Set up a Shortcut once and your iPhone sends your steps here every evening."}</p><button class="btn ${healthInfo ? "ghost" : "pri"}" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up automatic sync"}</button></div>` : ""}
     <p class="small muted" style="margin-bottom:12px">${db ? "You can also bring steps in by hand." : "Apple only lets apps installed on the iPhone read Health. These two routes get your steps in anyway."} Imported days replace what's already logged for them.</p>
     <div class="grid2" style="gap:14px">
       <div class="stack" style="gap:8px"><div class="label">1 · Paste from a Shortcut</div>
@@ -2246,11 +2246,13 @@ function sSettings() {
     <div class="sh-foot" style="margin-top:4px"><button class="btn pri">Save settings</button></div></form>
     <section class="card" style="margin-top:18px"><div class="card-h"><h2>Look</h2></div><div class="seg g3" role="group" aria-label="Theme">${THEMES.map(([k, l]) => `<button type="button" data-act="theme" data-v="${k}" aria-pressed="${themePick() === k}">${l}</button>`).join("")}</div><p class="small muted" style="margin-top:10px">Night is dark stone and Erdtree gold. Leyndell is the same pieces in pale limestone.</p></section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Adventure</h2><span class="pill">${gameOn() ? "On" : s.game && s.game.start ? "Off" : "Not started"}</span></div><p class="small muted" style="margin-bottom:12px">${gameOn() ? "Your habits, tasks, steps and workouts are quests that earn XP and Runes." : s.game && s.game.start ? "Your hero, Runes and gear are waiting. The days while the game was off count as rest days." : "Create a hero and turn your habits, tasks, steps and workouts into quests."}</p>${gameOn() ? `<button class="btn" data-act="game-settings">Quest settings</button>` : s.game && s.game.start ? `<button class="btn pri" data-act="game-on">Switch the game back on</button>` : `<button class="btn pri" data-act="start-game">Create your hero</button>`}</section>
-    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button><button class="btn ghost" data-act="import">Restore from backup</button></div></section>
-    ${db ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Apple Health</h2><span class="pill" id="hl-state">${healthInfo === undefined ? "Checking…" : healthInfo ? "Connected" : "Not set up"}</span></div><p class="small muted" style="margin-bottom:12px">${healthInfo && healthInfo.last_used ? `Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "An iPhone Shortcut sends your steps from Apple Health every evening."}</p><button class="btn" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up iPhone sync"}</button></section>
+    <section class="card" style="margin-top:14px"><div class="card-h"><h2>Your data</h2>${syncBadge()}</div><p class="small muted" style="margin-bottom:12px">${db ? "Everything saves to your account, so it's the same on your phone and computer." : "This copy saves in this browser only."} Keep a backup file now and then. To move data from the old Daybook page, download a backup there and restore it here.</p><div class="row wrap"><button class="btn" data-act="export">Download backup</button>${isDemo() ? "" : `<button class="btn ghost" data-act="import">Restore from backup</button>`}</div></section>
+    ${db && isDemo() ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Demo</h2><span class="pill">Example data</span></div><p class="small muted" style="margin-bottom:12px">You're trying Daybook with a month of example data. Change anything you like. Apple Health sync and restoring backups need your own account.</p><div class="row wrap"><button class="btn pri" data-act="demo-signup">Create my account</button><button class="btn ghost" data-act="sign-out" data-confirm="Tap again to leave the demo">Leave the demo</button></div></section>` : ""}
+    ${db && !isDemo() ? `<section class="card" style="margin-top:14px"><div class="card-h"><h2>Apple Health</h2><span class="pill" id="hl-state">${healthInfo === undefined ? "Checking…" : healthInfo ? "Connected" : "Not set up"}</span></div><p class="small muted" style="margin-bottom:12px">${healthInfo && healthInfo.last_used ? `Last steps received ${esc(new Date(healthInfo.last_used).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"}))}.` : "An iPhone Shortcut sends your steps from Apple Health every evening."}</p><button class="btn" data-act="health-setup">${healthInfo ? "Shortcut setup" : "Set up iPhone sync"}</button></section>
     <section class="card" style="margin-top:14px"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin-bottom:12px">Signed in as ${esc((account.user && account.user.email) || "")}.</p><button class="btn ghost" data-act="sign-out" data-confirm="Tap again to sign out">Sign out</button></section>` : ""}`;
 }
 let healthInfo, healthToken = null, healthBusy = false;
+const DEMO_ONLY = "That needs your own account. Create one from Settings.";
 async function refreshHealthInfo() { try { healthInfo = await healthTokenInfo() || null; } catch { healthInfo = null; } if (stack.length) paintSheet(); if (ui.tab === "train") scheduleRender(); }
 function sHealth() {
   // The public app key rides in the address, so the Shortcut needs no headers.
@@ -2406,11 +2408,12 @@ function setRadio(el) {
 }
 const A = {
   close: () => closeSheet(),
-  settings: () => { openSheet(sSettings(), true); if (db) refreshHealthInfo(); },
+  settings: () => { openSheet(sSettings(), true); if (db && !isDemo()) refreshHealthInfo(); },
   theme: e => { setSettings({theme: e.dataset.v}); applyTheme(); paintSheet(); },
-  "health-setup": () => { healthToken = null; openSheet(sHealth(), true); refreshHealthInfo(); },
+  "health-setup": () => { if (isDemo()) { toast(DEMO_ONLY); return; } healthToken = null; openSheet(sHealth(), true); refreshHealthInfo(); },
   "health-refresh": () => refreshHealthInfo(),
   "health-token": async () => {
+    if (isDemo()) { toast(DEMO_ONLY); return; }
     healthBusy = true; paintSheet();
     try { healthToken = await createHealthToken(); await refreshHealthInfo(); }
     catch (e) { console.warn(e); toast("Couldn't create a key. Check your connection and try again."); }
@@ -2498,8 +2501,10 @@ const A = {
     openSheet(sExportText(json));
   },
   "copy-export": async () => { const t = $("#exp-text"); try { await navigator.clipboard.writeText(t.value); toast("Copied"); } catch { t.select(); toast("Selected. Copy it with your keyboard or long-press."); } },
-  import: () => openSheet(sImport()),
+  import: () => { if (isDemo()) { toast(DEMO_ONLY); return; } openSheet(sImport()); },
+  "demo-signup": async () => { try { sessionStorage.setItem("daybook:auth-mode", "signup"); } catch {} try { if (db) await db.close(); } catch {} await signOut(); },
   "do-import": async () => {
+    if (isDemo()) { toast(DEMO_ONLY); return; }
     let text = $("#imp-text").value.trim(); const f = $("#imp-file").files[0];
     if (!text && f) text = await f.text();
     if (!text) { toast("Choose a backup file or paste its text"); return; }
