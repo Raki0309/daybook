@@ -4,6 +4,20 @@ import "./ui/pixel.css";
 import { supabase, startDb } from "./cloud.js";
 import { seedDemo } from "./demo.js";
 import { mountCaptcha, captchaToken } from "./captcha.js";
+import { registerSW } from "virtual:pwa-register";
+
+// An installed copy keeps running the build it cached, so a phone can sit on an old
+// sign-in screen long after a deploy. Look for a new build at start and whenever the
+// app comes back to the front; autoUpdate then reloads into it.
+registerSW({
+  immediate: true,
+  onRegisteredSW(_url, reg) {
+    if (!reg) return;
+    const check = () => { if (navigator.onLine) reg.update().catch(() => {}); };
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+    setInterval(check, 30 * 60e3);
+  },
+});
 
 const $ = s => document.querySelector(s);
 let mode = "signin";

@@ -54,6 +54,8 @@ function seed(be) {
   const b = await chromium.launch(); const errs = []; const be = mockBackend(); seed(be);
   const ctx = await b.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 2, colorScheme: process.env.DARK ? "dark" : "light", serviceWorkers: "block" });
   await ctx.route(SB + "/**", r => be.handle(r)); await ctx.route("wss://**", r => r.abort());
+  // Production builds carry the Turnstile site key; a stand-in hands out tokens.
+  await ctx.route("https://challenges.cloudflare.com/**", r => r.fulfill({ contentType: "text/javascript", body: "let cb;window.turnstile={render:(el,o)=>{cb=o.callback;setTimeout(()=>cb('tok-'+Date.now()),50);return 1},reset:()=>setTimeout(()=>cb('tok-'+Date.now()),50)};" }));
   if (process.env.FONTS) {
     const FD = process.env.FONTS; const map = Object.fromEntries(fs.readFileSync(FD + "/map.txt", "utf8").trim().split("\n").map(l => l.split(" ")));
     await ctx.route("https://fonts.googleapis.com/**", r => r.fulfill({ status: 200, contentType: "text/css", headers: { "access-control-allow-origin": "*" }, body: fs.readFileSync(FD + "/fonts.css") }));
