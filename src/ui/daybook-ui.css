@@ -19,6 +19,7 @@
   --r-common: #a7a092; --r-uncommon: #7fae5f; --r-rare: #5d8fd0; --r-epic: #a47ad6; --r-legendary: #e0ad48; --r-mythic: #d4473a;
   --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23141210'/%3E%3Cpath fill='%230c0a08' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23191612' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23100e0b' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
   --scene: url("erdtree-night.png"); --scene-fill: url("erdtree-night-fill.png"); --sky: #07060a;
+  --backdrop: url("abyssal-forest.png"); --backdrop-x: 50%; --backdrop-veil: rgb(15 13 11 / .2);
   --font-title: "Jacquarda Bastarda 9", "UnifrakturMaguntia", Georgia, serif;
   --font-d: "Pixelify Sans", ui-monospace, monospace;
   --font-b: "Pixelify Sans", ui-monospace, monospace;
@@ -40,6 +41,7 @@
   --r-common: #8a8272; --r-uncommon: #4f8a34; --r-rare: #3a6db3; --r-epic: #7d52b3; --r-legendary: #b07f1c; --r-mythic: #b0321f;
   --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23e6dbc0'/%3E%3Cpath fill='%23d5c7a5' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23efe6d0' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23dccfb1' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
   --scene: url("erdtree-day.png"); --scene-fill: url("erdtree-day-fill.png"); --sky: #cfd8d8;
+  --backdrop: url("leyndell.png"); --backdrop-x: 68%; --backdrop-veil: rgb(244 237 219 / .25);
   color-scheme: light;
 }
 /* The app's own switch: Leyndell when the system is light, unless the user picked dark. */
@@ -59,13 +61,20 @@
     --r-common: #8a8272; --r-uncommon: #4f8a34; --r-rare: #3a6db3; --r-epic: #7d52b3; --r-legendary: #b07f1c; --r-mythic: #b0321f;
     --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23e6dbc0'/%3E%3Cpath fill='%23d5c7a5' d='M0 0h16v1H0zM0 8h16v1H0zM7 1h1v7H7zM15 9h1v7h-1z'/%3E%3Cpath fill='%23efe6d0' d='M0 1h7v1H0zM8 9h7v1H8zM0 9h7v1H0zM8 1h7v1H8z'/%3E%3Cpath fill='%23dccfb1' d='M3 5h1v1H3zM11 13h1v1h-1zM12 4h1v1h-1zM4 12h1v1H4z'/%3E%3C/svg%3E");
     --scene: url("erdtree-day.png"); --scene-fill: url("erdtree-day-fill.png"); --sky: #cfd8d8;
+    --backdrop: url("leyndell.png"); --backdrop-x: 68%; --backdrop-veil: rgb(244 237 219 / .25);
     color-scheme: light;
   }
 }
 /* A pinned .th-night inside a light page stays Night (the :root, .th-night block above). */
 
 /* ---------- ground ---------- */
-.px-app { background: var(--bg) var(--tile) 0 0 / 64px 64px; color: var(--ink); font: 16px/1.45 var(--font-b); image-rendering: pixelated; }
+.px-app { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font-b); image-rendering: pixelated; }
+/* the theme's landscape (abyssal forest for Night, Leyndell for Leyndell) held still behind the page, scaled up crisp
+   to cover the screen; on a phone it shows the slice at --backdrop-x. A thin veil keeps loose text readable. */
+.px-app::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; image-rendering: pixelated;
+  background: linear-gradient(var(--backdrop-veil), var(--backdrop-veil)), var(--backdrop) var(--backdrop-x) 50% / cover no-repeat, var(--bg);
+}
 .px-app canvas, .px-app img { image-rendering: pixelated; }
 .px-scene { background: var(--scene) right bottom / auto 128px no-repeat, var(--scene-fill) left bottom / auto 128px repeat-x, var(--sky); min-height: 128px; }
 .px-scene .px-title { text-shadow: 0 2px 0 var(--sky), 0 0 10px var(--sky); }
