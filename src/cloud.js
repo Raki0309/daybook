@@ -11,6 +11,8 @@ export const cloudConfig = { url: URL_ || "", key: KEY || "" };
 export const supabase = URL_ && KEY ? createClient(URL_, KEY, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
 
 export const account = { user: null };
+// Demo visitors sign in anonymously; features tied to a real person stay off for them.
+export const isDemo = () => !!(account.user && account.user.is_anonymous);
 let dbInstance = null;
 export const cloudDb = () => dbInstance;
 
